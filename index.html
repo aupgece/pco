@@ -956,33 +956,53 @@
   body.admin-mode td.editable-cell:hover { background:rgba(139,105,20,0.06); outline:1px dashed rgba(139,105,20,0.3); }
 
   /* Cell editor box */
-  .cell-editor-box {
+  .cell-editor-box, .cell-editor {
     position:fixed; z-index:9999;
     background:var(--paper); border:1px solid var(--faint);
     border-top:2px solid var(--accent);
     box-shadow:0 4px 20px rgba(26,20,16,0.2);
-    padding:0.8rem; min-width:220px;
+    padding:0.8rem; min-width:240px;
   }
-  .cell-editor-box input, .cell-editor-box select {
+  .cell-editor label {
+    display:block;
+    font-family:'Source Code Pro', monospace; font-size:0.6rem;
+    color:var(--muted); text-transform:uppercase; letter-spacing:0.07em;
+    margin-bottom:0.3rem;
+  }
+  .cell-editor-box input, .cell-editor-box select,
+  .cell-editor input, .cell-editor select {
     width:100%; background:var(--parchment);
     border:1px solid var(--faint); border-bottom:2px solid var(--rule);
     padding:0.45rem 0.65rem; color:var(--ink);
     font-family:'Source Sans 3', sans-serif; font-size:0.85rem;
-    outline:none; margin-bottom:0.5rem;
+    outline:none; margin-bottom:0.5rem; box-sizing:border-box;
   }
-  .cell-editor-box input:focus, .cell-editor-box select:focus { border-bottom-color:var(--accent); }
-  .cell-editor-actions { display:flex; gap:0.4rem; }
-  .cell-editor-actions button {
-    flex:1; padding:0.4rem; font-size:0.75rem;
+  .cell-editor-box input:focus, .cell-editor-box select:focus,
+  .cell-editor input:focus, .cell-editor select:focus { border-bottom-color:var(--accent); }
+  .cell-editor-actions, .cell-editor-btns { display:flex; gap:0.4rem; margin-top:0.3rem; }
+  .cell-editor-actions button, .cell-editor-btns button {
+    flex:1; padding:0.4rem; font-size:0.72rem;
     font-family:'Source Code Pro', monospace;
     border:1px solid var(--faint); background:transparent;
     cursor:pointer; color:var(--muted); transition:background 0.1s;
   }
-  .cell-editor-actions button:hover { background:var(--parchment); }
-  .cell-editor-actions button.save-ce { border-color:var(--accent); color:var(--accent); }
-  .cell-editor-actions button.save-ce:hover { background:rgba(61,90,128,0.08); }
-  .cell-editor-actions button.del-ce { border-color:rgba(139,32,32,0.4); color:#a05050; }
-  .cell-editor-actions button.del-ce:hover { background:rgba(139,32,32,0.06); }
+  .cell-editor-actions button:hover, .cell-editor-btns button:hover { background:var(--parchment); }
+  /* Save button */
+  .cell-editor-actions button.save-ce, .cell-editor-btns button.ce-save {
+    border-color:var(--accent); color:var(--accent);
+  }
+  .cell-editor-actions button.save-ce:hover, .cell-editor-btns button.ce-save:hover {
+    background:rgba(61,90,128,0.08);
+  }
+  /* Delete button */
+  .cell-editor-actions button.del-ce, .cell-editor-btns button.ce-delete {
+    border-color:rgba(139,32,32,0.4); color:#a05050; flex:1.5;
+  }
+  .cell-editor-actions button.del-ce:hover, .cell-editor-btns button.ce-delete:hover {
+    background:rgba(139,32,32,0.06);
+  }
+  /* Cancel button */
+  .cell-editor-btns button.ce-cancel { color:var(--muted); }
 
   /* Chips editor */
   .chips-row { display:flex; gap:0.4rem; flex-wrap:wrap; align-items:center; margin-bottom:0.5rem; }
@@ -1005,6 +1025,28 @@
   /* Add course row — admin only */
   .add-course-tr { display:none; }
   body.admin-mode .add-course-tr { display:table-row; }
+  .add-course-row {
+    display:flex; gap:0.4rem; flex-wrap:wrap; align-items:center;
+    padding:0.5rem 0.6rem;
+    background:rgba(61,90,128,0.04);
+    border-top:1px dashed var(--rule);
+  }
+  .add-course-row input {
+    background:var(--paper); border:1px solid var(--faint);
+    border-bottom:1px solid var(--rule);
+    padding:0.35rem 0.55rem; color:var(--ink);
+    font-family:'Source Sans 3', sans-serif; font-size:0.8rem;
+    outline:none; min-width:60px; flex:1; box-sizing:border-box;
+  }
+  .add-course-row input:focus { border-bottom-color:var(--accent); }
+  .add-course-btn {
+    background:var(--ink); color:var(--cream);
+    border:none; padding:0.38rem 0.75rem;
+    font-size:0.72rem; font-family:'Source Code Pro', monospace;
+    cursor:pointer; letter-spacing:0.03em; white-space:nowrap;
+    transition:background 0.15s; flex-shrink:0;
+  }
+  .add-course-btn:hover { background:var(--ink2); }
   .add-course-form .ac-row { display:flex; gap:0.5rem; flex-wrap:wrap; }
   .add-course-form input, .add-course-form select {
     background:var(--paper); border:1px solid var(--faint);
