@@ -1189,56 +1189,62 @@ function saveDataToFirebase(){
 // ── LOAD COURSE DATA FROM FIREBASE ON PAGE LOAD ──────────────────────────────
 function loadDataFromFirebase(){
   if(!fbDb){ console.warn('Firebase not available — using HTML defaults for course data.'); return; }
-  fbDb.ref(FB_DATA_PATH).once('value')
-    .then(function(snap){
-      var saved = snap.val();
-      if(!saved){ console.log('Firebase: no saved course data, using HTML defaults.'); return; }
-      // Merge saved keys into data (preserves any keys not in Firebase)
-      Object.keys(saved).forEach(function(k){
-        if(data[k]){
-          data[k].rows = saved[k].rows || data[k].rows;
-          if(saved[k].sections) data[k].sections = saved[k].sections;
-          if(saved[k].title) data[k].title = saved[k].title;
-          if(saved[k].sub)   data[k].sub   = saved[k].sub;
-        }
-      });
-      console.log('Firebase: course data loaded');
-    })
-    .catch(function(err){
-      console.warn('Firebase course load error:', err);
+  fbDb.ref(FB_DATA_PATH).on('value', function(snap){
+    var saved = snap.val();
+    if(!saved){ console.log('Firebase: no saved course data, using HTML defaults.'); return; }
+    // Merge saved keys into data (preserves any keys not in Firebase)
+    Object.keys(saved).forEach(function(k){
+      if(data[k]){
+        // Deeply merge to ensure all properties are updated
+        if(saved[k].rows) data[k].rows = JSON.parse(JSON.stringify(saved[k].rows));
+        if(saved[k].sections) data[k].sections = JSON.parse(JSON.stringify(saved[k].sections));
+        if(saved[k].title) data[k].title = saved[k].title;
+        if(saved[k].sub)   data[k].sub   = saved[k].sub;
+      } else {
+        // If the key doesn't exist in local defaults, add it from Firebase
+        data[k] = saved[k];
+      }
     });
+    console.log('Firebase: course data updated');
+    // Refresh the UI if a modal is open or if in curriculum view
+    if (typeof currentOpenKey !== 'undefined' && currentOpenKey) {
+      refreshCurrentView(currentOpenKey);
+    } else if (typeof activeCurriculum !== 'undefined' && activeCurriculum) {
+      refreshCurrentView();
+    }
+  }, function(err){
+    console.warn('Firebase course load error:', err);
+  });
 }
 
 // ── LOAD HEADER FROM FIREBASE ON PAGE LOAD ──────────────────────────────────
 function loadHeaderFromFirebase() {
   if(!fbDb){ console.warn('Firebase not available — using HTML defaults for header.'); return; }
-  fbDb.ref(FB_PATH).once('value')
-    .then(function(snap) {
-      var saved = snap.val();
-      if (!saved) {
-        console.log('Firebase: no saved header yet, using HTML defaults.');
-        return;
-      }
-      console.log('Firebase: loaded header data', saved);
+  fbDb.ref(FB_PATH).on('value', function(snap) {
+    var saved = snap.val();
+    if (!saved) {
+      console.log('Firebase: no saved header yet, using HTML defaults.');
+      return;
+    }
+    console.log('Firebase: loaded header data', saved);
 
-      // 1. Apply to DOM
-      applyHeaderToDom(saved);
+    // 1. Update DOM
+    applyHeaderToDom(saved);
 
-      // 2. Sync in-memory objects so admin panel reflects saved values
-      if (saved.badge    !== undefined) headerData.badge    = saved.badge;
-      if (saved.title1   !== undefined) headerData.title1   = saved.title1;
-      if (saved.title2   !== undefined) headerData.title2   = saved.title2;
-      if (saved.subtitle !== undefined) headerData.subtitle = saved.subtitle;
-      if (Array.isArray(saved.stats))   headerData.stats    = saved.stats;
-      if (saved.landingCard) {
-        if (saved.landingCard.title !== undefined) landingCard.title = saved.landingCard.title;
-        if (saved.landingCard.desc  !== undefined) landingCard.desc  = saved.landingCard.desc;
-        if (Array.isArray(saved.landingCard.chips)) landingCard.chips = saved.landingCard.chips;
-      }
-    })
-    .catch(function(err) {
-      console.warn('Firebase load error:', err);
-    });
+    // 2. Sync in-memory objects so admin panel reflects saved values
+    if (saved.badge    !== undefined) headerData.badge    = saved.badge;
+    if (saved.title1   !== undefined) headerData.title1   = saved.title1;
+    if (saved.title2   !== undefined) headerData.title2   = saved.title2;
+    if (saved.subtitle !== undefined) headerData.subtitle = saved.subtitle;
+    if (Array.isArray(saved.stats))   headerData.stats    = saved.stats;
+    if (saved.landingCard) {
+      if (saved.landingCard.title !== undefined) landingCard.title = saved.landingCard.title;
+      if (saved.landingCard.desc  !== undefined) landingCard.desc  = saved.landingCard.desc;
+      if (Array.isArray(saved.landingCard.chips)) landingCard.chips = saved.landingCard.chips;
+    }
+  }, function(err) {
+    console.warn('Firebase load error:', err);
+  });
 }
 
 // ── SAVE HEADER TO FIREBASE ─────────────────────────────────────────────────
@@ -1264,6 +1270,63 @@ function saveHeaderToFirebase() {
       console.error('Firebase save error:', err);
       alert('⚠ Firebase save failed:\n' + err.message + '\n\nCheck your Firebase config in the HTML file.');
     });
+}
+
+// ── SAVE CURRICULA TO FIREBASE ───────────────────────────────────────────────
+function saveCurriculaToFirebase(){
+  if(!fbDb){ console.warn('Firebase not available — curricula not saved remotely.'); return; }
+  fbDb.ref('pco_curricula').set(curricula)
+    .then(function(){ console.log('Curricula saved to Firebase'); })
+    .catch(function(err){
+      console.error('Firebase curricula save error:', err);
+      alert('⚠ Firebase save failed:\n' + err.message);
+    });
+}
+
+// ── LOAD CURRICULA FROM FIREBASE ─────────────────────────────────────────────
+function loadCurriculaFromFirebase(){
+  if(!fbDb){ console.warn('Firebase not available — using HTML defaults for curricula.'); return; }
+  fbDb.ref('pco_curricula').on('value', function(snap){
+    var saved = snap.val();
+    if(!saved || !Array.isArray(saved)){ console.log('Firebase: no saved curricula, using HTML defaults.'); return; }
+    curricula.length = 0;
+    saved.forEach(function(c){ curricula.push(c); });
+    var el = document.getElementById('curriculaCount');
+    if(el) el.textContent = curricula.length + (curricula.length===1?' Curriculum':' Curricula');
+    console.log('Firebase: curricula loaded');
+    if(document.getElementById('curriculaOverlay').classList.contains('open')){
+      renderCurriculaList();
+    }
+  }, function(err){ console.warn('Firebase curricula load error:', err); });
+}
+
+// ── SAVE NOTES TO FIREBASE ───────────────────────────────────────────────────
+function saveNotesToFirebase(){
+  if(!fbDb){ return; }
+  var el = document.getElementById('notesBody');
+  var titleEl = document.getElementById('notesPanelTitleText');
+  if(!el) return;
+  fbDb.ref('pco_notes').set({
+    html: el.innerHTML,
+    title: titleEl ? titleEl.textContent : ''
+  })
+    .then(function(){ console.log('Notes saved to Firebase'); })
+    .catch(function(err){ console.warn('Firebase notes save error:', err); });
+}
+
+// ── LOAD NOTES FROM FIREBASE ─────────────────────────────────────────────────
+function loadNotesFromFirebase(){
+  if(!fbDb){ return; }
+  fbDb.ref('pco_notes').on('value', function(snap){
+    var saved = snap.val();
+    if(!saved) return;
+    var el = document.getElementById('notesBody');
+    var titleEl = document.getElementById('notesPanelTitleText');
+    if(el && saved.html !== undefined && document.activeElement !== el) el.innerHTML = saved.html;
+    if(titleEl && saved.title && !titleEl.querySelector('input')) titleEl.textContent = saved.title;
+    updateNotesPanelState();
+    console.log('Firebase: notes loaded');
+  }, function(err){ console.warn('Firebase notes load error:', err); });
 }
 </script>
 </head>
@@ -5297,13 +5360,15 @@ function openModal(key){
   '</div>';
 
   if(d.sections){
+    var _rowOffset = 0;
     d.sections.forEach(function(s,si){
       html+=`<div class="sem-label">
         <span class="section-label-edit" ondblclick="inlineEditSectionLabel(event,'${key}',${si})">${s.label}</span>
         <span class="sem-badge">${s.rows.length} courses</span>
         ${adminMode?'<button class="admin-btn danger" style="font-size:0.62rem;padding:0.18rem 0.45rem;margin-left:auto" onclick="deleteSubSec(\''+key+'\','+si+')">🗑 Remove</button>':''}
       </div>`;
-      html+=buildTable(s.rows, '', key);
+      html+=buildTable(s.rows, '', key, _rowOffset);
+      _rowOffset += s.rows.length;
     });
   } else {
     html+=buildTable(d.rows, '', key);
@@ -5319,7 +5384,8 @@ function quickAddSubSection(k){
   if(!data[k]) return;
   if(!data[k].sections) data[k].sections=[];
   data[k].sections.push({label:lbl.trim(), rows:[]});
-  flashSaved();
+  saveDataToFirebase();
+  flashSaved('✓ Saved to Firebase');
   openModal(k);
 }
 
@@ -5340,7 +5406,8 @@ function inlineEditSectionLabel(event, k, si){
     newSpan.ondblclick = function(e){ inlineEditSectionLabel(e,k,si); };
     newSpan.textContent = val;
     inp.replaceWith(newSpan);
-    flashSaved();
+    saveDataToFirebase();
+    flashSaved('✓ Saved to Firebase');
   }
   inp.addEventListener('blur', save);
   inp.addEventListener('keydown', function(e){ if(e.key==='Enter') save(); if(e.key==='Escape'){ inp.value=cur; save(); } });
@@ -5774,7 +5841,8 @@ function saveApcCard(ci){
   c.cards = document.getElementById('apc_cardkeys_'+ci).value.split(',').map(function(s){return s.trim();}).filter(Boolean);
   document.getElementById('curriculaCount').textContent = curricula.length + (curricula.length===1?' Curriculum':' Curricula');
   searchIndex = buildSearchIndex();
-  flashSaved();
+  saveCurriculaToFirebase();
+  flashSaved('✓ Saved to Firebase');
   alert('Curriculum "'+c.title+'" saved.');
 }
 function deleteApcCard(ci){
@@ -5782,7 +5850,8 @@ function deleteApcCard(ci){
   curricula.splice(ci,1);
   document.getElementById('curriculaCount').textContent = curricula.length + (curricula.length===1?' Curriculum':' Curricula');
   searchIndex = buildSearchIndex();
-  flashSaved();
+  saveCurriculaToFirebase();
+  flashSaved('✓ Saved to Firebase');
   switchApTab('curricula');
 }
 function addNewCurriculum(){
@@ -5802,7 +5871,8 @@ function addNewCurriculum(){
   curricula.push(nc);
   document.getElementById('curriculaCount').textContent = curricula.length + (curricula.length===1?' Curriculum':' Curricula');
   searchIndex = buildSearchIndex();
-  flashSaved();
+  saveCurriculaToFirebase();
+  flashSaved('✓ Saved to Firebase');
   switchApTab('curricula');
 }
 
@@ -5858,7 +5928,8 @@ function saveBlockMeta(k){
   if(t) d2.title = t.value;
   if(s) d2.sub = s.value;
   document.querySelectorAll('.meta-edit-panel').forEach(function(el){ el.remove(); });
-  flashSaved();
+  saveDataToFirebase();
+  flashSaved('✓ Saved to Firebase');
   refreshCurrentView(k);
   switchApTab('sections');
 }
@@ -5893,13 +5964,15 @@ function saveSubSecLabel(k,si){
   var inp = document.getElementById('mss_'+k+'_'+si);
   if(!inp||!data[k]||!data[k].sections) return;
   data[k].sections[si].label = inp.value;
-  flashSaved();
+  saveDataToFirebase();
+  flashSaved('✓ Saved to Firebase');
 }
 function deleteSubSec(k,si){
   if(!confirm('Delete sub-section "'+(data[k].sections[si]||{}).label+'"? Its '+((data[k].sections[si]||{rows:[]}).rows.length)+' rows will also be removed.')) return;
   data[k].sections.splice(si,1);
   document.querySelectorAll('.meta-edit-panel').forEach(function(el){ el.remove(); });
-  flashSaved();
+  saveDataToFirebase();
+  flashSaved('✓ Saved to Firebase');
   refreshCurrentView(k);
   manageSubSections(k);
 }
@@ -5910,7 +5983,8 @@ function addSubSection(k){
   if(!data[k].sections) data[k].sections = [];
   data[k].sections.push({label:inp.value.trim(), rows:[]});
   document.querySelectorAll('.meta-edit-panel').forEach(function(el){ el.remove(); });
-  flashSaved();
+  saveDataToFirebase();
+  flashSaved('✓ Saved to Firebase');
   manageSubSections(k);
 }
 function deleteBlock(k){
@@ -5923,7 +5997,8 @@ function deleteBlock(k){
   });
   delete cardMeta[k];
   searchIndex = buildSearchIndex();
-  flashSaved();
+  saveDataToFirebase();
+  flashSaved('✓ Saved to Firebase');
   switchApTab('sections');
 }
 
@@ -5978,7 +6053,9 @@ function createNewBlock(){
   });
   document.getElementById('curriculaCount').textContent = curricula.length + (curricula.length===1?' Curriculum':' Curricula');
   searchIndex = buildSearchIndex();
-  flashSaved();
+  saveDataToFirebase();
+  saveCurriculaToFirebase();
+  flashSaved('✓ Saved to Firebase');
   alert('Block "'+key+'" created! Open the curricula view to see it.');
   switchApTab('newdata');
 }
@@ -6148,8 +6225,12 @@ function addCourse(semKey){
   if(!code||!title){ alert('Course Code and Title are required.'); return; }
   var d = data[semKey]; if(!d) return;
   var newRow = [code, title, pre, crhrs, area];
-  if(d.sections){ d.sections[d.sections.length-1].rows.push(newRow); }
-  else { d.rows.push(newRow); }
+  if(d.sections && d.sections.length > 0){ 
+    d.sections[d.sections.length-1].rows.push(newRow); 
+  } else { 
+    if(!d.rows) d.rows = [];
+    d.rows.push(newRow); 
+  }
   refreshCurrentView(semKey);
   saveDataToFirebase();
   flashSaved('✓ Saved to Firebase');
@@ -6167,7 +6248,8 @@ function saveMetaEdit(semKey){
   if(t) d.title = t.value;
   if(s) d.sub   = s.value;
   refreshCurrentView(semKey);
-  flashSaved();
+  saveDataToFirebase();
+  flashSaved('✓ Saved to Firebase');
 }
 
 // ── REFRESH CURRENT VIEW ──────────────────────────────────────────────────────
@@ -6254,6 +6336,7 @@ function saveNotesContent(){
   var el=document.getElementById('notesBody');
   if(!el) return;
   try{ localStorage.setItem('pco2_notes_html', el.innerHTML); }catch(e){}
+  saveNotesToFirebase();
   updateNotesPanelState();
 }
 
@@ -6293,7 +6376,8 @@ function editPanelTitle(){
     var val=inp.value.trim()||cur;
     span.textContent=val;
     try{ localStorage.setItem('pco2_panel_title', val); }catch(e){}
-    flashSaved();
+    saveNotesToFirebase();
+    flashSaved('✓ Saved to Firebase');
   }
   inp.addEventListener('blur', save);
   inp.addEventListener('keydown',function(e){
@@ -6319,7 +6403,7 @@ function loadNotesContent(){
   updateNotesPanelState();
 }
 
-document.addEventListener('DOMContentLoaded', function(){ loadNotesContent(); loadPanelTitle(); });
+document.addEventListener('DOMContentLoaded', function(){ loadNotesContent(); loadPanelTitle(); loadNotesFromFirebase(); });
 
 // ── Programme → Curriculum map (per year) ────────────────────────────────────
 var PROG_CURR_MAP = {
@@ -6850,6 +6934,7 @@ function exportData(){
 // ── INIT: Load header from Firebase after all scripts/variables are ready ──
 loadHeaderFromFirebase();
 loadDataFromFirebase();
+loadCurriculaFromFirebase();
 </script>
 
 </body>
