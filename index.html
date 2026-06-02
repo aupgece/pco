@@ -1412,7 +1412,7 @@ function loadNotesFromFirebase(){
         <div class="parent-card-inner" style="flex-wrap:wrap;gap:1rem;">
           <div class="parent-card-icon">📅</div>
           <div class="parent-card-text" style="flex:1;min-width:200px;">
-            <h2>Session Course View</h2>
+            <h2>Course initiation Semester-wise</h2>
             <p>Select a session to view all courses being taught across every programme for that semester period.</p>
             <div class="parent-card-chips" style="margin-top:0.8rem;align-items:center;gap:0.6rem;flex-wrap:wrap;">
               <label style="font-family:'Source Code Pro',monospace;font-size:0.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;">Session:</label>
@@ -1444,15 +1444,14 @@ function loadNotesFromFirebase(){
         </div>
       </div>
 
-      <!-- TIMETABLE CARD (coming soon) -->
-      <div class="parent-card coming-soon">
+      <!-- TIMETABLE CARD -->
+      <div class="parent-card" onclick="window.open('tb.html','_blank')">
         <div class="parent-card-inner">
           <div class="parent-card-icon">🗓️</div>
           <div class="parent-card-text">
             <h2>Timetable</h2>
             <p>Weekly class schedules for all programmes and semesters. View room allocations, faculty assignments, and session timings.</p>
             <div class="parent-card-chips">
-              <span class="coming-soon-badge">⏳ Coming Soon</span>
               <span class="chip">All Programmes</span>
               <span class="chip">Room · Faculty · Timing</span>
             </div>
@@ -1460,17 +1459,15 @@ function loadNotesFromFirebase(){
         </div>
       </div>
 
-      <!-- GRADE REPORTS CARD (coming soon) -->
-      <div class="parent-card coming-soon">
+      <!-- GRADE REPORTS CARD -->
+      <div class="parent-card" onclick="window.open('gr.html','_blank')">
         <div class="parent-card-inner">
           <div class="parent-card-icon">📊</div>
           <div class="parent-card-text">
             <h2>Grade Reports</h2>
-            <p>Semester-wise academic performance reports. Aggregate grade distributions, pass/fail statistics, and historical trends by course and programme.</p>
+            <p>Semester-wise academic performance reports.</p>
             <div class="parent-card-chips">
-              <span class="coming-soon-badge">⏳ Coming Soon</span>
-              <span class="chip">Grade Distribution</span>
-              <span class="chip">Pass / Fail Stats</span>
+              <span class="chip">Live</span>
             </div>
           </div>
         </div>
