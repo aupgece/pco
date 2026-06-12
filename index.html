@@ -1100,8 +1100,8 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
 </style>
 
 <!-- Firebase SDK -->
-<script src="./Coordinator Office Central Database — Air University_files/firebase-app-compat.js.download"></script>
-<script src="./Coordinator Office Central Database — Air University_files/firebase-database-compat.js.download"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 
 <script>
 // ── FIREBASE CONFIGURATION ──────────────────────────────────────────────────
@@ -1187,9 +1187,11 @@ function applyHeaderToDom(h) {
 }
 
 // ── SAVE COURSE DATA TO FIREBASE ────────────────────────────────────────────
+// ── SAVE COURSE DATA TO FIREBASE ────────────────────────────────────────────
 function saveDataToFirebase(){
   if(!fbDb){ console.warn('Firebase not available — course data not saved remotely.'); return; }
-  fbDb.ref(FB_DATA_PATH).set(data)
+  var payload = JSON.parse(JSON.stringify(data));
+  fbDb.ref(FB_DATA_PATH).set(payload)
     .then(function(){
       console.log('Course data saved to Firebase');
     })
@@ -1202,29 +1204,20 @@ function saveDataToFirebase(){
 // ── LOAD COURSE DATA FROM FIREBASE ON PAGE LOAD ──────────────────────────────
 function loadDataFromFirebase(){
   if(!fbDb){ console.warn('Firebase not available — using HTML defaults for course data.'); return; }
-  fbDb.ref(FB_DATA_PATH).on('value', function(snap){
+  fbDb.ref(FB_DATA_PATH).once('value', function(snap){
     var saved = snap.val();
     if(!saved){ console.log('Firebase: no saved course data, using HTML defaults.'); return; }
-    // Merge saved keys into data (preserves any keys not in Firebase)
     Object.keys(saved).forEach(function(k){
       if(data[k]){
-        // Deeply merge to ensure all properties are updated
-        if(saved[k].rows) data[k].rows = JSON.parse(JSON.stringify(saved[k].rows));
+        if(saved[k].rows)     data[k].rows     = JSON.parse(JSON.stringify(saved[k].rows));
         if(saved[k].sections) data[k].sections = JSON.parse(JSON.stringify(saved[k].sections));
-        if(saved[k].title) data[k].title = saved[k].title;
-        if(saved[k].sub)   data[k].sub   = saved[k].sub;
+        if(saved[k].title)    data[k].title    = saved[k].title;
+        if(saved[k].sub)      data[k].sub      = saved[k].sub;
       } else {
-        // If the key doesn't exist in local defaults, add it from Firebase
-        data[k] = saved[k];
+        data[k] = JSON.parse(JSON.stringify(saved[k]));
       }
     });
-    console.log('Firebase: course data updated');
-    // Refresh the UI if a modal is open or if in curriculum view
-    if (typeof currentOpenKey !== 'undefined' && currentOpenKey) {
-      refreshCurrentView(currentOpenKey);
-    } else if (typeof activeCurriculum !== 'undefined' && activeCurriculum) {
-      refreshCurrentView();
-    }
+    console.log('Firebase: course data loaded from server');
   }, function(err){
     console.warn('Firebase course load error:', err);
   });
@@ -1233,7 +1226,7 @@ function loadDataFromFirebase(){
 // ── LOAD HEADER FROM FIREBASE ON PAGE LOAD ──────────────────────────────────
 function loadHeaderFromFirebase() {
   if(!fbDb){ console.warn('Firebase not available — using HTML defaults for header.'); return; }
-  fbDb.ref(FB_PATH).on('value', function(snap) {
+  fbDb.ref(FB_PATH).once('value', function(snap) {
     var saved = snap.val();
     if (!saved) {
       console.log('Firebase: no saved header yet, using HTML defaults.');
@@ -1299,7 +1292,7 @@ function saveCurriculaToFirebase(){
 // ── LOAD CURRICULA FROM FIREBASE ─────────────────────────────────────────────
 function loadCurriculaFromFirebase(){
   if(!fbDb){ console.warn('Firebase not available — using HTML defaults for curricula.'); return; }
-  fbDb.ref('pco_curricula').on('value', function(snap){
+  fbDb.ref('pco_curricula').once('value', function(snap){
     var saved = snap.val();
     if(!saved || !Array.isArray(saved)){ console.log('Firebase: no saved curricula, using HTML defaults.'); return; }
     curricula.length = 0;
@@ -1307,9 +1300,6 @@ function loadCurriculaFromFirebase(){
     var el = document.getElementById('curriculaCount');
     if(el) el.textContent = curricula.length + (curricula.length===1?' Curriculum':' Curricula');
     console.log('Firebase: curricula loaded');
-    if(document.getElementById('curriculaOverlay').classList.contains('open')){
-      renderCurriculaList();
-    }
   }, function(err){ console.warn('Firebase curricula load error:', err); });
 }
 
@@ -6312,6 +6302,12 @@ function addCourse(semKey){
     if(!d.rows) d.rows = [];
     d.rows.push(newRow); 
   }
+  // Clear form fields after successful add
+  if(codeEl)  codeEl.value  = '';
+  if(titleEl) titleEl.value = '';
+  if(preEl)   preEl.value   = '';
+  if(crhrsEl) crhrsEl.value = '';
+  if(areaEl)  areaEl.value  = '';
   refreshCurrentView(semKey);
   saveDataToFirebase();
   flashSaved('✓ Saved to Firebase');
