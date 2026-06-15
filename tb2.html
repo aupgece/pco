@@ -137,11 +137,17 @@
                 </div>
                 
                 <!-- Filter Grid -->
-                <div class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-4 flex-[2]">
+                <div class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-4 flex-[2]">
                     <div>
                         <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Day</label>
-                        <select id="filter-day" onchange="applyFilters()" class="block w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                        <select id="filter-day" onchange="populateClassFilter(this.value); applyFilters()" class="block w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
                             <option value="">All Days</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Class</label>
+                        <select id="filter-class" onchange="applyFilters()" class="block w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                            <option value="">All Classes</option>
                         </select>
                     </div>
                     <div>
@@ -186,6 +192,7 @@
                     <thead>
                         <tr class="bg-slate-50 border-b border-slate-200">
                             <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Status</th>
+                            <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Class</th>
                             <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Location</th>
                             <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Schedule</th>
                             <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Subject</th>
@@ -249,6 +256,25 @@
                 opt.textContent = day;
                 daySelect.appendChild(opt);
             });
+            populateClassFilter();
+        }
+
+        function populateClassFilter(selectedDay = '') {
+            const classSelect = document.getElementById('filter-class');
+            const currentVal = classSelect.value;
+            classSelect.innerHTML = '<option value="">All Classes</option>';
+            const source = selectedDay
+                ? timetableData.filter(item => item.Day === selectedDay)
+                : timetableData;
+            const classes = [...new Set(source.map(item => item.Class).filter(c => c !== '-'))].sort();
+            classes.forEach(cls => {
+                const opt = document.createElement('option');
+                opt.value = cls;
+                opt.textContent = cls;
+                classSelect.appendChild(opt);
+            });
+            // Restore selection if still valid
+            if (classes.includes(currentVal)) classSelect.value = currentVal;
         }
 
         function updateStats(data) {
@@ -330,6 +356,9 @@
                         <span class="px-2.5 py-1 rounded-full text-xs font-bold ${statusClass}">${item.Status}</span>
                     </td>
                     <td class="px-6 py-4">
+                        <span class="text-sm font-bold text-indigo-700">${item.Class === '-' ? '—' : item.Class}</span>
+                    </td>
+                    <td class="px-6 py-4">
                         <div class="flex items-center gap-2">
                             <span class="text-sm font-bold text-slate-900">${item.Room}</span>
                             <span class="px-1.5 py-0.5 rounded text-[10px] font-bold uppercase ${typeClass}">${item.Type}</span>
@@ -353,9 +382,11 @@
 
                 // Grid Card
                 const card = document.createElement('div');
-                card.className = 'glass-card p-5 rounded-2xl hover:border-indigo-200 transition-all hover:shadow-lg group relative overflow-hidden';
+                card.className = 'glass-card rounded-2xl hover:border-indigo-200 transition-all hover:shadow-lg group relative overflow-hidden';
                 card.innerHTML = `
-                    <div class="absolute top-0 right-0 p-3 flex flex-col items-end gap-1">
+                    ${item.Class !== '-' ? `<div class="bg-indigo-600 px-4 py-2"><span class="text-white font-bold text-sm tracking-wide">${item.Class}</span></div>` : '<div class="bg-slate-100 px-4 py-2"><span class="text-slate-400 font-semibold text-sm">—</span></div>'}
+                    <div class="p-5">
+                    <div class="absolute top-10 right-0 p-3 flex flex-col items-end gap-1">
                         <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${statusClass}">${item.Status}</span>
                         <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${typeClass}">${item.Type}</span>
                     </div>
@@ -375,6 +406,7 @@
                             </div>
                         </div>
                     </div>
+                    </div>
                 `;
                 gridView.appendChild(card);
             });
@@ -385,17 +417,20 @@
             const day = document.getElementById('filter-day').value;
             const status = document.getElementById('filter-status').value;
             const type = document.getElementById('filter-type').value;
+            const cls = document.getElementById('filter-class').value;
 
             const filtered = timetableData.filter(item => {
                 const matchesSearch = !query || 
                     item.Subject.toLowerCase().includes(query) || 
                     item.Teacher.toLowerCase().includes(query) || 
-                    item.Room.toLowerCase().includes(query);
+                    item.Room.toLowerCase().includes(query) ||
+                    item.Class.toLowerCase().includes(query);
                 const matchesDay = !day || item.Day === day;
                 const matchesStatus = !status || item.Status === status;
                 const matchesType = !type || item.Type === type;
+                const matchesClass = !cls || item.Class === cls;
 
-                return matchesSearch && matchesDay && matchesStatus && matchesType;
+                return matchesSearch && matchesDay && matchesStatus && matchesType && matchesClass;
             });
 
             updateStats(filtered);
@@ -407,7 +442,9 @@
             document.getElementById('filter-day').value = '';
             document.getElementById('filter-status').value = '';
             document.getElementById('filter-type').value = '';
-            initApp();
+            document.getElementById('filter-class').value = '';
+            populateClassFilter('');
+            applyFilters();
         }
 
         function exportToCSV() {
