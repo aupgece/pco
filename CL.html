@@ -335,6 +335,60 @@
   th.col-cb{ width:28px; text-align:center; padding:9px 4px; }
   .row-cb{ width:15px; height:15px; accent-color:var(--teal); cursor:pointer; }
   .sel-all-cb{ width:15px; height:15px; accent-color:var(--amber-line); cursor:pointer; }
+
+  /* ── Admin mode ── */
+  .admin-badge{
+    display:inline-flex; align-items:center; gap:5px;
+    background:#1F5349; color:#A8D8C8; border:1px solid #2A6F62;
+    border-radius:20px; padding:3px 11px; font-size:11px;
+    font-family:'IBM Plex Mono',monospace; letter-spacing:.06em;
+    cursor:pointer; user-select:none; white-space:nowrap;
+  }
+  .admin-badge:hover{ background:#17453D; }
+  .admin-badge .dot{ width:7px; height:7px; border-radius:50%; background:#5EC99B; flex:none; }
+  .admin-badge.locked{ background:#3C2A2A; color:#C49A9A; border-color:#7A3A3A; }
+  .admin-badge.locked .dot{ background:#C07070; }
+  .admin-modal-overlay{
+    display:none; position:fixed; inset:0; background:rgba(22,36,59,.55);
+    z-index:500; align-items:center; justify-content:center;
+  }
+  .admin-modal-overlay.open{ display:flex; }
+  .admin-modal{
+    background:#fff; border-radius:12px; box-shadow:0 10px 48px rgba(0,0,0,.22);
+    width:360px; max-width:95vw; padding:28px 28px 22px;
+  }
+  .admin-modal h3{ font-family:'Source Serif 4',serif; font-size:17px; margin:0 0 6px; color:var(--ink); }
+  .admin-modal p{ font-size:13px; color:var(--ink-soft); margin:0 0 18px; }
+  .admin-modal input[type=password]{
+    width:100%; padding:9px 12px; border:1px solid var(--line); border-radius:8px;
+    font-family:'IBM Plex Mono',monospace; font-size:14px; color:var(--ink);
+    margin-bottom:6px;
+  }
+  .admin-modal input[type=password]:focus{ border-color:var(--teal); outline:none; box-shadow:0 0 0 2px rgba(42,111,98,.15); }
+  .admin-modal-actions{ display:flex; gap:8px; margin-top:14px; }
+  .admin-modal .err-msg{ font-size:12px; color:var(--red); min-height:16px; margin-bottom:2px; }
+  /* Read-only table state */
+  body.view-only td input,
+  body.view-only td textarea,
+  body.view-only td select{
+    pointer-events:none; background:transparent !important;
+    border-color:transparent !important; box-shadow:none !important;
+    cursor:default; -webkit-appearance:none; appearance:none;
+    color:var(--ink-soft);
+  }
+  body.view-only .row-del,
+  body.view-only .row-cb,
+  body.view-only .sel-all-cb,
+  body.view-only #addRowBtn,
+  body.view-only #addRowBtn2,
+  body.view-only #manageLists,
+  body.view-only #exportCsvBtn,
+  body.view-only .bulk-action-bar,
+  body.view-only .addrow-bar{ display:none !important; }
+  body.view-only td select{ background-image:none !important; }
+  body.view-only .col-del{ display:none; }
+  body.view-only th.col-cb{ display:none; }
+  body.view-only td.col-cb{ display:none; }
 </style>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
@@ -348,7 +402,10 @@
         <div class="eyebrow">Department of Electrical Engineering</div>
         <h1>Faculty Workload Ledger — Spring 2026</h1>
       </div>
-      <div class="save-indicator" id="saveIndicator">—</div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div class="save-indicator" id="saveIndicator">—</div>
+        <div class="admin-badge locked" id="adminBadge" title="Ctrl+Shift+A to unlock admin"><span class="dot"></span><span id="adminBadgeLabel">View Only</span></div>
+      </div>
     </div>
     <div class="tabs">
       <button class="tab-btn active" data-tab="detail">Course Load</button>
@@ -577,6 +634,20 @@
   </div>
 </div>
 
+
+<!-- Admin Auth Modal -->
+<div class="admin-modal-overlay" id="adminModalOverlay">
+  <div class="admin-modal">
+    <h3>Admin Access</h3>
+    <p>Enter the admin password to enable editing.</p>
+    <input type="password" id="adminPwInput" placeholder="Password" autocomplete="off">
+    <div class="err-msg" id="adminErrMsg"></div>
+    <div class="admin-modal-actions">
+      <button class="btn primary" id="adminLoginBtn">Unlock</button>
+      <button class="btn" id="adminCancelBtn">Cancel</button>
+    </div>
+  </div>
+</div>
 <script>
 // ─── SEED DATA ────────────────────────────────────────────────────────────────
 const SEED = {"rows":[{"id":1,"sno":1,"name":"Engr. Dr. Hafiz Ashiq Hussain","rank":"Professor & HoD","code":"EE465","course":"Optical Fiber Communication","cr":3,"s1":"BEET-F-22-A","s2":"","s3":"","tut":"","contact":3,"notes":"","flag":false},{"id":2,"sno":1,"name":"Engr. Dr. Hafiz Ashiq Hussain","rank":"Professor & HoD","code":"EE613","course":"Advanced Optics","cr":3,"s1":"MS/PhD","s2":"","s3":"","tut":"","contact":3,"notes":"","flag":false},{"id":3,"sno":2,"name":"Engr. Dr. Waseem Khan","rank":"Assistant Professor","code":"EE235","course":"Signal & Systems","cr":3,"s1":"BEET-F-24-A","s2":"BEET-F-24-B","s3":"","tut":"","contact":6,"notes":"","flag":false},{"id":4,"sno":2,"name":"Engr. Dr. Waseem Khan","rank":"Assistant Professor","code":"EE435","course":"Information Coding Theory","cr":3,"s1":"BEET-F-22-A","s2":"","s3":"","tut":"","contact":3,"notes":"","flag":false},{"id":5,"sno":3,"name":"Engr. Dr. Syed Ahmed Pasha","rank":"Assistant Professor","code":"MA200","course":"Numerical Methods","cr":2,"s1":"BEEE-F-23-A","s2":"BEEP-F-23-A","s3":"","tut":"","contact":4,"notes":"","flag":false},{"id":6,"sno":3,"name":"Engr. Dr. Syed Ahmed Pasha","rank":"Assistant Professor","code":"EE492","course":"Final Year Project-I","cr":1,"s1":"BEEE-F-23-A","s2":"","s3":"","tut":"","contact":1,"notes":"","flag":false},{"id":7,"sno":3,"name":"Engr. Dr. Syed Ahmed Pasha","rank":"Assistant Professor","code":"MT203","course":"Probability Methods In Engineering","cr":3,"s1":"BEEP-F-24-A","s2":"","s3":"","tut":"","contact":3,"notes":"Highlighted in source document","flag":true},{"id":8,"sno":3,"name":"Engr. Dr. Syed Ahmed Pasha","rank":"Assistant Professor","code":"","course":"Class Advisor","cr":"","s1":"BEEP-F-25-B","s2":"","s3":"","tut":"","contact":0,"notes":"","flag":false},{"id":9,"sno":4,"name":"Engr. Dr. Imran Farid","rank":"Assistant Professor","code":"EE338","course":"Digital Signal Processing","cr":3,"s1":"BEEE-F-23-A","s2":"BEEP-F-23-A","s3":"","tut":"","contact":6,"notes":"","flag":false},{"id":10,"sno":4,"name":"Engr. Dr. Imran Farid","rank":"Assistant Professor","code":"","course":"Advanced Neural Networks","cr":3,"s1":"MSBME/MSEE","s2":"","s3":"","tut":"","contact":3,"notes":"Highlighted in source; no course code listed in original","flag":true},{"id":11,"sno":4,"name":"Engr. Dr. Imran Farid","rank":"Assistant Professor","code":"","course":"Class Advisor","cr":"","s1":"BEEE-F-25-B","s2":"","s3":"","tut":"","contact":0,"notes":"","flag":false},{"id":12,"sno":5,"name":"Engr. Dr. Sara Saeed","rank":"Assistant Professor","code":"EE416","course":"Microwave Theory & Technique","cr":3,"s1":"BEET-F-23-A","s2":"","s3":"","tut":"","contact":3,"notes":"","flag":false},{"id":13,"sno":5,"name":"Engr. Dr. Sara Saeed","rank":"Assistant Professor","code":"EE213","course":"Electromagnetic Field Theory","cr":3,"s1":"BEEE-F-24-A","s2":"","s3":"","tut":"","contact":3,"notes":"","flag":false},{"id":14,"sno":5,"name":"Engr. Dr. Sara Saeed","rank":"Assistant Professor","code":"EE416L","course":"Microwave Theory & Technique Laboratory","cr":1,"s1":"BEET-F-23-A","s2":"","s3":"","tut":"","contact":3,"notes":"","flag":false},{"id":15,"sno":5,"name":"Engr. Dr. Sara Saeed","rank":"Assistant Professor","code":"","course":"Class Advisor","cr":"","s1":"BEET-F-24-A","s2":"","s3":"","tut":"","contact":0,"notes":"","flag":false},{"id":16,"sno":6,"name":"Engr. Dr. Ahsan Sarwar Rana","rank":"Assistant Professor","code":"EE213","course":"Electromagnetic Field Theory","cr":3,"s1":"BEEE-F-24-B","s2":"BEEP-F-24-A","s3":"","tut":"","contact":6,"notes":"3rd section cell highlighted (blank) in source","flag":true},{"id":17,"sno":6,"name":"Engr. Dr. Ahsan Sarwar Rana","rank":"Assistant Professor","code":"","course":"Antenna & Waves propagation","cr":"","s1":"Additional Course","s2":"","s3":"","tut":"","contact":3,"notes":"","flag":false},{"id":18,"sno":7,"name":"Engr. Dr. Muhammad Zaheer","rank":"Assistant Professor","code":"MT203","course":"Probability Methods In Engineering","cr":3,"s1":"BEEE-F-24-A","s2":"BEEE-F-24-B","s3":"BEET-F-24-A","tut":"","contact":9,"notes":"3rd section highlighted in source","flag":true},{"id":19,"sno":7,"name":"Engr. Dr. Muhammad Zaheer","rank":"Assistant Professor","code":"","course":"Class Advisor","cr":"","s1":"BEET-F-23-A","s2":"","s3":"","tut":"","contact":0,"notes":"","flag":false},{"id":20,"sno":8,"name":"Engr. Dr. Shahzad Ahmad","rank":"Assistant Professor","code":"EE407","course":"VLSI Design","cr":2,"s1":"BEEE-F-22-A","s2":"BCE-F-22-A","s3":"","tut":"","contact":4,"notes":"","flag":false},{"id":21,"sno":8,"name":"Engr. Dr. Shahzad Ahmad","rank":"Assistant Professor","code":"EE407L","course":"VLSI Design Laboratory","cr":2,"s1":"BEEE-F-22-A","s2":"BCE-F-22-A","s3":"","tut":"","contact":6,"notes":"","flag":false},{"id":22,"sno":9,"name":"Engr. Dr. Sher Ali","rank":"Assistant Professor","code":"EE376","course":"Digital communications","cr":3,"s1":"BEET-F-23-A","s2":"","s3":"","tut":"","contact":3,"notes":"","flag":false},{"id":23,"sno":9,"name":"Engr. Dr. Sher Ali","rank":"Assistant Professor","code":"EE123","course":"Digital Logic Design","cr":2,"s1":"BSSE-F-25-A","s2":"BSSE-F-25-B","s3":"","tut":"","contact":4,"notes":"","flag":false},{"id":24,"sno":9,"name":"Engr. Dr. Sher Ali","rank":"Assistant Professor","code":"EE636","course":"Advanced Mobile Communication","cr":3,"s1":"MS/PhD","s2":"","s3":"","tut":"","contact":3,"notes":"","flag":false},{"id":25,"sno":9,"name":"Engr. Dr. Sher Ali","rank":"Assistant Professor","code":"","course":"Class Advisor","cr":"","s1":"BEEP-F-25-A","s2":"","s3":"","tut":"","contact":0,"notes":"","flag":false},{"id":26,"sno":10,"name":"Engr. Dr. Ashfaq Ahmad","rank":"Assistant Professor","code":"CE351","course":"Artificial Intelligence for Engineers","cr":3,"s1":"BEEE-F-22-A","s2":"","s3":"","tut":"","contact":3,"notes":"","flag":false},{"id":27,"sno":10,"name":"Engr. Dr. Ashfaq Ahmad","rank":"Assistant Professor","code":"EE445","course":"High Voltage Engineering","cr":3,"s1":"BEEP-F-22-A","s2":"","s3":"","tut":"","contact":3,"notes":"","flag":false},{"id":28,"sno":10,"name":"Engr. Dr. Ashfaq Ahmad","rank":"Assistant Professor","code":"EE659","course":"Power Systems Component Modelling","cr":3,"s1":"MS/PhD","s2":"","s3":"","tut":"","contact":3,"notes":"","flag":false},{"id":29,"sno":10,"name":"Engr. Dr. Ashfaq Ahmad","rank":"Assistant Professor","code":"","course":"Class Advisor","cr":"","s1":"BEEV-F-25-A","s2":"","s3":"","tut":"","contact":0,"notes":"","flag":false},{"id":30,"sno":11,"name":"Engr. Dr. Amina Asif","rank":"Assistant Professor","code":"CE351","course":"Artificial Intelligence for Engineers","cr":3,"s1":"BEEP-F-22-A","s2":"","s3":"","tut":"","contact":3,"notes":"","flag":false},{"id":31,"sno":11,"name":"Engr. Dr. Amina Asif","rank":"Assistant Professor","code":"EE235","course":"Signal & Systems","cr":3,"s1":"BEEP-F-24-A","s2":"BEEE-F-24-B","s3":"","tut":"","contact":6,"notes":"2nd section cell highlighted in source","flag":true},{"id":32,"sno":11,"name":"Engr. Dr. Amina Asif","rank":"Assistant Professor","code":"","course":"Class Advisor","cr":"","s1":"BEEE-F-24-A","s2":"","s3":"","tut":"","contact":0,"notes":"","flag":false},{"id":33,"sno":12,"name":"Engr. Seema Tahir","rank":"Assistant Professor","code":"EE123","course":"Digital Logic Design","cr":2,"s1":"BSCYS-F-25-A","s2":"BSCYS-F-25-B","s3":"","tut":"","contact":4,"notes":"","flag":false},{"id":34,"sno":12,"name":"Engr. Seema Tahir","rank":"Assistant Professor","code":"EE400","course":"Electrical Machines","cr":2,"s1":"BEME-F-22-A","s2":"BEME-F-22-B","s3":"","tut":"","contact":4,"notes":"","flag":false},{"id":35,"sno":12,"name":"Engr. Seema Tahir","rank":"Assistant Professor","code":"","course":"Class Advisor","cr":"","s1":"BEEP-F-24-B","s2":"","s3":"","tut":"","contact":0,"notes":"","flag":false},{"id":36,"sno":13,"name":"Engr. Faizan Munir","rank":"Lecturer","code":"EE348","course":"Power Generation Systems","cr":3,"s1":"BEEP-F-23-A","s2":"","s3":"","tut":"","contact":3,"notes":"","flag":false},{"id":37,"sno":13,"name":"Engr. Faizan Munir","rank":"Lecturer","code":"EE447L","course":"Power System Protection Laboratory","cr":1,"s1":"BEEP-F-22-A","s2":"","s3":"","tut":"","contact":3,"notes":"","flag":false},{"id":38,"sno":13,"name":"Engr. Faizan Munir","rank":"Lecturer","code":"EE447","course":"Power System Protection","cr":3,"s1":"BEEP-F-22-A","s2":"","s3":"","tut":"","contact":3,"notes":"","flag":false},{"id":39,"sno":13,"name":"Engr. Faizan Munir","rank":"Lecturer","code":"EE114","course":"Electrical Engineering","cr":2,"s1":"BEME-F-25-A","s2":"","s3":"","tut":"","contact":2,"notes":"","flag":false},{"id":40,"sno":13,"name":"Engr. Faizan Munir","rank":"Lecturer","code":"EE494","course":"Final Year Project-III","cr":1,"s1":"BEET-F-22-A","s2":"","s3":"","tut":"","contact":1,"notes":"","flag":false},{"id":41,"sno":13,"name":"Engr. Faizan Munir","rank":"Lecturer","code":"","course":"Class Advisor","cr":"","s1":"BEEP-F-22-A","s2":"","s3":"","tut":"","contact":0,"notes":"","flag":false},{"id":42,"sno":14,"name":"Engr. Atique Ur Rehman","rank":"Lecturer","code":"EE105","course":"Electrical Network Analysis","cr":3,"s1":"BEEP-F-25-A","s2":"BEEP-F-25-B","s3":"","tut":"","contact":6,"notes":"","flag":false},{"id":43,"sno":14,"name":"Engr. Atique Ur Rehman","rank":"Lecturer","code":"EE206","course":"Basic Electrical and Electronics Engg","cr":2,"s1":"BEME-F-21","s2":"","s3":"","tut":"","contact":2,"notes":"Row highlighted in source","flag":true},{"id":44,"sno":14,"name":"Engr. Atique Ur Rehman","rank":"Lecturer","code":"EE206L","course":"Basic Electrical and Electronics Engg. Lab","cr":1,"s1":"BEME-F-21","s2":"","s3":"","tut":"","contact":3,"notes":"Row highlighted in source","flag":true},{"id":45,"sno":14,"name":"Engr. Atique Ur Rehman","rank":"Lecturer","code":"","course":"Class Advisor","cr":"","s1":"BEET-F-25-A","s2":"","s3":"","tut":"","contact":0,"notes":"","flag":false},{"id":46,"sno":15,"name":"Engr. Muhammad Ali Raza","rank":"Lecturer","code":"EE475","course":"Analog & Digital Communication","cr":3,"s1":"BEEE-F-22-A","s2":"","s3":"","tut":"","contact":3,"notes":"","flag":false},{"id":47,"sno":15,"name":"Engr. Muhammad Ali Raza","rank":"Lecturer","code":"EE213","course":"Electromagnetic Field Theory","cr":3,"s1":"BEET-F-24-A","s2":"BEET-F-24-B","s3":"","tut":"","contact":6,"notes":"","flag":false},{"id":48,"sno":15,"name":"Engr. Muhammad Ali Raza","rank":"Lecturer","code":"EE475L","course":"Analog & Digital Communication Laboratory","cr":1,"s1":"BEEE-F-22-A","s2":"","s3":"","tut":"","contact":3,"notes":"","flag":false},{"id":49,"sno":15,"name":"Engr. Muhammad Ali Raza","rank":"Lecturer","code":"","course":"Class Advisor","cr":"","s1":"BEET-F-22-A","s2":"","s3":"","tut":"","contact":0,"notes":"","flag":false},{"id":50,"sno":16,"name":"Engr. Madeeha Uzma","rank":"Lecturer","code":"EE100","course":"Electric Circuit Analysis","cr":3,"s1":"BCE-F-25-A","s2":"BCE-F-25-B","s3":"","tut":"","contact":6,"notes":"","flag":false},{"id":51,"sno":16,"name":"Engr. Madeeha Uzma","rank":"Lecturer","code":"EE355","course":"Control Systems","cr":3,"s1":"BEET-F-23-A","s2":"","s3":"","tut":"","contact":3,"notes":"","flag":false},{"id":52,"sno":16,"name":"Engr. Madeeha Uzma","rank":"Lecturer","code":"EE100L","course":"Electric Circuit Analysis Laboratory","cr":1,"s1":"BCE-F-25-A","s2":"","s3":"","tut":"","contact":3,"notes":"","flag":false},{"id":53,"sno":16,"name":"Engr. Madeeha Uzma","rank":"Lecturer","code":"","course":"Class Advisor","cr":"","s1":"BEET-F-24-B","s2":"","s3":"","tut":"","contact":0,"notes":"","flag":false},{"id":54,"sno":17,"name":"Engr. Sami Ullah","rank":"Lecturer","code":"EE105","course":"Electrical Network Analysis","cr":3,"s1":"BEEE-F-25-A","s2":"BEEE-F-25-B","s3":"","tut":"","contact":6,"notes":"","flag":false},{"id":55,"sno":17,"name":"Engr. Sami Ullah","rank":"Lecturer","code":"EE105L","course":"Electrical Network Analysis Lab","cr":1,"s1":"BEEE-F-25-A","s2":"BEEE-F-25-B","s3":"","tut":"","contact":6,"notes":"","flag":false},{"id":56,"sno":17,"name":"Engr. Sami Ullah","rank":"Lecturer","code":"","course":"Class Advisor","cr":"","s1":"BEEP-F-24-A","s2":"","s3":"","tut":"","contact":0,"notes":"","flag":false},{"id":57,"sno":18,"name":"Engr. Saba Mumtaz","rank":"Lecturer","code":"EE494","course":"Final Year Project-III","cr":1,"s1":"BEEP-F-22-A","s2":"","s3":"","tut":"","contact":1,"notes":"","flag":false},{"id":58,"sno":18,"name":"Engr. Saba Mumtaz","rank":"Lecturer","code":"EE373","course":"Circuit & Devices for Theory","cr":3,"s1":"BS-Phy-V","s2":"","s3":"","tut":"","contact":3,"notes":"","flag":false},{"id":59,"sno":18,"name":"Engr. Saba Mumtaz","rank":"Lecturer","code":"EE123","course":"Digital Logic Design","cr":2,"s1":"BSCGD-F-25-A","s2":"BSCGD-F-25-B","s3":"","tut":"","contact":4,"notes":"","flag":false},{"id":60,"sno":18,"name":"Engr. Saba Mumtaz","rank":"Lecturer","code":"EE100","course":"Electric Circuit Analysis","cr":3,"s1":"Additional Course","s2":"","s3":"","tut":"","contact":3,"notes":"","flag":false},{"id":61,"sno":18,"name":"Engr. Saba Mumtaz","rank":"Lecturer","code":"","course":"Class Advisor","cr":"","s1":"BEEE-F-23-A","s2":"","s3":"","tut":"","contact":0,"notes":"","flag":false},{"id":62,"sno":19,"name":"Engr. Hiba Hareem","rank":"Lecturer","code":"EE235","course":"Signal & Systems","cr":3,"s1":"BEEE-F-24-A","s2":"","s3":"","tut":"","contact":3,"notes":"","flag":false},{"id":63,"sno":19,"name":"Engr. Hiba Hareem","rank":"Lecturer","code":"EE235L","course":"Signal & Systems Laboratory","cr":"","s1":"BEEE-F-24-A","s2":"","s3":"","tut":"","contact":3,"notes":"Credit hours blank in source","flag":false},{"id":64,"sno":19,"name":"Engr. Hiba Hareem","rank":"Lecturer","code":"EE338L","course":"Digital Signal Processing Laboratory","cr":3,"s1":"BEEE-F-23-A","s2":"BEEP-F-23-A","s3":"","tut":"","contact":6,"notes":"","flag":false},{"id":65,"sno":19,"name":"Engr. Hiba Hareem","rank":"Lecturer","code":"","course":"Class Advisor","cr":"","s1":"BEEE-F-25-A","s2":"","s3":"","tut":"","contact":0,"notes":"","flag":false},{"id":66,"sno":20,"name":"Engr. Mashood Ahmed","rank":"Lecturer","code":"EE209","course":"Electronic Circuit Design","cr":3,"s1":"BEET-F-23-A","s2":"","s3":"","tut":"","contact":3,"notes":"","flag":false},{"id":67,"sno":20,"name":"Engr. Mashood Ahmed","rank":"Lecturer","code":"EE209L","course":"Electronic Circuit Design Laboratory","cr":1,"s1":"BEET-F-23-A","s2":"","s3":"","tut":"","contact":3,"notes":"","flag":false},{"id":68,"sno":20,"name":"Engr. Mashood Ahmed","rank":"Lecturer","code":"EE123","course":"Digital Logic Design","cr":2,"s1":"BSSE-F-25-C","s2":"BSESS-F-25-A","s3":"","tut":"","contact":2,"notes":"2nd section highlighted in source","flag":true},{"id":69,"sno":20,"name":"Engr. Mashood Ahmed","rank":"Lecturer","code":"","course":"(unspecified - blank line in source)","cr":"","s1":"","s2":"","s3":"","tut":"","contact":3,"notes":"Source has an unlabeled line contributing 3 contact hrs","flag":false},{"id":70,"sno":20,"name":"Engr. Mashood Ahmed","rank":"Lecturer","code":"","course":"Class Advisor","cr":"","s1":"BEEP-F-23-A","s2":"","s3":"","tut":"","contact":0,"notes":"","flag":false},{"id":71,"sno":21,"name":"Engr. Hussain Asif","rank":"Lecturer","code":"EE355","course":"Control Systems","cr":3,"s1":"BEEE-F-23-A","s2":"BEEP-F-23-A","s3":"","tut":"","contact":6,"notes":"","flag":false},{"id":72,"sno":21,"name":"Engr. Hussain Asif","rank":"Lecturer","code":"EE494","course":"Final Year Project-III","cr":1,"s1":"BEEE-F-22-A","s2":"","s3":"","tut":"","contact":1,"notes":"","flag":false},{"id":73,"sno":21,"name":"Engr. Hussain Asif","rank":"Lecturer","code":"EE355L","course":"Control Systems Laboratory","cr":1,"s1":"BEEE-F-23-A","s2":"","s3":"","tut":"","contact":3,"notes":"","flag":false},{"id":74,"sno":21,"name":"Engr. Hussain Asif","rank":"Lecturer","code":"EE114","course":"Electrical Engineering","cr":2,"s1":"BEME-F-25-B","s2":"","s3":"","tut":"","contact":2,"notes":"","flag":false},{"id":75,"sno":21,"name":"Engr. Hussain Asif","rank":"Lecturer","code":"","course":"Class Advisor","cr":"","s1":"BEEE-F-24-B","s2":"","s3":"","tut":"","contact":0,"notes":"","flag":false},{"id":76,"sno":22,"name":"New FM-1","rank":"Lecturer","code":"EE235L","course":"Signal & Systems Laboratory","cr":3,"s1":"BEET-F-24-A","s2":"","s3":"","tut":"","contact":3,"notes":"Entire row highlighted in source","flag":true},{"id":77,"sno":22,"name":"New FM-1","rank":"Lecturer","code":"EE105","course":"Electrical Network Analysis","cr":3,"s1":"BEET-F-25-A","s2":"BEEV-F-25-A","s3":"","tut":"","contact":6,"notes":"","flag":false},{"id":78,"sno":23,"name":"Engr. Anum Zehra","rank":"Lecturer","code":"EE304","course":"Digital Electronics","cr":3,"s1":"BEEE-F-23-A","s2":"","s3":"","tut":"","contact":3,"notes":"","flag":false},{"id":79,"sno":23,"name":"Engr. Anum Zehra","rank":"Lecturer","code":"EE215","course":"Electronics Engineering","cr":2,"s1":"BEME-F-24-A","s2":"BEME-F-24-B","s3":"","tut":"","contact":4,"notes":"","flag":false},{"id":80,"sno":23,"name":"Engr. Anum Zehra","rank":"Lecturer","code":"EE492","course":"Final Year Project-I","cr":1,"s1":"BEEP-F-23-A","s2":"BEET-F-23-A","s3":"","tut":"","contact":2,"notes":"","flag":false},{"id":81,"sno":23,"name":"Engr. Anum Zehra","rank":"Lecturer","code":"EE304L","course":"Digital Electronics Laboratory","cr":1,"s1":"BEEE-F-23-A","s2":"","s3":"","tut":"","contact":3,"notes":"","flag":false},{"id":82,"sno":24,"name":"Engr. Laraib","rank":"Lab Engineer","code":"EE235L","course":"Signal & Systems Laboratory","cr":3,"s1":"BEET-F-24-B","s2":"BEEP-F-24-A","s3":"BEEE-F-24-B","tut":"","contact":3,"notes":"Entire row highlighted; contact hrs shown as 3 but faculty total (12) implies it should be 9","flag":true},{"id":83,"sno":24,"name":"Engr. Laraib","rank":"Lab Engineer","code":"","course":"Telecom Networks Lab","cr":"","s1":"Additional Course","s2":"","s3":"","tut":"","contact":3,"notes":"","flag":false},{"id":84,"sno":25,"name":"Engr. Sharoze Sohail","rank":"Lab Engineer","code":"EE123L","course":"Digital Logic Design Laboratory","cr":2,"s1":"BSSE-F-25-A","s2":"BSSE-F-25-B","s3":"","tut":"","contact":6,"notes":"","flag":false},{"id":85,"sno":25,"name":"Engr. Sharoze Sohail","rank":"Lab Engineer","code":"","course":"Antenna & Waves propagation Lab","cr":"","s1":"Additional Course","s2":"","s3":"","tut":"","contact":3,"notes":"","flag":false},{"id":86,"sno":25,"name":"Engr. Sharoze Sohail","rank":"Lab Engineer","code":"PH-312L","course":"Modern Physics and Electronics Laboratory","cr":1,"s1":"BS-Phy-V","s2":"","s3":"","tut":"","contact":3,"notes":"","flag":false},{"id":87,"sno":26,"name":"Engr. Hafiz Talha","rank":"Lab Engineer","code":"EE123L","course":"Digital Logic Design Laboratory","cr":1,"s1":"BSESS-F-25-A","s2":"BSDS-F-25-B","s3":"","tut":"","contact":6,"notes":"Entire row highlighted in source","flag":true},{"id":88,"sno":26,"name":"Engr. Hafiz Talha","rank":"Lab Engineer","code":"EE123L","course":"Digital Logic Design Laboratory","cr":1,"s1":"BSCGD-F-25-A","s2":"BSCGD-F-25-B","s3":"","tut":"","contact":6,"notes":"","flag":false},{"id":89,"sno":27,"name":"Engr. Muhammad Aqib","rank":"Lab Engineer","code":"EE105L","course":"Electrical Network Analysis Laboratory","cr":1,"s1":"BEET-F-25-A","s2":"BEEV-F-25-A","s3":"","tut":"","contact":6,"notes":"","flag":false},{"id":90,"sno":27,"name":"Engr. Muhammad Aqib","rank":"Lab Engineer","code":"EE465L","course":"Optical Fiber Communication Laboratory","cr":1,"s1":"BEET-F-22-A","s2":"","s3":"","tut":"","contact":3,"notes":"","flag":false},{"id":91,"sno":27,"name":"Engr. Muhammad Aqib","rank":"Lab Engineer","code":"EE376L","course":"Digital communications Laboratory","cr":1,"s1":"BEET-F-23-A","s2":"","s3":"","tut":"","contact":3,"notes":"","flag":false},{"id":92,"sno":28,"name":"Engr. Laiba Rani","rank":"Lab Engineer","code":"EE105L","course":"Electrical Network Analysis Laboratory","cr":1,"s1":"BEEP-F-25-A","s2":"BEEP-F-25-B","s3":"","tut":"","contact":6,"notes":"","flag":false},{"id":93,"sno":28,"name":"Engr. Laiba Rani","rank":"Lab Engineer","code":"EE215L","course":"Electronics Engineering Laboratory","cr":1,"s1":"BEME-F-24-A","s2":"BEME-F-24-B","s3":"","tut":"","contact":6,"notes":"","flag":false},{"id":94,"sno":29,"name":"Engr. Muhammad Qasim","rank":"Lab Engineer","code":"EE355L","course":"Control Systems Laboratory","cr":1,"s1":"BEEE-F-23-B","s2":"BEET-F-23-A","s3":"","tut":"","contact":6,"notes":"","flag":false},{"id":95,"sno":29,"name":"Engr. Muhammad Qasim","rank":"Lab Engineer","code":"EE100L","course":"Electric Circuit Analysis Laboratory","cr":1,"s1":"BCE-F-25-B","s2":"Additional Course","s3":"","tut":"","contact":6,"notes":"","flag":false},{"id":96,"sno":30,"name":"Engr. Mubashir Rasool","rank":"Lab Engineer","code":"EE445L","course":"High Voltage Engineering Laboratory","cr":1,"s1":"BEEP-F-22-A","s2":"","s3":"","tut":"","contact":3,"notes":"","flag":false},{"id":97,"sno":30,"name":"Engr. Mubashir Rasool","rank":"Lab Engineer","code":"EE400L","course":"Electrical Machines Laboratory","cr":1,"s1":"BEME-F-22-A","s2":"BEME-F-22-B","s3":"","tut":"","contact":6,"notes":"","flag":false},{"id":98,"sno":30,"name":"Engr. Mubashir Rasool","rank":"Lab Engineer","code":"EE348L","course":"Power Generation Systems Laboratory","cr":3,"s1":"BEEP-F-23-A","s2":"","s3":"","tut":"","contact":3,"notes":"","flag":false}]};
@@ -1815,6 +1886,75 @@ document.getElementById('addSectionBtn').addEventListener('click', ()=>{
 });
 document.getElementById('newFmName').addEventListener('keydown', e=>{ if(e.key==='Enter') document.getElementById('addFmBtn').click(); });
 document.getElementById('newSection').addEventListener('keydown', e=>{ if(e.key==='Enter') document.getElementById('addSectionBtn').click(); });
+
+
+// ─── ADMIN ACCESS SYSTEM ─────────────────────────────────────────────────────
+const ADMIN_PASSWORD = 'cl2026';
+let isAdmin = false;
+
+function setAdminMode(on){
+  isAdmin = on;
+  const badge = document.getElementById('adminBadge');
+  const label = document.getElementById('adminBadgeLabel');
+  if(on){
+    badge.classList.remove('locked');
+    label.textContent = 'Admin Mode';
+    document.body.classList.remove('view-only');
+  } else {
+    badge.classList.add('locked');
+    label.textContent = 'View Only';
+    document.body.classList.add('view-only');
+  }
+  // Re-render so add-row bar and buttons show/hide correctly
+  renderAll();
+}
+
+function openAdminModal(){
+  const overlay = document.getElementById('adminModalOverlay');
+  const inp = document.getElementById('adminPwInput');
+  const err = document.getElementById('adminErrMsg');
+  overlay.classList.add('open');
+  inp.value = '';
+  err.textContent = '';
+  setTimeout(()=>inp.focus(), 80);
+}
+function closeAdminModal(){
+  document.getElementById('adminModalOverlay').classList.remove('open');
+}
+
+document.addEventListener('keydown', e=>{
+  if(e.ctrlKey && e.shiftKey && e.key === 'A'){
+    e.preventDefault();
+    if(isAdmin){ setAdminMode(false); } else { openAdminModal(); }
+  }
+  if(e.key === 'Escape') closeAdminModal();
+});
+
+document.getElementById('adminBadge').addEventListener('click', ()=>{
+  if(isAdmin){ setAdminMode(false); } else { openAdminModal(); }
+});
+
+document.getElementById('adminLoginBtn').addEventListener('click', ()=>{
+  const val = document.getElementById('adminPwInput').value;
+  const err = document.getElementById('adminErrMsg');
+  if(val === ADMIN_PASSWORD){
+    closeAdminModal();
+    setAdminMode(true);
+  } else {
+    err.textContent = 'Incorrect password. Try again.';
+    document.getElementById('adminPwInput').select();
+  }
+});
+document.getElementById('adminPwInput').addEventListener('keydown', e=>{
+  if(e.key === 'Enter') document.getElementById('adminLoginBtn').click();
+});
+document.getElementById('adminCancelBtn').addEventListener('click', closeAdminModal);
+document.getElementById('adminModalOverlay').addEventListener('click', e=>{
+  if(e.target === document.getElementById('adminModalOverlay')) closeAdminModal();
+});
+
+// Start in view-only mode
+document.body.classList.add('view-only');
 
 loadData();
 </script>
