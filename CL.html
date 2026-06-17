@@ -297,6 +297,54 @@
   .list-bar-selall:hover{ text-decoration:underline; }
   .list-item.selected{ background:#F0F8F6; border-radius:6px; }
 
+
+  /* Modal search */
+  .modal-search-wrap{ position:relative; margin-bottom:10px; }
+  .modal-search-wrap input{
+    width:100%; padding:7px 12px 7px 30px; border:1px solid var(--line);
+    border-radius:7px; font-family:inherit; font-size:13px; color:var(--ink);
+    background:var(--paper);
+  }
+  .modal-search-wrap input:focus{ border-color:var(--teal); outline:none; box-shadow:0 0 0 2px rgba(42,111,98,.12); }
+  .modal-search-wrap svg{ position:absolute; left:9px; top:50%; transform:translateY(-50%); opacity:.4; pointer-events:none; }
+  .modal-no-results{ font-size:12px; color:var(--muted); padding:4px 0; font-style:italic; }
+
+  /* Unassigned search results */
+  .unassigned-panel{
+    margin-top:12px; border:1px solid var(--amber-line);
+    border-radius:10px; background:#FFFDF4; overflow:hidden;
+  }
+  .unassigned-head{
+    padding:9px 14px; background:var(--amber);
+    border-bottom:1px solid var(--amber-line);
+    display:flex; align-items:center; gap:8px;
+    font-size:12px; font-weight:600; color:#6B4F00; font-family:'IBM Plex Sans',sans-serif;
+  }
+  .unassigned-head .ua-count{
+    background:#6B4F00; color:var(--amber); border-radius:10px;
+    padding:1px 7px; font-family:'IBM Plex Mono',monospace; font-size:11px;
+  }
+  .unassigned-section{ padding:10px 14px 6px; }
+  .unassigned-section-title{
+    font-size:10.5px; letter-spacing:.08em; text-transform:uppercase;
+    font-weight:600; color:var(--muted); margin-bottom:6px;
+    font-family:'IBM Plex Mono',monospace;
+  }
+  .ua-chips{ display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px; }
+  .ua-chip{
+    display:inline-flex; align-items:center; gap:5px;
+    background:#fff; border:1px solid var(--line); border-radius:6px;
+    padding:4px 9px; font-size:12px; color:var(--ink);
+  }
+  .ua-chip .ua-code{
+    font-family:'IBM Plex Mono',monospace; font-size:11.5px;
+    color:var(--teal-deep); font-weight:600;
+  }
+  .ua-chip .ua-sub{ font-size:11px; color:var(--muted); }
+  .ua-chip .ua-cr{
+    font-family:'IBM Plex Mono',monospace; font-size:10.5px;
+    background:#E8F3F0; color:var(--teal-deep); border-radius:4px; padding:1px 5px;
+  }
   /* Section-wise view */
   .section-group-head td{
     background:#1F3D5A !important; color:#fff; border-top:2px solid var(--ink);
@@ -418,7 +466,7 @@
 <div class="toolbar" id="toolbarDetail">
   <div class="search-wrap">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-    <input type="text" id="searchBox" placeholder="Search by faculty, course, section…">
+    <input type="text" id="searchBox" placeholder="Search faculty, course code, section…">
   </div>
   <button class="btn primary" id="addRowBtn">+ Add row</button>
   <button class="btn" id="manageLists">⚙ Manage Lists</button>
@@ -483,6 +531,7 @@
         <button class="btn" id="addRowBtn2">+ Add another row</button>
       </div>
     </div>
+    <div id="unassignedPanel" style="display:none;"></div>
   </div>
 
   <!-- SUMMARY PANEL -->
@@ -560,6 +609,7 @@
         <div class="list-bar">
           <button class="list-bar-selall" id="selAllCourses">Select all</button>
         </div>
+        <div class="modal-search-wrap"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg><input type="text" id="searchCourses" placeholder="Search courses…" oninput="filterModalList('courses')"></div>
         <div class="list-items" id="coursesList"></div>
         <div class="course-add-grid">
           <input type="text" id="newCourseCode" placeholder="Code (e.g. EE235)">
@@ -589,6 +639,7 @@
         <div class="list-bar">
           <button class="list-bar-selall" id="selAllFms">Select all</button>
         </div>
+        <div class="modal-search-wrap"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg><input type="text" id="searchFms" placeholder="Search faculty…" oninput="filterModalList('fms')"></div>
         <div class="list-items" id="fmsList"></div>
         <div class="add-item-row">
           <input type="text" id="newFmName" placeholder="Faculty name (e.g. Engr. Dr. Name)">
@@ -615,6 +666,7 @@
         <div class="list-bar">
           <button class="list-bar-selall" id="selAllSecs">Select all</button>
         </div>
+        <div class="modal-search-wrap"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg><input type="text" id="searchSections" placeholder="Search sections…" oninput="filterModalList('sections')"></div>
         <div class="list-items" id="sectionsList"></div>
         <div class="add-item-row">
           <input type="text" id="newSection" placeholder="Section (e.g. BEEE-F-24-A)">
@@ -1090,7 +1142,7 @@ function renderDetail(){
     if(r.flag) tr.className = 'flagged';
     tr.innerHTML = `
       <td class="col-cb"><input type="checkbox" class="row-cb" data-id="${r.id}"></td>
-      <td class="num" style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;text-align:center;color:var(--teal-deep);">${r.sno||''}</td>
+      <td class="num" data-sno="${r.id}" style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;text-align:center;color:var(--teal-deep);">${r.sno||''}</td>
       <td><select data-id="${r.id}" data-field="name">${fmOptions(r.name)}</select></td>
       <td><input data-id="${r.id}" data-field="rank" value="${escAttr(r.rank)}" placeholder="Rank" style="font-size:11.5px;"></td>
       <td><select data-id="${r.id}" data-field="course_combined">${courseOptions(r.code, r.course)}</select><span class="sec-badge" id="sb-${r.id}" title="Sections still available / total offered in Fall 2026">${getSectionBadge(r.code)}</span></td>
@@ -1107,6 +1159,7 @@ function renderDetail(){
     tbody.appendChild(tr);
   });
   data.forEach(r=>applySectionBadge(r.id, r.code));
+  renderUnassigned(q);
 
   tbody.querySelectorAll('input,textarea').forEach(el=>{
     el.addEventListener('input', onCellEdit);
@@ -1185,13 +1238,9 @@ function onSelectEdit(e){
     if(sel) row.rank = sel.rank;
     const rankInput = document.querySelector(`input[data-id="${id}"][data-field="rank"]`);
     if(rankInput && sel) rankInput.value = sel.rank;
-    // Recompute all snos since FM assignment changed
+    // Recompute all snos and re-sort — then full re-render to reflect new row order
     recomputeSnos();
-    // Refresh all sno inputs in the table
-    data.forEach(r2 => {
-      const inp = document.querySelector(`input[data-id="${r2.id}"][data-field="sno"]`);
-      if(inp) inp.value = r2.sno || '';
-    });
+    renderAll();
   } else {
     row[field] = e.target.value;
   }
@@ -1522,8 +1571,9 @@ function addRow(){
   renderAll();
 }
 
-// Auto-assign sno: each unique FM name gets a sequential number in order of first appearance
+// Auto-assign sno and re-sort data so same-FM rows are always contiguous
 function recomputeSnos(){
+  // Step 1: determine FM order by first appearance
   const fmOrder = [];
   const fmMap = {};
   data.forEach(r => {
@@ -1533,9 +1583,17 @@ function recomputeSnos(){
       fmMap[name] = fmOrder.length;
     }
   });
+  // Step 2: assign sno
   data.forEach(r => {
     const name = (r.name||'').trim();
     r.sno = name ? (fmMap[name] || 0) : 0;
+  });
+  // Step 3: stable-sort data so rows with same sno stay together
+  // Rows with sno=0 (no FM yet) go to the bottom
+  data.sort((a, b) => {
+    const sa = a.sno || 9999;
+    const sb = b.sno || 9999;
+    return sa - sb;
   });
 }
 document.getElementById('addRowBtn').addEventListener('click', addRow);
@@ -1558,7 +1616,7 @@ document.getElementById('manageLists').addEventListener('click', ()=>{
   renderModal();
   document.getElementById('manageModal').classList.add('open');
 });
-document.getElementById('modalClose').addEventListener('click', ()=>{
+document.getElementById('modalClose').addEventListener('click', ()=>{ clearModalSearches();
   document.getElementById('manageModal').classList.remove('open');
 });
 document.getElementById('manageModal').addEventListener('click', e=>{
@@ -1568,12 +1626,113 @@ document.getElementById('manageModal').addEventListener('click', e=>{
 
 document.querySelectorAll('.modal-tab').forEach(tab=>{
   tab.addEventListener('click', ()=>{
+    clearModalSearches();
     document.querySelectorAll('.modal-tab').forEach(t=>t.classList.remove('active'));
     document.querySelectorAll('.list-section').forEach(s=>s.classList.remove('active'));
     tab.classList.add('active');
     document.getElementById('section-'+tab.dataset.section).classList.add('active');
   });
 });
+
+
+// ── Modal list search filter ──────────────────────────────────────────────────
+function filterModalList(type){
+  const searchMap = { courses:'searchCourses', fms:'searchFms', sections:'searchSections' };
+  const listMap   = { courses:'coursesList',   fms:'fmsList',   sections:'sectionsList' };
+  const q = (document.getElementById(searchMap[type])?.value || '').toLowerCase().trim();
+  const container = document.getElementById(listMap[type]);
+  if(!container) return;
+  let visCount = 0;
+  container.querySelectorAll('.list-item').forEach(item => {
+    const text = (item.textContent || '').toLowerCase();
+    const show = !q || text.includes(q);
+    item.style.display = show ? '' : 'none';
+    if(show) visCount++;
+  });
+  // Show/hide no-results message
+  let noRes = container.parentElement.querySelector('.modal-no-results');
+  if(!noRes){
+    noRes = document.createElement('div');
+    noRes.className = 'modal-no-results';
+    container.after(noRes);
+  }
+  noRes.style.display = (q && visCount === 0) ? '' : 'none';
+  noRes.textContent = 'No results for "' + q + '"';
+}
+
+// Clear modal search fields when switching tabs or closing
+function clearModalSearches(){
+  ['searchCourses','searchFms','searchSections'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el) el.value = '';
+  });
+  ['courses','fms','sections'].forEach(type=>{
+    const listMap = { courses:'coursesList', fms:'fmsList', sections:'sectionsList' };
+    const container = document.getElementById(listMap[type]);
+    if(container) container.querySelectorAll('.list-item').forEach(i=>i.style.display='');
+    const noRes = container?.parentElement?.querySelector('.modal-no-results');
+    if(noRes) noRes.style.display='none';
+  });
+}
+
+
+// ── Unassigned search results ─────────────────────────────────────────────────
+function renderUnassigned(q){
+  const panel = document.getElementById('unassignedPanel');
+  if(!q){ panel.style.display='none'; panel.innerHTML=''; return; }
+  const ql = q.toLowerCase();
+
+  // Courses in lists not assigned to any row in data
+  const assignedCodes = new Set(data.map(r=>(r.code||'').trim()).filter(Boolean));
+  const uaCourses = lists.courses.filter(c=>{
+    if(assignedCodes.has((c.code||'').trim())) return false;
+    return (c.code||'').toLowerCase().includes(ql) ||
+           (c.name||'').toLowerCase().includes(ql);
+  });
+
+  // FMs in lists not appearing in any row in data
+  const assignedFms = new Set(data.map(r=>(r.name||'').trim()).filter(Boolean));
+  const uaFms = lists.fms.filter(f=>{
+    if(assignedFms.has((f.name||'').trim())) return false;
+    return (f.name||'').toLowerCase().includes(ql) ||
+           (f.rank||'').toLowerCase().includes(ql);
+  });
+
+  if(!uaCourses.length && !uaFms.length){ panel.style.display='none'; panel.innerHTML=''; return; }
+
+  const total = uaCourses.length + uaFms.length;
+  let html = `<div class="unassigned-head">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="opacity:.7"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    Not yet assigned — found in Manage Lists
+    <span class="ua-count">${total}</span>
+  </div>`;
+
+  if(uaCourses.length){
+    html += `<div class="unassigned-section">
+      <div class="unassigned-section-title">Courses (${uaCourses.length})</div>
+      <div class="ua-chips">` +
+      uaCourses.map(c=>`<div class="ua-chip">
+        <span class="ua-code">${escHtml(c.code||'—')}</span>
+        <span>${escHtml(c.name)}</span>
+        ${c.cr!==undefined&&c.cr!=='' ? `<span class="ua-cr">${escHtml(String(c.cr))}cr</span>` : ''}
+      </div>`).join('') +
+      `</div></div>`;
+  }
+
+  if(uaFms.length){
+    html += `<div class="unassigned-section">
+      <div class="unassigned-section-title">Faculty Members (${uaFms.length})</div>
+      <div class="ua-chips">` +
+      uaFms.map(f=>`<div class="ua-chip">
+        <span>${escHtml(f.name)}</span>
+        ${f.rank ? `<span class="ua-sub">${escHtml(f.rank)}</span>` : ''}
+      </div>`).join('') +
+      `</div></div>`;
+  }
+
+  panel.innerHTML = html;
+  panel.style.display = '';
+}
 
 function renderModal(){
   // ── Courses ──────────────────────────────────────────────────────────────
