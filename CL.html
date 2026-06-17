@@ -1,0 +1,1822 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>EE Faculty Workload — Spring 2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600;8..60,700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#16243B;
+    --ink-soft:#3C4A60;
+    --paper:#F6F7F9;
+    --paper-card:#FFFFFF;
+    --line:#DADFE6;
+    --teal:#2A6F62;
+    --teal-deep:#1F5349;
+    --amber:#FCE9A8;
+    --amber-line:#D9B23C;
+    --red:#B3432D;
+    --red-bg:#F7E6E1;
+    --muted:#8A93A3;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'IBM Plex Sans',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .topbar{
+    position:sticky; top:0; z-index:40;
+    background:var(--ink);
+    color:#EDEFF3;
+    padding:14px 16px 0 16px;
+  }
+  .topbar-inner{max-width:1400px; margin:0 auto;}
+  .title-row{display:flex; align-items:baseline; justify-content:space-between; gap:12px; flex-wrap:wrap;}
+  h1{
+    font-family:'Source Serif 4', Georgia, serif;
+    font-weight:600;
+    font-size:22px;
+    margin:0 0 2px 0;
+    letter-spacing:.2px;
+  }
+  .eyebrow{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+    color:#9FB0A8;
+    margin:0 0 4px 0;
+  }
+  .save-indicator{
+    font-size:11.5px;
+    color:#AEB8C4;
+    font-family:'IBM Plex Mono', monospace;
+    white-space:nowrap;
+  }
+  .save-indicator.ok{color:#8FD0BC;}
+  .save-indicator.err{color:#E2A07A;}
+  .tabs{
+    display:flex; gap:4px; margin-top:14px;
+    border-bottom:1px solid rgba(255,255,255,.12);
+  }
+  .tab-btn{
+    background:none; border:none; color:#B7C0CE;
+    font-family:'IBM Plex Sans',sans-serif; font-size:13.5px; font-weight:500;
+    padding:10px 14px; cursor:pointer; border-bottom:2px solid transparent;
+    border-radius:4px 4px 0 0;
+  }
+  .tab-btn:hover{ color:#fff; background:rgba(255,255,255,.05); }
+  .tab-btn.active{ color:#fff; border-bottom-color:var(--amber-line); }
+
+  .toolbar{
+    max-width:1400px; margin:0 auto; padding:14px 16px 0 16px;
+    display:flex; gap:10px; flex-wrap:wrap; align-items:center;
+  }
+  .search-wrap{flex:1 1 220px; min-width:160px; position:relative;}
+  .search-wrap input{
+    width:100%; padding:9px 12px 9px 32px; border-radius:8px;
+    border:1px solid var(--line); background:var(--paper-card);
+    font-size:13.5px; font-family:inherit; color:var(--ink);
+  }
+  .search-wrap svg{position:absolute; left:10px; top:50%; transform:translateY(-50%); opacity:.45;}
+
+  .btn{
+    border:1px solid var(--line); background:var(--paper-card); color:var(--ink);
+    padding:9px 13px; border-radius:8px; font-size:13px; font-weight:500;
+    cursor:pointer; font-family:inherit; display:inline-flex; align-items:center; gap:6px;
+    white-space:nowrap;
+  }
+  .btn:hover{ border-color:var(--teal); color:var(--teal-deep); }
+  .btn.primary{ background:var(--teal); border-color:var(--teal); color:#fff; }
+  .btn.primary:hover{ background:var(--teal-deep); color:#fff; }
+  .btn.ghost{ border-color:transparent; color:var(--ink-soft); }
+  .btn.danger:hover{ border-color:var(--red); color:var(--red); }
+  .btn.active-toggle{ background:var(--teal); border-color:var(--teal); color:#fff; }
+  .btn svg{width:14px; height:14px; flex:none;}
+
+  main{max-width:1400px; margin:0 auto; padding:14px 16px 60px 16px;}
+
+  .panel{display:none;}
+  .panel.active{display:block;}
+
+  .card{
+    background:var(--paper-card); border:1px solid var(--line); border-radius:10px;
+    overflow:hidden;
+  }
+  .table-scroll{ overflow-x:auto; }
+  table{ width:100%; border-collapse:collapse; font-size:13px; }
+  #detailTable{ min-width:1100px; }
+  thead th{
+    background:var(--ink); color:#EDEFF3; text-align:left; font-weight:600;
+    font-size:11.5px; letter-spacing:.04em; text-transform:uppercase;
+    padding:9px 8px; position:sticky; top:0; white-space:nowrap;
+  }
+  tbody td{
+    padding:6px 8px; border-bottom:1px solid var(--line); vertical-align:top;
+  }
+  tbody tr:nth-child(even){ background:#FBFBFC; }
+  tbody tr.flagged{ background:var(--amber) !important; }
+  tbody tr.flagged td{ border-bottom-color:var(--amber-line); }
+  tbody tr:hover td{ background:#EEF3F1; }
+  tbody tr.flagged:hover td{ background:#F8E9A4; }
+
+  /* Editable cells */
+  td input, td textarea{
+    width:100%; border:1px solid transparent; background:transparent;
+    font-family:inherit; font-size:12.8px; color:var(--ink); padding:4px 5px;
+    border-radius:5px;
+  }
+  td input:hover, td textarea:hover{ border-color:var(--line); background:#fff; }
+  td input:focus, td textarea:focus{
+    border-color:var(--teal); background:#fff; outline:none;
+    box-shadow:0 0 0 2px rgba(42,111,98,.12);
+  }
+  td.num input{ text-align:center; }
+  td.code input{ font-family:'IBM Plex Mono',monospace; font-size:12px; }
+  .col-notes textarea{ resize:vertical; min-height:30px; font-size:11.5px; color:var(--ink-soft); }
+  .row-del{
+    background:none; border:none; cursor:pointer; color:var(--muted);
+    width:24px; height:24px; border-radius:6px; display:flex; align-items:center; justify-content:center;
+  }
+  .row-del:hover{ background:var(--red-bg); color:var(--red); }
+
+  /* Dropdown cell styling */
+  td select {
+    width:100%; border:1px solid transparent; background:transparent;
+    font-family:inherit; font-size:12.8px; color:var(--ink); padding:4px 5px;
+    border-radius:5px; cursor:pointer; appearance:none;
+    -webkit-appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%238A93A3'/%3E%3C/svg%3E");
+    background-repeat:no-repeat; background-position:right 6px center;
+    padding-right:20px;
+  }
+  td select:hover{ border-color:var(--line); background-color:#fff; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%238A93A3'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 6px center; }
+  td select:focus{ border-color:var(--teal); background-color:#fff; outline:none; box-shadow:0 0 0 2px rgba(42,111,98,.12); background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%238A93A3'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 6px center; }
+
+  .addrow-bar{ padding:10px; border-top:1px solid var(--line); background:#FAFBFC; }
+
+  /* Summary styles */
+  .sum-table{ min-width:640px; }
+  .sum-table th, .sum-table td{ font-size:13px; }
+  .sum-table thead th{position:sticky; top:0;}
+
+  tr.group-head{ cursor:default; }
+  tr.group-head td{
+    background:#E9EDEF !important; border-top:2px solid var(--ink); border-bottom:1px solid var(--line);
+    padding:9px 8px;
+  }
+  tr.group-head:hover td{ background:#E9EDEF !important; }
+  .group-head-inner{ display:flex; justify-content:space-between; align-items:baseline; gap:12px; flex-wrap:wrap; }
+  .ghn{ font-family:'Source Serif 4',serif; font-weight:600; font-size:14.5px; color:var(--ink); }
+  .ghn-no{ color:var(--muted); font-family:'IBM Plex Mono',monospace; font-size:11.5px; margin-right:7px; font-weight:400; }
+  .ghr{ font-size:11.5px; color:var(--ink-soft); font-weight:400; margin-left:9px; font-family:'IBM Plex Sans',sans-serif; }
+  .ghtotals{ display:flex; align-items:center; gap:9px; font-family:'IBM Plex Mono',monospace; font-size:12.5px; white-space:nowrap; }
+  .ght-calc{ font-weight:700; color:var(--ink); }
+  .sum-table tbody tr.course-row td{ padding:6px 8px 6px 18px; font-size:12.6px; color:var(--ink-soft); }
+  .sum-table tbody tr.course-row.flagged{ background:var(--amber) !important; }
+  .sum-table tbody tr.course-row.flagged td{ border-bottom-color:var(--amber-line); color:var(--ink); }
+  .sum-table .num{ text-align:center; }
+  .grand-total td{ font-weight:700; border-top:2px solid var(--ink); background:#F1F3F5 !important; font-family:'IBM Plex Mono',monospace; }
+
+  /* Compact summary */
+  .compact-grid{
+    display:grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap:12px; padding:16px;
+  }
+  .compact-card{
+    border:1px solid var(--line); border-radius:8px; background:var(--paper-card);
+    padding:12px 14px;
+  }
+  .compact-card-head{
+    display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px; gap:8px;
+  }
+  .compact-name{
+    font-family:'Source Serif 4',serif; font-weight:600; font-size:13.5px; color:var(--ink); line-height:1.3;
+  }
+  .compact-rank{ font-size:11px; color:var(--muted); margin-top:2px; }
+  .compact-hrs{
+    font-family:'IBM Plex Mono',monospace; font-size:20px; font-weight:700; color:var(--teal-deep);
+    white-space:nowrap; flex:none;
+  }
+  .compact-hrs span{ font-size:11px; font-weight:400; color:var(--muted); display:block; text-align:right; }
+  .compact-courses{ font-size:11.5px; color:var(--ink-soft); }
+  .sec-badge{ display:inline-flex; align-items:center; justify-content:center; min-width:20px; height:18px; padding:0 5px; margin-left:5px; background:var(--teal); color:#fff; border-radius:10px; font-size:10.5px; font-weight:700; font-family:'IBM Plex Mono',monospace; vertical-align:middle; line-height:1; white-space:nowrap; }
+  .sec-badge.full{ background:var(--red); }
+  .compact-course-item{ padding:2px 0; border-bottom:1px solid #F0F2F5; display:flex; justify-content:space-between; align-items:baseline; gap:6px; }
+  .compact-course-item:last-child{ border-bottom:none; }
+  .compact-course-code{ font-family:'IBM Plex Mono',monospace; font-size:10.5px; color:var(--teal-deep); white-space:nowrap; }
+  .compact-course-hrs{ font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--muted); white-space:nowrap; }
+
+  .bars{ padding:14px 16px; }
+  .bar-row{ display:grid; grid-template-columns:150px 1fr 34px; align-items:center; gap:10px; margin-bottom:7px; cursor:pointer; padding:3px 4px; border-radius:6px; }
+  .bar-row:hover{ background:#EEF3F1; }
+  .bar-row .label{ font-size:11.5px; color:var(--ink-soft); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .bar-track{ background:#EDEFF3; border-radius:4px; height:10px; overflow:hidden; }
+  .bar-fill{ background:linear-gradient(90deg, var(--teal), #4A9C8B); height:100%; border-radius:4px; }
+  .bar-row .val{ font-family:'IBM Plex Mono',monospace; font-size:11px; text-align:right; color:var(--ink-soft); }
+
+  .totals-foot td{ font-weight:700; border-top:2px solid var(--ink); background:#F1F3F5 !important; }
+  .meta-line{ font-size:12px; color:var(--muted); margin-bottom:14px; }
+  ::placeholder{ color:#B3BAC5; }
+  .summary-toolbar{
+    max-width:1400px; margin:0 auto; padding:14px 16px 0 16px;
+    display:flex; gap:10px; flex-wrap:wrap; align-items:center;
+  }
+  .view-toggle{ display:flex; gap:4px; }
+
+  /* Manage Lists Modal */
+  .modal-overlay{
+    display:none; position:fixed; inset:0; background:rgba(22,36,59,.45);
+    z-index:200; align-items:center; justify-content:center;
+  }
+  .modal-overlay.open{ display:flex; }
+  .modal{
+    background:#fff; border-radius:12px; box-shadow:0 8px 40px rgba(0,0,0,.18);
+    width:600px; max-width:95vw; max-height:90vh; overflow:hidden;
+    display:flex; flex-direction:column;
+  }
+  .modal-head{
+    padding:18px 22px 14px; border-bottom:1px solid var(--line);
+    display:flex; align-items:center; justify-content:space-between;
+  }
+  .modal-head h2{ font-family:'Source Serif 4',serif; font-size:17px; margin:0; }
+  .modal-close{ background:none; border:none; cursor:pointer; color:var(--muted); font-size:20px; line-height:1; padding:2px 6px; }
+  .modal-close:hover{ color:var(--red); }
+  .modal-tabs{ display:flex; border-bottom:1px solid var(--line); padding:0 22px; gap:2px; }
+  .modal-tab{ background:none; border:none; border-bottom:2px solid transparent; padding:10px 12px; cursor:pointer; font-family:inherit; font-size:13px; font-weight:500; color:var(--muted); }
+  .modal-tab.active{ color:var(--teal-deep); border-bottom-color:var(--teal); }
+  .modal-body{ padding:16px 22px; overflow-y:auto; flex:1; }
+  .list-section{ display:none; }
+  .list-section.active{ display:block; }
+  .list-items{ margin:0 0 10px; }
+  .list-item{ display:flex; align-items:center; gap:8px; padding:5px 0; border-bottom:1px solid #F0F2F5; }
+  .list-item:last-child{ border-bottom:none; }
+  .list-item-text{ flex:1; font-size:13px; color:var(--ink); }
+  .list-item-sub{ font-size:11px; color:var(--muted); }
+  .list-item-del{ background:none; border:none; cursor:pointer; color:var(--muted); width:22px; height:22px; border-radius:5px; display:flex; align-items:center; justify-content:center; flex:none; }
+  .list-item-del:hover{ background:var(--red-bg); color:var(--red); }
+  .add-item-row{ display:flex; gap:8px; margin-top:10px; }
+  .add-item-row input{ flex:1; padding:8px 10px; border:1px solid var(--line); border-radius:7px; font-family:inherit; font-size:13px; }
+  .add-item-row input:focus{ border-color:var(--teal); outline:none; box-shadow:0 0 0 2px rgba(42,111,98,.12); }
+  .course-add-grid{ display:grid; grid-template-columns:110px 1fr 60px; gap:8px; margin-top:10px; }
+  .course-add-grid input{ padding:8px 10px; border:1px solid var(--line); border-radius:7px; font-family:inherit; font-size:13px; }
+  .course-add-grid input:focus{ border-color:var(--teal); outline:none; box-shadow:0 0 0 2px rgba(42,111,98,.12); }
+  .list-item-edit{ background:none; border:none; cursor:pointer; color:var(--muted); width:22px; height:22px; border-radius:5px; display:flex; align-items:center; justify-content:center; flex:none; }
+  .list-item-edit:hover{ background:#EEF3F1; color:var(--teal-deep); }
+  .inline-edit-row{ display:flex; gap:6px; align-items:center; flex:1; }
+  .inline-edit-row input{ flex:1; padding:5px 8px; border:1px solid var(--teal); border-radius:6px; font-family:inherit; font-size:12.5px; background:#fff; }
+  .inline-edit-row input:focus{ outline:none; box-shadow:0 0 0 2px rgba(42,111,98,.12); }
+  .inline-edit-row .cr-input{ width:52px; flex:none; font-family:'IBM Plex Mono',monospace; text-align:center; }
+  .inline-edit-row .save-btn{ background:var(--teal); border:none; color:#fff; border-radius:6px; padding:5px 10px; cursor:pointer; font-size:12px; font-family:inherit; white-space:nowrap; }
+  .inline-edit-row .save-btn:hover{ background:var(--teal-deep); }
+  .inline-edit-row .cancel-btn{ background:none; border:1px solid var(--line); color:var(--ink-soft); border-radius:6px; padding:5px 8px; cursor:pointer; font-size:12px; font-family:inherit; }
+  .bulk-section{ margin-top:14px; border-top:1px solid var(--line); padding-top:12px; }
+  .bulk-section summary{ cursor:pointer; font-size:12.5px; font-weight:600; color:var(--teal-deep); user-select:none; margin-bottom:0; }
+  .bulk-section summary:hover{ color:var(--teal); }
+  .bulk-section[open] summary{ margin-bottom:10px; }
+  .bulk-hint{ font-size:11.5px; color:var(--muted); margin-bottom:6px; font-family:'IBM Plex Mono',monospace; line-height:1.6; }
+  .bulk-textarea{ width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:7px; font-family:'IBM Plex Mono',monospace; font-size:12px; color:var(--ink); resize:vertical; min-height:90px; }
+  .bulk-textarea:focus{ border-color:var(--teal); outline:none; box-shadow:0 0 0 2px rgba(42,111,98,.12); }
+  .bulk-actions{ display:flex; gap:8px; margin-top:8px; align-items:center; }
+  .bulk-result{ font-size:12px; color:var(--teal-deep); font-family:'IBM Plex Mono',monospace; }
+  .bulk-result.err{ color:var(--red); }
+  .cr-badge{ font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--teal-deep); background:#E8F3F0; border-radius:4px; padding:1px 6px; margin-left:5px; white-space:nowrap; }
+  .list-item-cb{ width:15px; height:15px; accent-color:var(--teal); cursor:pointer; flex:none; }
+  .bulk-del-bar{ display:none; align-items:center; gap:10px; background:var(--red-bg); border:1px solid #E8C4BB; border-radius:8px; padding:8px 12px; margin-bottom:10px; }
+  .bulk-del-bar.visible{ display:flex; }
+  .bulk-del-count{ font-size:13px; font-weight:600; color:var(--red); flex:1; }
+  .bulk-del-btn{ background:var(--red); border:none; color:#fff; border-radius:6px; padding:6px 14px; cursor:pointer; font-size:13px; font-family:inherit; font-weight:500; }
+  .bulk-del-btn:hover{ background:#9A3826; }
+  .bulk-del-cancel{ background:none; border:1px solid var(--line); color:var(--ink-soft); border-radius:6px; padding:6px 10px; cursor:pointer; font-size:13px; font-family:inherit; }
+  .list-bar{ display:flex; align-items:center; gap:8px; margin-bottom:6px; min-height:22px; }
+  .list-bar-selall{ font-size:12px; color:var(--teal-deep); cursor:pointer; font-weight:500; background:none; border:none; font-family:inherit; padding:0; }
+  .list-bar-selall:hover{ text-decoration:underline; }
+  .list-item.selected{ background:#F0F8F6; border-radius:6px; }
+
+  /* Section-wise view */
+  .section-group-head td{
+    background:#1F3D5A !important; color:#fff; border-top:2px solid var(--ink);
+    padding:9px 12px; font-family:'Source Serif 4',serif; font-size:14px; font-weight:600;
+  }
+  .section-group-head:hover td{ background:#1F3D5A !important; }
+  .section-course-row td{ padding:6px 8px 6px 16px; font-size:12.6px; }
+  .section-course-row:nth-child(even) { background:#FBFBFC; }
+  .section-course-row:hover td{ background:#EEF3F1; }
+  .section-total-row td{ font-weight:600; border-top:1px solid var(--line); background:#F4F6F8 !important; font-size:12px; padding:5px 8px 5px 16px; }
+
+  /* Print window styles — injected into new window */
+  @media print{
+    .topbar, .toolbar, .summary-toolbar, .addrow-bar, .row-del-col, .col-del, .modal-overlay{ display:none !important; }
+    body{background:#fff;}
+  }
+
+  .bulk-action-bar{ max-width:1400px; margin:0 auto; padding:0 16px; display:none; }
+  .bulk-action-bar.visible{ display:block; }
+  .bulk-action-inner{
+    display:flex; align-items:center; gap:12px;
+    background:#FFF3CD; border:1px solid var(--amber-line);
+    border-radius:8px; padding:9px 14px; margin-top:8px;
+  }
+  .bulk-count{ font-size:13px; font-weight:600; color:var(--ink); flex:1; }
+  .bulk-del-rows-btn{
+    background:var(--red); border:none; color:#fff; border-radius:7px;
+    padding:7px 16px; cursor:pointer; font-size:13px; font-family:inherit; font-weight:500;
+  }
+  .bulk-del-rows-btn:hover{ background:#9A3826; }
+  .bulk-cancel-sel{
+    background:none; border:1px solid var(--line); color:var(--ink-soft);
+    border-radius:7px; padding:7px 12px; cursor:pointer; font-size:13px; font-family:inherit;
+  }
+  td.col-cb{ width:28px; text-align:center; padding:6px 4px; }
+  th.col-cb{ width:28px; text-align:center; padding:9px 4px; }
+  .row-cb{ width:15px; height:15px; accent-color:var(--teal); cursor:pointer; }
+  .sel-all-cb{ width:15px; height:15px; accent-color:var(--amber-line); cursor:pointer; }
+</style>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="title-row">
+      <div>
+        <div class="eyebrow">Department of Electrical Engineering</div>
+        <h1>Faculty Workload Ledger — Spring 2026</h1>
+      </div>
+      <div class="save-indicator" id="saveIndicator">—</div>
+    </div>
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="detail">Course Load</button>
+      <button class="tab-btn" data-tab="summary">Faculty Summary</button>
+    </div>
+  </div>
+</div>
+
+<!-- Detail toolbar -->
+<div class="toolbar" id="toolbarDetail">
+  <div class="search-wrap">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+    <input type="text" id="searchBox" placeholder="Search by faculty, course, section…">
+  </div>
+  <button class="btn primary" id="addRowBtn">+ Add row</button>
+  <button class="btn" id="manageLists">⚙ Manage Lists</button>
+  <button class="btn" id="exportCsvBtn">Export CSV</button>
+</div>
+
+
+<div class="bulk-action-bar" id="bulkActionBar">
+  <div class="bulk-action-inner">
+    <span class="bulk-count" id="bulkCount">0 rows selected</span>
+    <button class="bulk-cancel-sel" id="bulkCancelBtn">Cancel</button>
+    <button class="bulk-del-rows-btn" id="bulkDelRowsBtn">&#128465; Delete Selected</button>
+  </div>
+</div>
+
+<!-- Summary toolbar -->
+<div class="summary-toolbar" id="toolbarSummary" style="display:none;">
+  <div class="view-toggle">
+    <button class="btn active-toggle" id="btnCompact">Compact</button>
+    <button class="btn" id="btnDetail">Detailed</button>
+    <button class="btn" id="btnSection">By Section</button>
+  </div>
+  <div style="flex:1;"></div>
+  <button class="btn" id="btnPrintFaculty" title="Print faculty summary">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+    Print Faculty Summary
+  </button>
+  <button class="btn" id="btnPrintSection" title="Print section-wise summary">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+    Print Section Summary
+  </button>
+</div>
+
+<main>
+
+  <!-- DETAIL PANEL -->
+  <div class="panel active" id="panel-detail">
+    <div class="meta-line">One row per course / lab / class-advisor assignment. Click any cell to edit. Yellow rows were highlighted in the original PDF.</div>
+    <div class="card">
+      <div class="table-scroll">
+        <table id="detailTable">
+          <thead>
+            <tr>
+              <th class="col-cb"><input type="checkbox" class="sel-all-cb" id="selAllCb" title="Select all"></th>
+              <th style="width:30px;">#</th>
+              <th style="width:170px;">Faculty</th>
+              <th style="width:110px;">Rank</th>
+              <th style="width:260px;">Course Code &amp; Name <span style="font-weight:400;font-size:10px;color:#8A93A3;">(badge = sections offered)</span></th>
+              <th style="width:40px;">Cr</th>
+              <th style="width:140px;">Section 1</th>
+              <th style="width:140px;">Section 2</th>
+              <th style="width:140px;">Section 3</th>
+              <th style="width:70px;">Total Hours</th>
+              <th style="width:200px;">Notes</th>
+              <th class="col-del" style="width:30px;"></th>
+            </tr>
+          </thead>
+          <tbody id="detailBody"></tbody>
+        </table>
+      </div>
+      <div class="addrow-bar">
+        <button class="btn" id="addRowBtn2">+ Add another row</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SUMMARY PANEL -->
+  <div class="panel" id="panel-summary">
+    <!-- Compact view -->
+    <div id="summaryCompact">
+      <div class="compact-grid" id="compactGrid"></div>
+    </div>
+    <!-- Detail view -->
+    <div id="summaryDetail" style="display:none;">
+      <div class="card" style="margin-bottom:16px;">
+        <div class="table-scroll">
+          <table class="sum-table">
+            <thead>
+              <tr>
+                <th style="width:220px;">Course Code &amp; Name</th>
+                <th style="width:50px;">Cr</th>
+                <th style="width:200px;">Sections</th>
+                <th style="width:60px;">Hrs</th>
+              </tr>
+            </thead>
+            <tbody id="summaryBody"></tbody>
+            <tfoot id="summaryFoot"></tfoot>
+          </table>
+        </div>
+      </div>
+      <div class="card bars">
+        <div class="section-title" style="font-family:'Source Serif 4',serif; font-size:16px; font-weight:600; margin:0 0 12px; color:var(--ink);">Load distribution <span style="font-size:12px; color:var(--muted); font-weight:400; font-family:'IBM Plex Sans',sans-serif;">— tap a bar to jump to that faculty member</span></div>
+        <div id="barsContainer"></div>
+      </div>
+    </div>
+    <!-- Section-wise view -->
+    <div id="summarySection" style="display:none;">
+      <div class="card" style="margin-bottom:16px;">
+        <div class="table-scroll">
+          <table class="sum-table" id="sectionTable">
+            <thead>
+              <tr>
+                <th style="width:220px;">Course Code &amp; Name</th>
+                <th style="width:200px;">Faculty</th>
+                <th style="width:110px;">Rank</th>
+                <th style="width:50px;">Cr</th>
+                <th style="width:60px;">Hrs</th>
+              </tr>
+            </thead>
+            <tbody id="sectionBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- Manage Lists Modal -->
+<div class="modal-overlay" id="manageModal">
+  <div class="modal">
+    <div class="modal-head">
+      <h2>Manage Lists</h2>
+      <button class="modal-close" id="modalClose">&times;</button>
+    </div>
+    <div class="modal-tabs">
+      <button class="modal-tab active" data-section="courses">Courses</button>
+      <button class="modal-tab" data-section="fms">Faculty Members</button>
+      <button class="modal-tab" data-section="sections">Classes / Sections</button>
+    </div>
+    <div class="modal-body">
+      <!-- Courses -->
+      <div class="list-section active" id="section-courses">
+        <div class="bulk-del-bar" id="bulkDelBarCourse">
+          <span class="bulk-del-count" id="bulkDelCountCourse">0 selected</span>
+          <button class="bulk-del-btn" id="bulkDelDoCourse">Delete selected</button>
+          <button class="bulk-del-cancel" id="bulkDelCancelCourse">Cancel</button>
+        </div>
+        <div class="list-bar">
+          <button class="list-bar-selall" id="selAllCourses">Select all</button>
+        </div>
+        <div class="list-items" id="coursesList"></div>
+        <div class="course-add-grid">
+          <input type="text" id="newCourseCode" placeholder="Code (e.g. EE235)">
+          <input type="text" id="newCourseName" placeholder="Course name">
+          <input type="number" id="newCourseCr" placeholder="Cr" min="0" max="9" step="1" title="Credit hours">
+        </div>
+        <div style="margin-top:8px; display:flex; gap:8px; align-items:center;">
+          <button class="btn primary" id="addCourseBtn">+ Add Course</button>
+        </div>
+        <details class="bulk-section" id="bulkCourseDetails">
+          <summary>⬇ Bulk paste courses</summary>
+          <div class="bulk-hint">One course per line: &nbsp;<strong>CODE &nbsp; Name &nbsp; CrHrs</strong> &nbsp;(tab or comma separated)<br>Example: &nbsp;EE235&nbsp;&nbsp;&nbsp;Signal &amp; Systems&nbsp;&nbsp;&nbsp;3</div>
+          <textarea class="bulk-textarea" id="bulkCourseText" placeholder="EE235	Signal & Systems	3&#10;EE338	Digital Signal Processing	3&#10;EE100L	Electric Circuit Analysis Lab	1"></textarea>
+          <div class="bulk-actions">
+            <button class="btn primary" id="bulkCourseBtn">Import</button>
+            <span class="bulk-result" id="bulkCourseResult"></span>
+          </div>
+        </details>
+      </div>
+      <!-- Faculty Members -->
+      <div class="list-section" id="section-fms">
+        <div class="bulk-del-bar" id="bulkDelBarFm">
+          <span class="bulk-del-count" id="bulkDelCountFm">0 selected</span>
+          <button class="bulk-del-btn" id="bulkDelDoFm">Delete selected</button>
+          <button class="bulk-del-cancel" id="bulkDelCancelFm">Cancel</button>
+        </div>
+        <div class="list-bar">
+          <button class="list-bar-selall" id="selAllFms">Select all</button>
+        </div>
+        <div class="list-items" id="fmsList"></div>
+        <div class="add-item-row">
+          <input type="text" id="newFmName" placeholder="Faculty name (e.g. Engr. Dr. Name)">
+          <input type="text" id="newFmRank" placeholder="Rank (e.g. Assistant Professor)" style="max-width:200px;">
+          <button class="btn primary" id="addFmBtn">+ Add</button>
+        </div>
+        <details class="bulk-section" id="bulkFmDetails">
+          <summary>⬇ Bulk paste faculty</summary>
+          <div class="bulk-hint">One faculty per line: &nbsp;<strong>Name &nbsp; Rank</strong> &nbsp;(tab or comma separated)<br>Example: &nbsp;Engr. Dr. Ahmed&nbsp;&nbsp;&nbsp;Assistant Professor</div>
+          <textarea class="bulk-textarea" id="bulkFmText" placeholder="Engr. Dr. Ahmed	Assistant Professor&#10;Engr. Sara	Lecturer"></textarea>
+          <div class="bulk-actions">
+            <button class="btn primary" id="bulkFmBtn">Import</button>
+            <span class="bulk-result" id="bulkFmResult"></span>
+          </div>
+        </details>
+      </div>
+      <!-- Sections -->
+      <div class="list-section" id="section-sections">
+        <div class="bulk-del-bar" id="bulkDelBarSec">
+          <span class="bulk-del-count" id="bulkDelCountSec">0 selected</span>
+          <button class="bulk-del-btn" id="bulkDelDoSec">Delete selected</button>
+          <button class="bulk-del-cancel" id="bulkDelCancelSec">Cancel</button>
+        </div>
+        <div class="list-bar">
+          <button class="list-bar-selall" id="selAllSecs">Select all</button>
+        </div>
+        <div class="list-items" id="sectionsList"></div>
+        <div class="add-item-row">
+          <input type="text" id="newSection" placeholder="Section (e.g. BEEE-F-24-A)">
+          <button class="btn primary" id="addSectionBtn">+ Add</button>
+        </div>
+        <details class="bulk-section" id="bulkSecDetails">
+          <summary>⬇ Bulk paste sections</summary>
+          <div class="bulk-hint">One section per line (or comma/tab separated):<br>Example: &nbsp;BEEE-F-24-A&nbsp;&nbsp;&nbsp;BEEE-F-24-B&nbsp;&nbsp;&nbsp;BEET-F-24-A</div>
+          <textarea class="bulk-textarea" id="bulkSecText" placeholder="BEEE-F-24-A&#10;BEEE-F-24-B&#10;BEET-F-24-A"></textarea>
+          <div class="bulk-actions">
+            <button class="btn primary" id="bulkSecBtn">Import</button>
+            <span class="bulk-result" id="bulkSecResult"></span>
+          </div>
+        </details>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── SEED DATA ────────────────────────────────────────────────────────────────
+const SEED = {"rows":[{"id":1,"sno":1,"name":"Engr. Dr. Hafiz Ashiq Hussain","rank":"Professor & HoD","code":"EE465","course":"Optical Fiber Communication","cr":3,"s1":"BEET-F-22-A","s2":"","s3":"","tut":"","contact":3,"notes":"","flag":false},{"id":2,"sno":1,"name":"Engr. Dr. Hafiz Ashiq Hussain","rank":"Professor & HoD","code":"EE613","course":"Advanced Optics","cr":3,"s1":"MS/PhD","s2":"","s3":"","tut":"","contact":3,"notes":"","flag":false},{"id":3,"sno":2,"name":"Engr. Dr. Waseem Khan","rank":"Assistant Professor","code":"EE235","course":"Signal & Systems","cr":3,"s1":"BEET-F-24-A","s2":"BEET-F-24-B","s3":"","tut":"","contact":6,"notes":"","flag":false},{"id":4,"sno":2,"name":"Engr. Dr. Waseem Khan","rank":"Assistant Professor","code":"EE435","course":"Information Coding Theory","cr":3,"s1":"BEET-F-22-A","s2":"","s3":"","tut":"","contact":3,"notes":"","flag":false},{"id":5,"sno":3,"name":"Engr. Dr. Syed Ahmed Pasha","rank":"Assistant Professor","code":"MA200","course":"Numerical Methods","cr":2,"s1":"BEEE-F-23-A","s2":"BEEP-F-23-A","s3":"","tut":"","contact":4,"notes":"","flag":false},{"id":6,"sno":3,"name":"Engr. Dr. Syed Ahmed Pasha","rank":"Assistant Professor","code":"EE492","course":"Final Year Project-I","cr":1,"s1":"BEEE-F-23-A","s2":"","s3":"","tut":"","contact":1,"notes":"","flag":false},{"id":7,"sno":3,"name":"Engr. Dr. Syed Ahmed Pasha","rank":"Assistant Professor","code":"MT203","course":"Probability Methods In Engineering","cr":3,"s1":"BEEP-F-24-A","s2":"","s3":"","tut":"","contact":3,"notes":"Highlighted in source document","flag":true},{"id":8,"sno":3,"name":"Engr. Dr. Syed Ahmed Pasha","rank":"Assistant Professor","code":"","course":"Class Advisor","cr":"","s1":"BEEP-F-25-B","s2":"","s3":"","tut":"","contact":0,"notes":"","flag":false},{"id":9,"sno":4,"name":"Engr. Dr. Imran Farid","rank":"Assistant Professor","code":"EE338","course":"Digital Signal Processing","cr":3,"s1":"BEEE-F-23-A","s2":"BEEP-F-23-A","s3":"","tut":"","contact":6,"notes":"","flag":false},{"id":10,"sno":4,"name":"Engr. Dr. Imran Farid","rank":"Assistant Professor","code":"","course":"Advanced Neural Networks","cr":3,"s1":"MSBME/MSEE","s2":"","s3":"","tut":"","contact":3,"notes":"Highlighted in source; no course code listed in original","flag":true},{"id":11,"sno":4,"name":"Engr. Dr. Imran Farid","rank":"Assistant Professor","code":"","course":"Class Advisor","cr":"","s1":"BEEE-F-25-B","s2":"","s3":"","tut":"","contact":0,"notes":"","flag":false},{"id":12,"sno":5,"name":"Engr. Dr. Sara Saeed","rank":"Assistant Professor","code":"EE416","course":"Microwave Theory & Technique","cr":3,"s1":"BEET-F-23-A","s2":"","s3":"","tut":"","contact":3,"notes":"","flag":false},{"id":13,"sno":5,"name":"Engr. Dr. Sara Saeed","rank":"Assistant Professor","code":"EE213","course":"Electromagnetic Field Theory","cr":3,"s1":"BEEE-F-24-A","s2":"","s3":"","tut":"","contact":3,"notes":"","flag":false},{"id":14,"sno":5,"name":"Engr. Dr. Sara Saeed","rank":"Assistant Professor","code":"EE416L","course":"Microwave Theory & Technique Laboratory","cr":1,"s1":"BEET-F-23-A","s2":"","s3":"","tut":"","contact":3,"notes":"","flag":false},{"id":15,"sno":5,"name":"Engr. Dr. Sara Saeed","rank":"Assistant Professor","code":"","course":"Class Advisor","cr":"","s1":"BEET-F-24-A","s2":"","s3":"","tut":"","contact":0,"notes":"","flag":false},{"id":16,"sno":6,"name":"Engr. Dr. Ahsan Sarwar Rana","rank":"Assistant Professor","code":"EE213","course":"Electromagnetic Field Theory","cr":3,"s1":"BEEE-F-24-B","s2":"BEEP-F-24-A","s3":"","tut":"","contact":6,"notes":"3rd section cell highlighted (blank) in source","flag":true},{"id":17,"sno":6,"name":"Engr. Dr. Ahsan Sarwar Rana","rank":"Assistant Professor","code":"","course":"Antenna & Waves propagation","cr":"","s1":"Additional Course","s2":"","s3":"","tut":"","contact":3,"notes":"","flag":false},{"id":18,"sno":7,"name":"Engr. Dr. Muhammad Zaheer","rank":"Assistant Professor","code":"MT203","course":"Probability Methods In Engineering","cr":3,"s1":"BEEE-F-24-A","s2":"BEEE-F-24-B","s3":"BEET-F-24-A","tut":"","contact":9,"notes":"3rd section highlighted in source","flag":true},{"id":19,"sno":7,"name":"Engr. Dr. Muhammad Zaheer","rank":"Assistant Professor","code":"","course":"Class Advisor","cr":"","s1":"BEET-F-23-A","s2":"","s3":"","tut":"","contact":0,"notes":"","flag":false},{"id":20,"sno":8,"name":"Engr. Dr. Shahzad Ahmad","rank":"Assistant Professor","code":"EE407","course":"VLSI Design","cr":2,"s1":"BEEE-F-22-A","s2":"BCE-F-22-A","s3":"","tut":"","contact":4,"notes":"","flag":false},{"id":21,"sno":8,"name":"Engr. Dr. Shahzad Ahmad","rank":"Assistant Professor","code":"EE407L","course":"VLSI Design Laboratory","cr":2,"s1":"BEEE-F-22-A","s2":"BCE-F-22-A","s3":"","tut":"","contact":6,"notes":"","flag":false},{"id":22,"sno":9,"name":"Engr. Dr. Sher Ali","rank":"Assistant Professor","code":"EE376","course":"Digital communications","cr":3,"s1":"BEET-F-23-A","s2":"","s3":"","tut":"","contact":3,"notes":"","flag":false},{"id":23,"sno":9,"name":"Engr. Dr. Sher Ali","rank":"Assistant Professor","code":"EE123","course":"Digital Logic Design","cr":2,"s1":"BSSE-F-25-A","s2":"BSSE-F-25-B","s3":"","tut":"","contact":4,"notes":"","flag":false},{"id":24,"sno":9,"name":"Engr. Dr. Sher Ali","rank":"Assistant Professor","code":"EE636","course":"Advanced Mobile Communication","cr":3,"s1":"MS/PhD","s2":"","s3":"","tut":"","contact":3,"notes":"","flag":false},{"id":25,"sno":9,"name":"Engr. Dr. Sher Ali","rank":"Assistant Professor","code":"","course":"Class Advisor","cr":"","s1":"BEEP-F-25-A","s2":"","s3":"","tut":"","contact":0,"notes":"","flag":false},{"id":26,"sno":10,"name":"Engr. Dr. Ashfaq Ahmad","rank":"Assistant Professor","code":"CE351","course":"Artificial Intelligence for Engineers","cr":3,"s1":"BEEE-F-22-A","s2":"","s3":"","tut":"","contact":3,"notes":"","flag":false},{"id":27,"sno":10,"name":"Engr. Dr. Ashfaq Ahmad","rank":"Assistant Professor","code":"EE445","course":"High Voltage Engineering","cr":3,"s1":"BEEP-F-22-A","s2":"","s3":"","tut":"","contact":3,"notes":"","flag":false},{"id":28,"sno":10,"name":"Engr. Dr. Ashfaq Ahmad","rank":"Assistant Professor","code":"EE659","course":"Power Systems Component Modelling","cr":3,"s1":"MS/PhD","s2":"","s3":"","tut":"","contact":3,"notes":"","flag":false},{"id":29,"sno":10,"name":"Engr. Dr. Ashfaq Ahmad","rank":"Assistant Professor","code":"","course":"Class Advisor","cr":"","s1":"BEEV-F-25-A","s2":"","s3":"","tut":"","contact":0,"notes":"","flag":false},{"id":30,"sno":11,"name":"Engr. Dr. Amina Asif","rank":"Assistant Professor","code":"CE351","course":"Artificial Intelligence for Engineers","cr":3,"s1":"BEEP-F-22-A","s2":"","s3":"","tut":"","contact":3,"notes":"","flag":false},{"id":31,"sno":11,"name":"Engr. Dr. Amina Asif","rank":"Assistant Professor","code":"EE235","course":"Signal & Systems","cr":3,"s1":"BEEP-F-24-A","s2":"BEEE-F-24-B","s3":"","tut":"","contact":6,"notes":"2nd section cell highlighted in source","flag":true},{"id":32,"sno":11,"name":"Engr. Dr. Amina Asif","rank":"Assistant Professor","code":"","course":"Class Advisor","cr":"","s1":"BEEE-F-24-A","s2":"","s3":"","tut":"","contact":0,"notes":"","flag":false},{"id":33,"sno":12,"name":"Engr. Seema Tahir","rank":"Assistant Professor","code":"EE123","course":"Digital Logic Design","cr":2,"s1":"BSCYS-F-25-A","s2":"BSCYS-F-25-B","s3":"","tut":"","contact":4,"notes":"","flag":false},{"id":34,"sno":12,"name":"Engr. Seema Tahir","rank":"Assistant Professor","code":"EE400","course":"Electrical Machines","cr":2,"s1":"BEME-F-22-A","s2":"BEME-F-22-B","s3":"","tut":"","contact":4,"notes":"","flag":false},{"id":35,"sno":12,"name":"Engr. Seema Tahir","rank":"Assistant Professor","code":"","course":"Class Advisor","cr":"","s1":"BEEP-F-24-B","s2":"","s3":"","tut":"","contact":0,"notes":"","flag":false},{"id":36,"sno":13,"name":"Engr. Faizan Munir","rank":"Lecturer","code":"EE348","course":"Power Generation Systems","cr":3,"s1":"BEEP-F-23-A","s2":"","s3":"","tut":"","contact":3,"notes":"","flag":false},{"id":37,"sno":13,"name":"Engr. Faizan Munir","rank":"Lecturer","code":"EE447L","course":"Power System Protection Laboratory","cr":1,"s1":"BEEP-F-22-A","s2":"","s3":"","tut":"","contact":3,"notes":"","flag":false},{"id":38,"sno":13,"name":"Engr. Faizan Munir","rank":"Lecturer","code":"EE447","course":"Power System Protection","cr":3,"s1":"BEEP-F-22-A","s2":"","s3":"","tut":"","contact":3,"notes":"","flag":false},{"id":39,"sno":13,"name":"Engr. Faizan Munir","rank":"Lecturer","code":"EE114","course":"Electrical Engineering","cr":2,"s1":"BEME-F-25-A","s2":"","s3":"","tut":"","contact":2,"notes":"","flag":false},{"id":40,"sno":13,"name":"Engr. Faizan Munir","rank":"Lecturer","code":"EE494","course":"Final Year Project-III","cr":1,"s1":"BEET-F-22-A","s2":"","s3":"","tut":"","contact":1,"notes":"","flag":false},{"id":41,"sno":13,"name":"Engr. Faizan Munir","rank":"Lecturer","code":"","course":"Class Advisor","cr":"","s1":"BEEP-F-22-A","s2":"","s3":"","tut":"","contact":0,"notes":"","flag":false},{"id":42,"sno":14,"name":"Engr. Atique Ur Rehman","rank":"Lecturer","code":"EE105","course":"Electrical Network Analysis","cr":3,"s1":"BEEP-F-25-A","s2":"BEEP-F-25-B","s3":"","tut":"","contact":6,"notes":"","flag":false},{"id":43,"sno":14,"name":"Engr. Atique Ur Rehman","rank":"Lecturer","code":"EE206","course":"Basic Electrical and Electronics Engg","cr":2,"s1":"BEME-F-21","s2":"","s3":"","tut":"","contact":2,"notes":"Row highlighted in source","flag":true},{"id":44,"sno":14,"name":"Engr. Atique Ur Rehman","rank":"Lecturer","code":"EE206L","course":"Basic Electrical and Electronics Engg. Lab","cr":1,"s1":"BEME-F-21","s2":"","s3":"","tut":"","contact":3,"notes":"Row highlighted in source","flag":true},{"id":45,"sno":14,"name":"Engr. Atique Ur Rehman","rank":"Lecturer","code":"","course":"Class Advisor","cr":"","s1":"BEET-F-25-A","s2":"","s3":"","tut":"","contact":0,"notes":"","flag":false},{"id":46,"sno":15,"name":"Engr. Muhammad Ali Raza","rank":"Lecturer","code":"EE475","course":"Analog & Digital Communication","cr":3,"s1":"BEEE-F-22-A","s2":"","s3":"","tut":"","contact":3,"notes":"","flag":false},{"id":47,"sno":15,"name":"Engr. Muhammad Ali Raza","rank":"Lecturer","code":"EE213","course":"Electromagnetic Field Theory","cr":3,"s1":"BEET-F-24-A","s2":"BEET-F-24-B","s3":"","tut":"","contact":6,"notes":"","flag":false},{"id":48,"sno":15,"name":"Engr. Muhammad Ali Raza","rank":"Lecturer","code":"EE475L","course":"Analog & Digital Communication Laboratory","cr":1,"s1":"BEEE-F-22-A","s2":"","s3":"","tut":"","contact":3,"notes":"","flag":false},{"id":49,"sno":15,"name":"Engr. Muhammad Ali Raza","rank":"Lecturer","code":"","course":"Class Advisor","cr":"","s1":"BEET-F-22-A","s2":"","s3":"","tut":"","contact":0,"notes":"","flag":false},{"id":50,"sno":16,"name":"Engr. Madeeha Uzma","rank":"Lecturer","code":"EE100","course":"Electric Circuit Analysis","cr":3,"s1":"BCE-F-25-A","s2":"BCE-F-25-B","s3":"","tut":"","contact":6,"notes":"","flag":false},{"id":51,"sno":16,"name":"Engr. Madeeha Uzma","rank":"Lecturer","code":"EE355","course":"Control Systems","cr":3,"s1":"BEET-F-23-A","s2":"","s3":"","tut":"","contact":3,"notes":"","flag":false},{"id":52,"sno":16,"name":"Engr. Madeeha Uzma","rank":"Lecturer","code":"EE100L","course":"Electric Circuit Analysis Laboratory","cr":1,"s1":"BCE-F-25-A","s2":"","s3":"","tut":"","contact":3,"notes":"","flag":false},{"id":53,"sno":16,"name":"Engr. Madeeha Uzma","rank":"Lecturer","code":"","course":"Class Advisor","cr":"","s1":"BEET-F-24-B","s2":"","s3":"","tut":"","contact":0,"notes":"","flag":false},{"id":54,"sno":17,"name":"Engr. Sami Ullah","rank":"Lecturer","code":"EE105","course":"Electrical Network Analysis","cr":3,"s1":"BEEE-F-25-A","s2":"BEEE-F-25-B","s3":"","tut":"","contact":6,"notes":"","flag":false},{"id":55,"sno":17,"name":"Engr. Sami Ullah","rank":"Lecturer","code":"EE105L","course":"Electrical Network Analysis Lab","cr":1,"s1":"BEEE-F-25-A","s2":"BEEE-F-25-B","s3":"","tut":"","contact":6,"notes":"","flag":false},{"id":56,"sno":17,"name":"Engr. Sami Ullah","rank":"Lecturer","code":"","course":"Class Advisor","cr":"","s1":"BEEP-F-24-A","s2":"","s3":"","tut":"","contact":0,"notes":"","flag":false},{"id":57,"sno":18,"name":"Engr. Saba Mumtaz","rank":"Lecturer","code":"EE494","course":"Final Year Project-III","cr":1,"s1":"BEEP-F-22-A","s2":"","s3":"","tut":"","contact":1,"notes":"","flag":false},{"id":58,"sno":18,"name":"Engr. Saba Mumtaz","rank":"Lecturer","code":"EE373","course":"Circuit & Devices for Theory","cr":3,"s1":"BS-Phy-V","s2":"","s3":"","tut":"","contact":3,"notes":"","flag":false},{"id":59,"sno":18,"name":"Engr. Saba Mumtaz","rank":"Lecturer","code":"EE123","course":"Digital Logic Design","cr":2,"s1":"BSCGD-F-25-A","s2":"BSCGD-F-25-B","s3":"","tut":"","contact":4,"notes":"","flag":false},{"id":60,"sno":18,"name":"Engr. Saba Mumtaz","rank":"Lecturer","code":"EE100","course":"Electric Circuit Analysis","cr":3,"s1":"Additional Course","s2":"","s3":"","tut":"","contact":3,"notes":"","flag":false},{"id":61,"sno":18,"name":"Engr. Saba Mumtaz","rank":"Lecturer","code":"","course":"Class Advisor","cr":"","s1":"BEEE-F-23-A","s2":"","s3":"","tut":"","contact":0,"notes":"","flag":false},{"id":62,"sno":19,"name":"Engr. Hiba Hareem","rank":"Lecturer","code":"EE235","course":"Signal & Systems","cr":3,"s1":"BEEE-F-24-A","s2":"","s3":"","tut":"","contact":3,"notes":"","flag":false},{"id":63,"sno":19,"name":"Engr. Hiba Hareem","rank":"Lecturer","code":"EE235L","course":"Signal & Systems Laboratory","cr":"","s1":"BEEE-F-24-A","s2":"","s3":"","tut":"","contact":3,"notes":"Credit hours blank in source","flag":false},{"id":64,"sno":19,"name":"Engr. Hiba Hareem","rank":"Lecturer","code":"EE338L","course":"Digital Signal Processing Laboratory","cr":3,"s1":"BEEE-F-23-A","s2":"BEEP-F-23-A","s3":"","tut":"","contact":6,"notes":"","flag":false},{"id":65,"sno":19,"name":"Engr. Hiba Hareem","rank":"Lecturer","code":"","course":"Class Advisor","cr":"","s1":"BEEE-F-25-A","s2":"","s3":"","tut":"","contact":0,"notes":"","flag":false},{"id":66,"sno":20,"name":"Engr. Mashood Ahmed","rank":"Lecturer","code":"EE209","course":"Electronic Circuit Design","cr":3,"s1":"BEET-F-23-A","s2":"","s3":"","tut":"","contact":3,"notes":"","flag":false},{"id":67,"sno":20,"name":"Engr. Mashood Ahmed","rank":"Lecturer","code":"EE209L","course":"Electronic Circuit Design Laboratory","cr":1,"s1":"BEET-F-23-A","s2":"","s3":"","tut":"","contact":3,"notes":"","flag":false},{"id":68,"sno":20,"name":"Engr. Mashood Ahmed","rank":"Lecturer","code":"EE123","course":"Digital Logic Design","cr":2,"s1":"BSSE-F-25-C","s2":"BSESS-F-25-A","s3":"","tut":"","contact":2,"notes":"2nd section highlighted in source","flag":true},{"id":69,"sno":20,"name":"Engr. Mashood Ahmed","rank":"Lecturer","code":"","course":"(unspecified - blank line in source)","cr":"","s1":"","s2":"","s3":"","tut":"","contact":3,"notes":"Source has an unlabeled line contributing 3 contact hrs","flag":false},{"id":70,"sno":20,"name":"Engr. Mashood Ahmed","rank":"Lecturer","code":"","course":"Class Advisor","cr":"","s1":"BEEP-F-23-A","s2":"","s3":"","tut":"","contact":0,"notes":"","flag":false},{"id":71,"sno":21,"name":"Engr. Hussain Asif","rank":"Lecturer","code":"EE355","course":"Control Systems","cr":3,"s1":"BEEE-F-23-A","s2":"BEEP-F-23-A","s3":"","tut":"","contact":6,"notes":"","flag":false},{"id":72,"sno":21,"name":"Engr. Hussain Asif","rank":"Lecturer","code":"EE494","course":"Final Year Project-III","cr":1,"s1":"BEEE-F-22-A","s2":"","s3":"","tut":"","contact":1,"notes":"","flag":false},{"id":73,"sno":21,"name":"Engr. Hussain Asif","rank":"Lecturer","code":"EE355L","course":"Control Systems Laboratory","cr":1,"s1":"BEEE-F-23-A","s2":"","s3":"","tut":"","contact":3,"notes":"","flag":false},{"id":74,"sno":21,"name":"Engr. Hussain Asif","rank":"Lecturer","code":"EE114","course":"Electrical Engineering","cr":2,"s1":"BEME-F-25-B","s2":"","s3":"","tut":"","contact":2,"notes":"","flag":false},{"id":75,"sno":21,"name":"Engr. Hussain Asif","rank":"Lecturer","code":"","course":"Class Advisor","cr":"","s1":"BEEE-F-24-B","s2":"","s3":"","tut":"","contact":0,"notes":"","flag":false},{"id":76,"sno":22,"name":"New FM-1","rank":"Lecturer","code":"EE235L","course":"Signal & Systems Laboratory","cr":3,"s1":"BEET-F-24-A","s2":"","s3":"","tut":"","contact":3,"notes":"Entire row highlighted in source","flag":true},{"id":77,"sno":22,"name":"New FM-1","rank":"Lecturer","code":"EE105","course":"Electrical Network Analysis","cr":3,"s1":"BEET-F-25-A","s2":"BEEV-F-25-A","s3":"","tut":"","contact":6,"notes":"","flag":false},{"id":78,"sno":23,"name":"Engr. Anum Zehra","rank":"Lecturer","code":"EE304","course":"Digital Electronics","cr":3,"s1":"BEEE-F-23-A","s2":"","s3":"","tut":"","contact":3,"notes":"","flag":false},{"id":79,"sno":23,"name":"Engr. Anum Zehra","rank":"Lecturer","code":"EE215","course":"Electronics Engineering","cr":2,"s1":"BEME-F-24-A","s2":"BEME-F-24-B","s3":"","tut":"","contact":4,"notes":"","flag":false},{"id":80,"sno":23,"name":"Engr. Anum Zehra","rank":"Lecturer","code":"EE492","course":"Final Year Project-I","cr":1,"s1":"BEEP-F-23-A","s2":"BEET-F-23-A","s3":"","tut":"","contact":2,"notes":"","flag":false},{"id":81,"sno":23,"name":"Engr. Anum Zehra","rank":"Lecturer","code":"EE304L","course":"Digital Electronics Laboratory","cr":1,"s1":"BEEE-F-23-A","s2":"","s3":"","tut":"","contact":3,"notes":"","flag":false},{"id":82,"sno":24,"name":"Engr. Laraib","rank":"Lab Engineer","code":"EE235L","course":"Signal & Systems Laboratory","cr":3,"s1":"BEET-F-24-B","s2":"BEEP-F-24-A","s3":"BEEE-F-24-B","tut":"","contact":3,"notes":"Entire row highlighted; contact hrs shown as 3 but faculty total (12) implies it should be 9","flag":true},{"id":83,"sno":24,"name":"Engr. Laraib","rank":"Lab Engineer","code":"","course":"Telecom Networks Lab","cr":"","s1":"Additional Course","s2":"","s3":"","tut":"","contact":3,"notes":"","flag":false},{"id":84,"sno":25,"name":"Engr. Sharoze Sohail","rank":"Lab Engineer","code":"EE123L","course":"Digital Logic Design Laboratory","cr":2,"s1":"BSSE-F-25-A","s2":"BSSE-F-25-B","s3":"","tut":"","contact":6,"notes":"","flag":false},{"id":85,"sno":25,"name":"Engr. Sharoze Sohail","rank":"Lab Engineer","code":"","course":"Antenna & Waves propagation Lab","cr":"","s1":"Additional Course","s2":"","s3":"","tut":"","contact":3,"notes":"","flag":false},{"id":86,"sno":25,"name":"Engr. Sharoze Sohail","rank":"Lab Engineer","code":"PH-312L","course":"Modern Physics and Electronics Laboratory","cr":1,"s1":"BS-Phy-V","s2":"","s3":"","tut":"","contact":3,"notes":"","flag":false},{"id":87,"sno":26,"name":"Engr. Hafiz Talha","rank":"Lab Engineer","code":"EE123L","course":"Digital Logic Design Laboratory","cr":1,"s1":"BSESS-F-25-A","s2":"BSDS-F-25-B","s3":"","tut":"","contact":6,"notes":"Entire row highlighted in source","flag":true},{"id":88,"sno":26,"name":"Engr. Hafiz Talha","rank":"Lab Engineer","code":"EE123L","course":"Digital Logic Design Laboratory","cr":1,"s1":"BSCGD-F-25-A","s2":"BSCGD-F-25-B","s3":"","tut":"","contact":6,"notes":"","flag":false},{"id":89,"sno":27,"name":"Engr. Muhammad Aqib","rank":"Lab Engineer","code":"EE105L","course":"Electrical Network Analysis Laboratory","cr":1,"s1":"BEET-F-25-A","s2":"BEEV-F-25-A","s3":"","tut":"","contact":6,"notes":"","flag":false},{"id":90,"sno":27,"name":"Engr. Muhammad Aqib","rank":"Lab Engineer","code":"EE465L","course":"Optical Fiber Communication Laboratory","cr":1,"s1":"BEET-F-22-A","s2":"","s3":"","tut":"","contact":3,"notes":"","flag":false},{"id":91,"sno":27,"name":"Engr. Muhammad Aqib","rank":"Lab Engineer","code":"EE376L","course":"Digital communications Laboratory","cr":1,"s1":"BEET-F-23-A","s2":"","s3":"","tut":"","contact":3,"notes":"","flag":false},{"id":92,"sno":28,"name":"Engr. Laiba Rani","rank":"Lab Engineer","code":"EE105L","course":"Electrical Network Analysis Laboratory","cr":1,"s1":"BEEP-F-25-A","s2":"BEEP-F-25-B","s3":"","tut":"","contact":6,"notes":"","flag":false},{"id":93,"sno":28,"name":"Engr. Laiba Rani","rank":"Lab Engineer","code":"EE215L","course":"Electronics Engineering Laboratory","cr":1,"s1":"BEME-F-24-A","s2":"BEME-F-24-B","s3":"","tut":"","contact":6,"notes":"","flag":false},{"id":94,"sno":29,"name":"Engr. Muhammad Qasim","rank":"Lab Engineer","code":"EE355L","course":"Control Systems Laboratory","cr":1,"s1":"BEEE-F-23-B","s2":"BEET-F-23-A","s3":"","tut":"","contact":6,"notes":"","flag":false},{"id":95,"sno":29,"name":"Engr. Muhammad Qasim","rank":"Lab Engineer","code":"EE100L","course":"Electric Circuit Analysis Laboratory","cr":1,"s1":"BCE-F-25-B","s2":"Additional Course","s3":"","tut":"","contact":6,"notes":"","flag":false},{"id":96,"sno":30,"name":"Engr. Mubashir Rasool","rank":"Lab Engineer","code":"EE445L","course":"High Voltage Engineering Laboratory","cr":1,"s1":"BEEP-F-22-A","s2":"","s3":"","tut":"","contact":3,"notes":"","flag":false},{"id":97,"sno":30,"name":"Engr. Mubashir Rasool","rank":"Lab Engineer","code":"EE400L","course":"Electrical Machines Laboratory","cr":1,"s1":"BEME-F-22-A","s2":"BEME-F-22-B","s3":"","tut":"","contact":6,"notes":"","flag":false},{"id":98,"sno":30,"name":"Engr. Mubashir Rasool","rank":"Lab Engineer","code":"EE348L","course":"Power Generation Systems Laboratory","cr":3,"s1":"BEEP-F-23-A","s2":"","s3":"","tut":"","contact":3,"notes":"","flag":false}]};
+
+let data = [];
+let nextId = 1;
+
+// ─── FALL 2026 COURSE INITIATION DATA (from Excel) ───────────────────────────
+// Each entry: {code, name, cr (credit hrs), totalSections (across all groups)}
+const FALL2026_COURSES = [
+  {code:"CE100",  name:"Information and Communication Technologies (ICT)",      cr:2, totalSections:11},
+  {code:"CE100L", name:"Information and Communication Technologies (ICT) Laboratory", cr:1, totalSections:11},
+  {code:"CE103",  name:"Computer Engineering Workshop",                          cr:1, totalSections:2},
+  {code:"CE110",  name:"Computer Programming",                                   cr:3, totalSections:3},
+  {code:"CE110L", name:"Computer Programming Laboratory",                        cr:1, totalSections:3},
+  {code:"CE215",  name:"Data Structures and Algorithms",                         cr:3, totalSections:7},
+  {code:"CE215L", name:"Data Structures and Algorithms Laboratory",              cr:1, totalSections:7},
+  {code:"CE216",  name:"Database Management Systems",                            cr:3, totalSections:1},
+  {code:"CE216L", name:"Database Management Systems Laboratory",                 cr:1, totalSections:1},
+  {code:"CE223",  name:"Digital Logic Design",                                   cr:3, totalSections:3},
+  {code:"CE223L", name:"Digital Logic Design Laboratory",                        cr:1, totalSections:3},
+  {code:"CE332",  name:"Operating Systems",                                      cr:3, totalSections:2},
+  {code:"CE332L", name:"Operating Systems Laboratory",                           cr:1, totalSections:2},
+  {code:"CE337",  name:"Computer Communication and Networks",                    cr:3, totalSections:2},
+  {code:"CE337L", name:"Computer Communication and Networks Laboratory",         cr:1, totalSections:2},
+  {code:"CE362",  name:"Software Engineering",                                   cr:3, totalSections:3},
+  {code:"CE425",  name:"Digital System Design",                                  cr:3, totalSections:2},
+  {code:"CE425L", name:"Digital System Design Laboratory",                       cr:1, totalSections:2},
+  {code:"CE439",  name:"Cloud and Distributed Computing",                        cr:3, totalSections:2},
+  {code:"CE439L", name:"Cloud and Distributed Computing Laboratory",             cr:1, totalSections:2},
+  {code:"CE498",  name:"Final Year Project-II (CE)",                             cr:2, totalSections:2},
+  {code:"EE101",  name:"Electric Circuit Analysis",                              cr:3, totalSections:8},
+  {code:"EE101L", name:"Electric Circuit Analysis Laboratory",                   cr:1, totalSections:8},
+  {code:"EE223",  name:"Digital Logic Design",                                   cr:3, totalSections:4},
+  {code:"EE223L", name:"Digital Logic Design Laboratory",                        cr:1, totalSections:4},
+  {code:"EE235",  name:"Signals & Systems",                                      cr:3, totalSections:2},
+  {code:"EE235L", name:"Signals & Systems Laboratory",                           cr:1, totalSections:2},
+  {code:"EE241",  name:"Electrical Machines",                                    cr:3, totalSections:5},
+  {code:"EE241L", name:"Electrical Machines Laboratory",                         cr:1, totalSections:5},
+  {code:"EE286",  name:"Electronic Devices and Circuits",                        cr:3, totalSections:6},
+  {code:"EE286L", name:"Electronic Devices and Circuits Laboratory",             cr:1, totalSections:6},
+  {code:"EE314",  name:"Antenna and Wave Propagation",                           cr:3, totalSections:2},
+  {code:"EE314L", name:"Antenna and Wave Propagation Laboratory",                cr:1, totalSections:2},
+  {code:"EE317",  name:"RF Circuit Design",                                      cr:3, totalSections:1},
+  {code:"EE317L", name:"RF Circuit Design Laboratory",                           cr:1, totalSections:1},
+  {code:"EE329",  name:"Microprocessors Interfacing and Applications",           cr:3, totalSections:5},
+  {code:"EE329L", name:"Microprocessors Interfacing and Applications Laboratory",cr:1, totalSections:5},
+  {code:"EE338",  name:"Digital Signal Processing",                              cr:3, totalSections:5},
+  {code:"EE338L", name:"Digital Signal Processing Laboratory",                   cr:1, totalSections:5},
+  {code:"EE375",  name:"Communication Systems",                                  cr:3, totalSections:3},
+  {code:"EE375L", name:"Communication Systems Laboratory",                       cr:1, totalSections:3},
+  {code:"EE406",  name:"Linear Integrated Circuit Design",                       cr:3, totalSections:2},
+  {code:"EE406L", name:"Linear Integrated Circuit Design Laboratory",            cr:1, totalSections:2},
+  {code:"EE429",  name:"FPGA Based Design",                                      cr:3, totalSections:2},
+  {code:"EE429L", name:"FPGA Based Design Laboratory",                           cr:1, totalSections:2},
+  {code:"EE437",  name:"Transmission and Switching Systems",                     cr:2, totalSections:1},
+  {code:"EE437L", name:"Transmission and Switching Systems Laboratory",          cr:1, totalSections:1},
+  {code:"EE444",  name:"Power Transmission Systems",                             cr:3, totalSections:1},
+  {code:"EE444L", name:"Power Transmission Systems Laboratory",                  cr:1, totalSections:1},
+  {code:"EE446",  name:"Power System Analysis",                                  cr:3, totalSections:1},
+  {code:"EE446L", name:"Power System Analysis Laboratory",                       cr:1, totalSections:1},
+  {code:"EE460",  name:"Computer Communication Networks",                        cr:3, totalSections:1},
+  {code:"EE460L", name:"Computer Communication Networks Laboratory",             cr:1, totalSections:1},
+  {code:"EE461",  name:"Wireless and Mobile Communication",                      cr:3, totalSections:1},
+  {code:"EE475",  name:"Analog and Digital Communication",                       cr:3, totalSections:1},
+  {code:"EE475L", name:"Analog and Digital Communication Laboratory",            cr:1, totalSections:1},
+  {code:"EE493",  name:"Final Year Project II",                                  cr:2, totalSections:4},
+  {code:"EL170",  name:"Functional English",                                     cr:3, totalSections:11},
+  {code:"EM332",  name:"Engineering Economics",                                  cr:3, totalSections:1},
+  {code:"EM436",  name:"Engineering Management & Entrepreneurship",              cr:2, totalSections:2},
+  {code:"EM437",  name:"Engineering Procurement & Contract Management",          cr:2, totalSections:1},
+  {code:"FQ101",  name:"Fehm-e-Quran II",                                        cr:1, totalSections:2},
+  {code:"HU115",  name:"Pakistan Studies",                                       cr:3, totalSections:2},
+  {code:"HU124",  name:"Islamic Studies and Ethics",                             cr:2, totalSections:2},
+  {code:"HU407",  name:"Community Service Learning",                             cr:0, totalSections:5},
+  {code:"HU411",  name:"Civics and Community Engagements",                       cr:2, totalSections:5},
+  {code:"HUXXX",  name:"Arts and Humanities Elective",                           cr:2, totalSections:4},
+  {code:"MA106",  name:"Differential Equations",                                 cr:3, totalSections:2},
+  {code:"MA110",  name:"Calculus & Analytical Geometry",                         cr:3, totalSections:11},
+  {code:"MA214",  name:"Complex Variables and Transforms",                       cr:3, totalSections:2},
+  {code:"MA301",  name:"Probability & Statistics",                               cr:3, totalSections:2},
+  {code:"ME456",  name:"Project Management",                                     cr:2, totalSections:1},
+  {code:"MT171",  name:"Engineering Drawing",                                    cr:1, totalSections:8},
+  {code:"MT203",  name:"Probability Methods in Engineering",                     cr:3, totalSections:1},
+  {code:"MT409",  name:"Occupational Health and Safety",                         cr:1, totalSections:2},
+  {code:"PH111",  name:"Applied Physics",                                        cr:2, totalSections:11},
+  {code:"PH111L", name:"Applied Physics Laboratory",                             cr:1, totalSections:11},
+];
+
+// Fall 2026 sections parsed from Excel groups
+const FALL2026_SECTIONS = [
+  "BEEV-F-26-A","BEEV-F-26-B","BEEP-F-26-A","BEEP-F-26-B",
+  "BEEE-F-26-A","BEEE-F-26-B","BEET-F-26-A","BEET-F-26-B",
+  "BEEE-F-25-A","BEEE-F-25-B",
+  "BEEP-F-25-A","BEEP-F-25-B",
+  "BEET-F-25-A",
+  "BEEV-F-25-A",
+  "BEET-F-24-A","BEET-F-24-B",
+  "BEEE-F-24-A","BEEE-F-24-B",
+  "BEEP-F-24-A",
+  "BEEE-F-23-A","BEEE-F-23-B",
+  "BEEP-F-23-A",
+  "BEET-F-23-A",
+  "BCE-F-26-A","BCE-F-26-B",
+  "BCE-F-25-A","BCE-F-25-B",
+  "BCE-F-24-A","BCE-F-24-B",
+  "BCE-F-23-A","BCE-F-23-B",
+  "BSE-F-26-A",
+  "BSE-F-25-A",
+];
+
+// ─── LISTS (Courses, FMs, Sections) ──────────────────────────────────────────
+let lists = {
+  courses: [], // {code, name, cr}
+  fms: [],     // {name, rank}
+  sections: [] // string[]
+};
+
+function buildListsFromData(rows){
+  const courseMap = {};
+  const fmMap = {};
+  const secSet = new Set();
+
+  // Seed with Fall 2026 courses first (they carry totalSections info)
+  FALL2026_COURSES.forEach(c => {
+    courseMap[c.code] = {code: c.code, name: c.name, cr: c.cr, totalSections: c.totalSections};
+  });
+  // Seed with Fall 2026 sections
+  FALL2026_SECTIONS.forEach(s => secSet.add(s));
+
+  rows.forEach(r=>{
+    if(r.code && r.course && r.code.trim()){
+      const key = r.code.trim();
+      if(!courseMap[key]) courseMap[key] = {code:r.code.trim(), name:r.course.trim(), cr: r.cr!==undefined&&r.cr!==''?r.cr:'', totalSections:0};
+    }
+    if(r.name && r.name.trim()){
+      const key = r.name.trim();
+      if(!fmMap[key]) fmMap[key] = {name:r.name.trim(), rank:(r.rank||'').trim()};
+    }
+    [r.s1,r.s2,r.s3].forEach(s=>{ if(s && s.trim()) secSet.add(s.trim()); });
+  });
+  lists.courses = Object.values(courseMap).sort((a,b)=>a.code.localeCompare(b.code));
+  lists.fms = Object.values(fmMap).sort((a,b)=>{
+    const an = Number(rows.find(r=>r.name===a.name)?.sno||99);
+    const bn = Number(rows.find(r=>r.name===b.name)?.sno||99);
+    return an - bn;
+  });
+  lists.sections = [...secSet].sort();
+}
+
+// ─── COURSE → SECTIONS MAP (from Fall 2026 Excel) ────────────────────────────
+const COURSE_SECTIONS = {"CE100":["BEEV-F-26-A","BEEP-F-26-A","BEEE-F-26-A","BEET-F-26-A","BEEV-F-26-B","BEEP-F-26-B","BEEE-F-26-B","BEET-F-26-B","BCE-F-26-A","BCE-F-26-B","BSE-F-26-A"],"CE100L":["BEEV-F-26-A","BEEP-F-26-A","BEEE-F-26-A","BEET-F-26-A","BEEV-F-26-B","BEEP-F-26-B","BEEE-F-26-B","BEET-F-26-B","BCE-F-26-A","BCE-F-26-B","BSE-F-26-A"],"CE103":["BCE-F-26-A","BCE-F-26-B"],"CE110":["BCE-F-26-A","BCE-F-26-B","BSE-F-26-A"],"CE110L":["BCE-F-26-A","BCE-F-26-B","BSE-F-26-A"],"CE215":["BEEE-F-25-A","BEEE-F-25-B","BEEP-F-25-A","BEEP-F-25-B","BEET-F-25-A","BEEV-F-25-A","BCE-F-25-A","BCE-F-25-B","BSE-F-25-A"],"CE215L":["BEEE-F-25-A","BEEE-F-25-B","BEEP-F-25-A","BEEP-F-25-B","BEET-F-25-A","BEEV-F-25-A","BCE-F-25-A","BCE-F-25-B","BSE-F-25-A"],"CE216":["BSE-F-25-A"],"CE216L":["BSE-F-25-A"],"CE223":["BCE-F-25-A","BCE-F-25-B","BSE-F-25-A"],"CE223L":["BCE-F-25-A","BCE-F-25-B","BSE-F-25-A"],"CE332":["BCE-F-24-A","BCE-F-24-B"],"CE332L":["BCE-F-24-A","BCE-F-24-B"],"CE337":["BCE-F-24-A","BCE-F-24-B"],"CE337L":["BCE-F-24-A","BCE-F-24-B"],"CE362":["BCE-F-24-A","BCE-F-24-B","BSE-F-25-A"],"CE425":["BCE-F-23-A","BCE-F-23-B"],"CE425L":["BCE-F-23-A","BCE-F-23-B"],"CE439":["BCE-F-23-A","BCE-F-23-B"],"CE439L":["BCE-F-23-A","BCE-F-23-B"],"CE498":["BCE-F-23-A","BCE-F-23-B"],"EE101":["BEEV-F-26-A","BEEP-F-26-A","BEEE-F-26-A","BEET-F-26-A","BEEV-F-26-B","BEEP-F-26-B","BEEE-F-26-B","BEET-F-26-B"],"EE101L":["BEEV-F-26-A","BEEP-F-26-A","BEEE-F-26-A","BEET-F-26-A","BEEV-F-26-B","BEEP-F-26-B","BEEE-F-26-B","BEET-F-26-B"],"EE105":["BEET-F-25-A","BEEV-F-25-A"],"EE105L":["BEET-F-25-A","BEEV-F-25-A"],"EE223":["BEEE-F-25-A","BEEE-F-25-B","BEEP-F-25-A","BEEP-F-25-B","BEET-F-25-A","BEEV-F-25-A"],"EE223L":["BEEE-F-25-A","BEEE-F-25-B","BEEP-F-25-A","BEEP-F-25-B","BEET-F-25-A","BEEV-F-25-A"],"EE235":["BCE-F-24-A","BCE-F-24-B"],"EE235L":["BCE-F-24-A","BCE-F-24-B"],"EE241":["BEET-F-24-A","BEET-F-24-B","BEEE-F-24-A","BEEE-F-24-B","BEEP-F-24-A"],"EE241L":["BEET-F-24-A","BEET-F-24-B","BEEE-F-24-A","BEEE-F-24-B","BEEP-F-24-A"],"EE286":["BEEE-F-25-A","BEEE-F-25-B","BEEP-F-25-A","BEEP-F-25-B","BEET-F-25-A","BEEV-F-25-A","BCE-F-25-A","BCE-F-25-B"],"EE286L":["BEEE-F-25-A","BEEE-F-25-B","BEEP-F-25-A","BEEP-F-25-B","BEET-F-25-A","BEEV-F-25-A","BCE-F-25-A","BCE-F-25-B"],"EE314":["BEEE-F-23-A","BEEE-F-23-B"],"EE314L":["BEEE-F-23-A","BEEE-F-23-B"],"EE317":["BEET-F-23-A"],"EE317L":["BEET-F-23-A"],"EE329":["BEET-F-24-A","BEET-F-24-B","BEEE-F-24-A","BEEE-F-24-B","BEEP-F-24-A"],"EE329L":["BEET-F-24-A","BEET-F-24-B","BEEE-F-24-A","BEEE-F-24-B","BEEP-F-24-A"],"EE338":["BEET-F-24-A","BEET-F-24-B","BEEE-F-24-A","BEEE-F-24-B","BEEP-F-24-A"],"EE338L":["BEET-F-24-A","BEET-F-24-B","BEEE-F-24-A","BEEE-F-24-B","BEEP-F-24-A"],"EE375":["BEET-F-24-A","BEET-F-24-B","BEEP-F-24-A"],"EE375L":["BEET-F-24-A","BEET-F-24-B","BEEP-F-24-A"],"EE406":["BEEE-F-23-A","BEEE-F-23-B"],"EE406L":["BEEE-F-23-A","BEEE-F-23-B"],"EE429":["BEEE-F-23-A","BEEE-F-23-B"],"EE429L":["BEEE-F-23-A","BEEE-F-23-B"],"EE437":["BEET-F-23-A"],"EE437L":["BEET-F-23-A"],"EE444":["BEEP-F-23-A"],"EE444L":["BEEP-F-23-A"],"EE446":["BEEP-F-23-A"],"EE446L":["BEEP-F-23-A"],"EE460":["BEET-F-23-A"],"EE460L":["BEET-F-23-A"],"EE461":["BEET-F-23-A"],"EE475":["BEEP-F-23-A"],"EE475L":["BEEP-F-23-A"],"EE493":["BEEE-F-23-A","BEEE-F-23-B","BEEP-F-23-A","BEET-F-23-A"],"EL170":["BEEV-F-26-A","BEEP-F-26-A","BEEE-F-26-A","BEET-F-26-A","BEEV-F-26-B","BEEP-F-26-B","BEEE-F-26-B","BEET-F-26-B","BCE-F-26-A","BCE-F-26-B","BSE-F-26-A"],"EM332":["BEEP-F-23-A"],"EM436":["BEEE-F-23-A","BEEE-F-23-B"],"EM437":["BEET-F-23-A"],"FQ101":["BEEE-F-25-A","BEEE-F-25-B","BEET-F-25-A"],"HU115":["BEEV-F-25-A","BSE-F-26-A"],"HU124":["BCE-F-25-A","BCE-F-25-B"],"HU407":["BEEE-F-23-A","BEEE-F-23-B","BEEP-F-23-A","BCE-F-24-A","BCE-F-24-B"],"HU411":["BEET-F-24-A","BEET-F-24-B","BEEE-F-24-A","BEEE-F-24-B","BEEP-F-24-A"],"HUXXX":["BEEE-F-25-A","BEEE-F-25-B","BEEP-F-25-A","BEEP-F-25-B","BEET-F-25-A","BEEV-F-25-A"],"MA106":["BCE-F-25-A","BCE-F-25-B"],"MA110":["BEEV-F-26-A","BEEP-F-26-A","BEEE-F-26-A","BEET-F-26-A","BEEV-F-26-B","BEEP-F-26-B","BEEE-F-26-B","BEET-F-26-B","BCE-F-26-A","BCE-F-26-B","BSE-F-26-A"],"MA214":["BEEE-F-25-A","BEEE-F-25-B","BEET-F-25-A"],"MA301":["BCE-F-24-A","BCE-F-24-B"],"ME456":["BEEP-F-25-A","BEEP-F-25-B"],"MT171":["BEEV-F-26-A","BEEP-F-26-A","BEEE-F-26-A","BEET-F-26-A","BEEV-F-26-B","BEEP-F-26-B","BEEE-F-26-B","BEET-F-26-B"],"MT203":["BSE-F-25-A"],"MT409":["BEEP-F-25-A","BEEP-F-25-B","BEEV-F-25-A"],"PH111":["BEEV-F-26-A","BEEP-F-26-A","BEEE-F-26-A","BEET-F-26-A","BEEV-F-26-B","BEEP-F-26-B","BEEE-F-26-B","BEET-F-26-B","BCE-F-26-A","BCE-F-26-B","BSE-F-26-A"],"PH111L":["BEEV-F-26-A","BEEP-F-26-A","BEEE-F-26-A","BEET-F-26-A","BEEV-F-26-B","BEEP-F-26-B","BEEE-F-26-B","BEET-F-26-B","BCE-F-26-A","BCE-F-26-B","BSE-F-26-A"]};
+
+function cloneSeed(){ return JSON.parse(JSON.stringify(SEED.rows)); }
+
+// ─── FIREBASE SETUP ───────────────────────────────────────────────────────────
+let FB_DOC = null;
+try {
+  if(typeof firebase !== 'undefined') {
+    const firebaseConfig = {
+      apiKey: "AIzaSyBnXz5R3r9JZtVLwW1mTi57AegA4PZSjEA",
+      authDomain: "ececl-8fbef.firebaseapp.com",
+      projectId: "ececl-8fbef",
+      storageBucket: "ececl-8fbef.firebasestorage.app",
+      messagingSenderId: "403872659930",
+      appId: "1:403872659930:web:ecf8fa01efd09a914128e3"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    FB_DOC = db.collection('ee_workload').doc('spring2026');
+  }
+} catch(e) {
+  console.warn('Firebase init failed:', e);
+}
+
+async function loadData(){
+  const ind = document.getElementById('saveIndicator');
+  let loaded = null;
+  if(FB_DOC){
+    ind.textContent = 'connecting...'; ind.className='save-indicator';
+    try{
+      const snap = await FB_DOC.get();
+      if(snap.exists){
+        const p = snap.data();
+        loaded = p.rows || null;
+        if(p.lists) lists = p.lists;
+      }
+      ind.textContent = 'Firebase connected'; ind.className='save-indicator ok';
+    }catch(e){
+      console.error('Firebase load error:', e);
+      ind.textContent = 'Firebase error - using seed data'; ind.className='save-indicator err';
+    }
+  } else {
+    ind.textContent = 'Offline - using seed data'; ind.className='save-indicator err';
+  }
+  data = loaded && Array.isArray(loaded) && loaded.length ? loaded : cloneSeed();
+  nextId = Math.max(0, ...data.map(r=>r.id||0)) + 1;
+  if(!loaded) buildListsFromData(data);
+  // Always merge Fall 2026 courses and sections (idempotent)
+  mergeFall2026Lists();
+  recomputeSnos();
+  renderAll();
+  renderModal();
+}
+
+function mergeFall2026Lists(){
+  // Merge courses: add any Fall 2026 course not already present; update totalSections if present
+  FALL2026_COURSES.forEach(fc => {
+    const existing = lists.courses.find(c => c.code === fc.code);
+    if(existing){
+      existing.totalSections = fc.totalSections;
+      if(!existing.cr && fc.cr !== undefined) existing.cr = fc.cr;
+    } else {
+      lists.courses.push({code: fc.code, name: fc.name, cr: fc.cr, totalSections: fc.totalSections});
+    }
+  });
+  lists.courses.sort((a,b) => a.code.localeCompare(b.code));
+  // Merge sections
+  const secSet = new Set(lists.sections);
+  FALL2026_SECTIONS.forEach(s => secSet.add(s));
+  lists.sections = [...secSet].sort();
+}
+
+let saveTimer = null;
+function scheduleSave(){
+  const ind = document.getElementById('saveIndicator');
+  if(!FB_DOC){
+    ind.textContent = 'Offline - changes not saved to cloud'; ind.className='save-indicator err';
+    return;
+  }
+  ind.textContent = 'saving...'; ind.className='save-indicator';
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(async ()=>{
+    try{
+      await FB_DOC.set({rows: data, lists, updatedAt: new Date().toISOString()});
+      ind.textContent = 'Saved to Firebase - ' + new Date().toLocaleTimeString();
+      ind.className = 'save-indicator ok';
+    }catch(e){
+      console.error('Firebase save error:', e);
+      ind.textContent = 'Save failed - ' + e.message;
+      ind.className = 'save-indicator err';
+    }
+  }, 600);
+}
+
+// ─── BULK DELETE ─────────────────────────────────────────────────────────────
+function getSelectedIds(){
+  return [...document.querySelectorAll('.row-cb:checked')].map(cb=>Number(cb.getAttribute('data-id')));
+}
+function updateBulkBar(){
+  const ids = getSelectedIds();
+  const bar = document.getElementById('bulkActionBar');
+  document.getElementById('bulkCount').textContent = ids.length + ' row' + (ids.length!==1?'s':'') + ' selected';
+  ids.length > 0 ? bar.classList.add('visible') : bar.classList.remove('visible');
+  const sa = document.getElementById('selAllCb');
+  const all = document.querySelectorAll('.row-cb');
+  if(sa && all.length) sa.indeterminate = ids.length > 0 && ids.length < all.length;
+  if(sa) sa.checked = all.length > 0 && ids.length === all.length;
+}
+document.addEventListener('change', e=>{
+  if(e.target.classList.contains('row-cb')) updateBulkBar();
+  if(e.target.id === 'selAllCb'){
+    document.querySelectorAll('.row-cb').forEach(cb=>{ cb.checked = e.target.checked; });
+    updateBulkBar();
+  }
+});
+document.getElementById('bulkCancelBtn').addEventListener('click', ()=>{
+  document.querySelectorAll('.row-cb').forEach(cb=>{ cb.checked = false; });
+  const sa = document.getElementById('selAllCb'); if(sa){ sa.checked=false; sa.indeterminate=false; }
+  document.getElementById('bulkActionBar').classList.remove('visible');
+});
+document.getElementById('bulkDelRowsBtn').addEventListener('click', ()=>{
+  const ids = getSelectedIds();
+  if(!ids.length) return;
+  if(!confirm('Delete ' + ids.length + ' selected row(s)? This cannot be undone.')) return;
+  data = data.filter(r=>!ids.includes(r.id));
+  scheduleSave(); renderAll();
+  document.getElementById('bulkActionBar').classList.remove('visible');
+  const sa = document.getElementById('selAllCb'); if(sa){ sa.checked=false; sa.indeterminate=false; }
+});
+
+
+function escAttr(s){ return (s===undefined||s===null)?'':String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+function escHtml(s){ return (s===undefined||s===null)?'':String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function rowMatches(r, q){
+  if(!q) return true;
+  q = q.toLowerCase();
+  return [r.name,r.rank,r.code,r.course,r.s1,r.s2,r.s3,r.notes].some(v=>(v||'').toLowerCase().includes(q));
+}
+
+// ─── BUILD OPTION LISTS ───────────────────────────────────────────────────────
+// Returns the set of section values already assigned to a given course code,
+// across all rows. Pass excludeRowId+excludeField to ignore one specific
+// cell (e.g. the cell currently being rendered) so its own value isn't
+// counted as "taken" against itself.
+function getTakenSectionsForCourse(courseCode, excludeRowId, excludeField){
+  const taken = new Set();
+  const code = (courseCode||'').trim();
+  if(!code) return taken;
+  data.forEach(r=>{
+    if((r.code||'').trim() !== code) return;
+    ['s1','s2','s3'].forEach(f=>{
+      if(excludeRowId!==undefined && r.id===excludeRowId && f===excludeField) return;
+      const v = (r[f]||'').trim();
+      if(v) taken.add(v);
+    });
+  });
+  return taken;
+}
+
+// Remaining/total section count for a course, based on the official
+// Fall 2026 section list (COURSE_SECTIONS). Returns null for courses we
+// don't have an official section list for (can't determine fullness).
+function getRemainingSectionsCount(courseCode){
+  const code = (courseCode||'').trim();
+  const official = COURSE_SECTIONS[code];
+  if(!official) return null;
+  const taken = getTakenSectionsForCourse(code);
+  const takenOfficial = official.filter(s=>taken.has(s)).length;
+  return { total: official.length, remaining: official.length - takenOfficial };
+}
+
+// A course is "full" once every one of its official sections already has
+// an FM assigned to it somewhere in the table.
+function isCourseFull(courseCode){
+  const info = getRemainingSectionsCount(courseCode);
+  return info ? info.remaining <= 0 : false;
+}
+
+function courseOptions(selectedCode, selectedName){
+  let opts = `<option value="">— none —</option>`;
+  const customVal = `${selectedCode||''}||${selectedName||''}`;
+  let found = false;
+  const selCode = (selectedCode||'').trim();
+  const selName = (selectedName||'').trim();
+  lists.courses.forEach(c=>{
+    const isSelected = (c.code===selCode && c.name===selName);
+    // Once every section of a course has an FM assigned, drop it from the
+    // picker (unless this exact row is the one that holds it, so the row
+    // can still display/edit its own assignment).
+    if(!isSelected && isCourseFull(c.code)) return;
+    const val = `${c.code}||${c.name}`;
+    const sel = isSelected ? ' selected' : '';
+    if(sel) found = true;
+    const crLabel = (c.cr!==undefined&&c.cr!=='') ? ` [${c.cr}cr]` : '';
+    const secLabel = (c.totalSections && c.totalSections > 0) ? ` · ${c.totalSections} sec` : '';
+    opts += `<option value="${escAttr(val)}"${sel}>${escHtml(c.code)} — ${escHtml(c.name)}${crLabel}${secLabel}</option>`;
+  });
+  if(!found && (selectedCode||selectedName)){
+    opts += `<option value="${escAttr(customVal)}" selected>${escHtml(selectedCode||'')}${selectedCode&&selectedName?' — ':''}${escHtml(selectedName||'')} (custom)</option>`;
+  }
+  return opts;
+}
+
+function fmOptions(selectedName){
+  let opts = `<option value="">— select —</option>`;
+  let found = false;
+  lists.fms.forEach(f=>{
+    const sel = f.name===(selectedName||'').trim() ? ' selected' : '';
+    if(sel) found = true;
+    opts += `<option value="${escAttr(f.name)}"${sel}>${escHtml(f.name)}</option>`;
+  });
+  if(!found && selectedName){
+    opts += `<option value="${escAttr(selectedName)}" selected>${escHtml(selectedName)} (custom)</option>`;
+  }
+  return opts;
+}
+
+function sectionOptions(selectedVal, courseCode, rowId, field){
+  // If a courseCode is known, show only its relevant sections (+ any already-assigned value)
+  const relevant = courseCode && COURSE_SECTIONS[courseCode] ? COURSE_SECTIONS[courseCode] : null;
+  // Build pool: relevant sections first, then a divider + all others
+  let opts = `<option value=""></option>`;
+  let found = false;
+  const sel_val = (selectedVal||'').trim();
+  // Sections of this course already assigned to some FM (anywhere in the
+  // table) are removed from the pool, except this exact cell's own value.
+  const taken = relevant ? getTakenSectionsForCourse(courseCode, rowId, field) : new Set();
+
+  if(relevant){
+    // Group 1: relevant sections for this course, minus ones already taken
+    const availableRelevant = relevant.filter(s => !taken.has(s) || s===sel_val);
+    opts += `<optgroup label="── Sections for ${escHtml(courseCode)} ──">`;
+    if(availableRelevant.length){
+      availableRelevant.forEach(s=>{
+        const sel = s===sel_val ? ' selected' : '';
+        if(sel) found = true;
+        opts += `<option value="${escAttr(s)}"${sel}>${escHtml(s)}</option>`;
+      });
+    } else {
+      opts += `<option value="" disabled>(all sections assigned)</option>`;
+    }
+    opts += `</optgroup>`;
+    // Group 2: other sections (all sections not in relevant)
+    const others = lists.sections.filter(s=>!relevant.includes(s));
+    if(others.length){
+      opts += `<optgroup label="── Other Sections ──">`;
+      others.forEach(s=>{
+        const sel = s===sel_val ? ' selected' : '';
+        if(sel) found = true;
+        opts += `<option value="${escAttr(s)}"${sel}>${escHtml(s)}</option>`;
+      });
+      opts += `</optgroup>`;
+    }
+  } else {
+    lists.sections.forEach(s=>{
+      const sel = s===sel_val ? ' selected' : '';
+      if(sel) found = true;
+      opts += `<option value="${escAttr(s)}"${sel}>${escHtml(s)}</option>`;
+    });
+  }
+  if(!found && sel_val){
+    opts += `<option value="${escAttr(sel_val)}" selected>${escHtml(sel_val)}</option>`;
+  }
+  return opts;
+}
+
+// ─── DETAIL RENDER ────────────────────────────────────────────────────────────
+// ─── AUTO TOTAL HOURS ─────────────────────────────────────────────────────────
+function calcHrs(r){
+  const cr = Number(r.cr);
+  if(!cr) return 0;
+  const secs = [r.s1, r.s2, r.s3].filter(s => s && s.trim()).length;
+  return cr * Math.max(secs, 1);
+}
+function syncHrs(row){
+  row.contact = calcHrs(row);
+  const cell = document.querySelector('td[data-autohrs="'+row.id+'"]');
+  if(cell) cell.textContent = row.contact;
+}
+
+function renderDetail(){
+  const tbody = document.getElementById('detailBody');
+  const q = document.getElementById('searchBox').value.trim();
+  tbody.innerHTML = '';
+  data.forEach(r=>{
+    if(!rowMatches(r,q)) return;
+    const tr = document.createElement('tr');
+    if(r.flag) tr.className = 'flagged';
+    tr.innerHTML = `
+      <td class="col-cb"><input type="checkbox" class="row-cb" data-id="${r.id}"></td>
+      <td class="num" style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;text-align:center;color:var(--teal-deep);">${r.sno||''}</td>
+      <td><select data-id="${r.id}" data-field="name">${fmOptions(r.name)}</select></td>
+      <td><input data-id="${r.id}" data-field="rank" value="${escAttr(r.rank)}" placeholder="Rank" style="font-size:11.5px;"></td>
+      <td><select data-id="${r.id}" data-field="course_combined">${courseOptions(r.code, r.course)}</select><span class="sec-badge" id="sb-${r.id}" title="Sections still available / total offered in Fall 2026">${getSectionBadge(r.code)}</span></td>
+      <td class="num"><input data-id="${r.id}" data-field="cr" value="${escAttr(r.cr)}" style="width:34px;"></td>
+      <td><select data-id="${r.id}" data-field="s1">${sectionOptions(r.s1, r.code, r.id, 's1')}</select></td>
+      <td><select data-id="${r.id}" data-field="s2">${sectionOptions(r.s2, r.code, r.id, 's2')}</select></td>
+      <td><select data-id="${r.id}" data-field="s3">${sectionOptions(r.s3, r.code, r.id, 's3')}</select></td>
+      <td class="num auto-hrs" data-autohrs="${r.id}" style="font-family:'IBM Plex Mono',monospace;font-size:12.5px;font-weight:700;color:var(--teal-deep);text-align:center;">${calcHrs(r)}</td>
+      <td class="col-notes"><textarea data-id="${r.id}" data-field="notes" rows="1">${escHtml(r.notes)}</textarea></td>
+      <td class="col-del"><button class="row-del" data-del="${r.id}" title="Delete row">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/></svg>
+      </button></td>
+    `;
+    tbody.appendChild(tr);
+  });
+  data.forEach(r=>applySectionBadge(r.id, r.code));
+
+  tbody.querySelectorAll('input,textarea').forEach(el=>{
+    el.addEventListener('input', onCellEdit);
+  });
+  tbody.querySelectorAll('select').forEach(el=>{
+    el.addEventListener('change', onSelectEdit);
+  });
+  tbody.querySelectorAll('button[data-del]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const id = Number(btn.getAttribute('data-del'));
+      if(confirm('Delete this row?')){
+        data = data.filter(r=>r.id!==id);
+        scheduleSave();
+        renderAll();
+      }
+    });
+  });
+}
+
+function getSectionBadge(code){
+  if(!code) return '';
+  const info = getRemainingSectionsCount(code);
+  if(info) return info.remaining + '/' + info.total;
+  const c = lists.courses.find(x => x.code === (code||'').trim());
+  if(!c || !c.totalSections) return '';
+  return c.totalSections;
+}
+
+function applySectionBadge(rowId, code){
+  const badge = document.getElementById('sb-'+rowId);
+  if(!badge) return;
+  badge.textContent = getSectionBadge(code);
+  const info = getRemainingSectionsCount(code);
+  badge.classList.toggle('full', !!(info && info.remaining<=0));
+}
+
+// Re-render every row's course and section <select> options in place (no
+// full table rebuild), so that an assignment made in one row immediately
+// hides that course/section from every other row's picker — and frees it
+// back up immediately if the assignment is removed or changed.
+function refreshAllCourseAndSectionDropdowns(){
+  data.forEach(r=>{
+    const courseSel = document.querySelector(`select[data-id="${r.id}"][data-field="course_combined"]`);
+    if(courseSel) courseSel.innerHTML = courseOptions(r.code, r.course);
+    ['s1','s2','s3'].forEach(sf=>{
+      const sel = document.querySelector(`select[data-id="${r.id}"][data-field="${sf}"]`);
+      if(sel) sel.innerHTML = sectionOptions(r[sf], r.code, r.id, sf);
+    });
+    applySectionBadge(r.id, r.code);
+  });
+}
+
+function onSelectEdit(e){
+  const id = Number(e.target.getAttribute('data-id'));
+  const field = e.target.getAttribute('data-field');
+  const row = data.find(r=>r.id===id);
+  if(!row) return;
+  if(field === 'course_combined'){
+    const val = e.target.value;
+    if(val && val.includes('||')){
+      const [code, name] = val.split('||');
+      row.code = code; row.course = name;
+      // Auto-fill credit hours from the course list
+      const courseEntry = lists.courses.find(c=>c.code===code && c.name===name);
+      if(courseEntry && courseEntry.cr !== undefined && courseEntry.cr !== ''){
+        row.cr = courseEntry.cr;
+        const crInput = document.querySelector(`input[data-id="${id}"][data-field="cr"]`);
+        if(crInput) crInput.value = courseEntry.cr;
+      }
+    } else {
+      row.code = ''; row.course = '';
+    }
+  } else if(field === 'name'){
+    const sel = lists.fms.find(f=>f.name===e.target.value);
+    row.name = e.target.value;
+    if(sel) row.rank = sel.rank;
+    const rankInput = document.querySelector(`input[data-id="${id}"][data-field="rank"]`);
+    if(rankInput && sel) rankInput.value = sel.rank;
+    // Recompute all snos since FM assignment changed
+    recomputeSnos();
+    // Refresh all sno inputs in the table
+    data.forEach(r2 => {
+      const inp = document.querySelector(`input[data-id="${r2.id}"][data-field="sno"]`);
+      if(inp) inp.value = r2.sno || '';
+    });
+  } else {
+    row[field] = e.target.value;
+  }
+  const editedRow = data.find(r=>r.id===id);
+  if(editedRow) syncHrs(editedRow);
+  // A course/section assignment changed somewhere — refresh every row's
+  // course and section dropdowns so newly-taken sections (and newly-full
+  // courses) disappear everywhere, and freed-up ones reappear.
+  if(field === 'course_combined' || field === 's1' || field === 's2' || field === 's3'){
+    refreshAllCourseAndSectionDropdowns();
+  }
+  scheduleSave();
+  renderSummary();
+}
+
+function onCellEdit(e){
+  const id = Number(e.target.getAttribute('data-id'));
+  const field = e.target.getAttribute('data-field');
+  const row = data.find(r=>r.id===id);
+  if(!row) return;
+  let val = e.target.value;
+  if(['cr'].includes(field)){
+    if(val.trim()!=='' && !isNaN(val)) val = Number(val);
+  }
+  row[field] = val;
+  syncHrs(row);
+  scheduleSave();
+  renderSummary();
+}
+
+// ─── SUMMARY ─────────────────────────────────────────────────────────────────
+function computeSummary(){
+  const groups = {};
+  data.forEach(r=>{
+    // Use sno + name as key to deduplicate same FM
+    const key = String(r.sno) + '||' + (r.name||'');
+    if(!groups[key]) groups[key] = { sno:r.sno, name:r.name, rank:r.rank, total:0, rows:[] };
+    const c = Number(r.contact);
+    if(!isNaN(c)) groups[key].total += c;
+    groups[key].rows.push(r);
+  });
+  return Object.values(groups).sort((a,b)=>(Number(a.sno)||0)-(Number(b.sno)||0));
+}
+
+function renderSummary(){
+  const list = computeSummary();
+  renderCompact(list);
+  renderDetailSummary(list);
+  renderSection();
+}
+
+function renderCompact(list){
+  const grid = document.getElementById('compactGrid');
+  grid.innerHTML = list.map(g=>{
+    const shortName = g.name.replace(/^Engr\.\s*(Dr\.)?\s*/,'');
+    const courses = g.rows
+      .filter(r=> (r.contact > 0) || (r.course && r.course !== 'Class Advisor'))
+      .map(r=>{
+        const codeLabel = r.code && r.code.trim() ? r.code : '';
+        const label = codeLabel ? `${codeLabel} — ${r.course}` : (r.course||'');
+        const hrs = Number(r.contact) || 0;
+        return `<div class="compact-course-item">
+          <span class="compact-course-code" title="${escAttr(label)}" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:170px;">${escHtml(label||'—')}</span>
+          <span class="compact-course-hrs">${hrs > 0 ? hrs+' hr' : '—'}</span>
+        </div>`;
+      }).join('');
+    return `<div class="compact-card">
+      <div class="compact-card-head">
+        <div>
+          <div class="compact-name">${escHtml(shortName)}</div>
+          <div class="compact-rank">${escHtml(g.rank)}</div>
+        </div>
+        <div class="compact-hrs">${g.total}<span>hrs total</span></div>
+      </div>
+      <div class="compact-courses">${courses || '<span style="color:var(--muted);font-size:11px;">No courses</span>'}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderDetailSummary(list){
+  const body = document.getElementById('summaryBody');
+  const foot = document.getElementById('summaryFoot');
+
+  body.innerHTML = list.map(g=>{
+    const headerRow = `<tr class="group-head" id="faccard-${escAttr(g.sno)}">
+      <td colspan="4">
+        <div class="group-head-inner">
+          <div class="ghn"><span class="ghn-no">${g.sno}.</span>${escHtml(g.name)}<span class="ghr">${escHtml(g.rank)}</span></div>
+          <div class="ghtotals">
+            <span class="ght-calc">${g.total} hrs</span>
+          </div>
+        </div>
+      </td>
+    </tr>`;
+
+    const courseRows = g.rows.map(r=>{
+      const sections = [r.s1,r.s2,r.s3].filter(v=>v!==undefined&&v!==null&&String(v).trim()!=='').join(' / ');
+      const cr = (r.cr===undefined||r.cr===null||String(r.cr).trim()==='') ? '—' : r.cr;
+      const contact = (r.contact===undefined||r.contact===null||String(r.contact).trim()==='') ? '—' : r.contact;
+      const codeLabel = r.code && r.code.trim() ? r.code : '';
+      const courseLabel = codeLabel ? `<span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--teal-deep);margin-right:5px;">${escHtml(codeLabel)}</span>${escHtml(r.course||'')}` : escHtml(r.course||'');
+      const cls = 'course-row' + (r.flag ? ' flagged' : '');
+      return `<tr class="${cls}">
+        <td style="padding-left:18px;">${courseLabel}</td>
+        <td class="num">${cr}</td>
+        <td>${escHtml(sections || '—')}</td>
+        <td class="num">${contact}</td>
+      </tr>`;
+    }).join('');
+
+    return headerRow + courseRows;
+  }).join('');
+
+  const calcSum = list.reduce((a,g)=>a+g.total,0);
+  foot.innerHTML = `<tr class="grand-total"><td colspan="3">GRAND TOTAL</td><td class="num">${calcSum}</td></tr>`;
+
+  const bars = document.getElementById('barsContainer');
+  const max = Math.max(1, ...list.map(g=>g.total));
+  bars.innerHTML = list.slice().sort((a,b)=>b.total-a.total).map(g=>{
+    const pct = Math.max(2, Math.round((g.total/max)*100));
+    const shortName = g.name.replace(/^Engr\.\s*(Dr\.)?\s*/,'');
+    return `<div class="bar-row" data-jump="${escAttr(g.sno)}">
+      <div class="label" title="${escAttr(g.name)}">${escHtml(shortName)}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div>
+      <div class="val">${g.total}</div>
+    </div>`;
+  }).join('');
+  bars.querySelectorAll('.bar-row').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      const target = document.getElementById('faccard-'+el.getAttribute('data-jump'));
+      if(target) target.scrollIntoView({behavior:'smooth', block:'start'});
+    });
+  });
+}
+
+// ─── SECTION-WISE VIEW ───────────────────────────────────────────────────────
+function computeSectionGroups(){
+  // Build: section -> [{course, code, cr, faculty, rank, contact}]
+  const groups = {};
+  data.forEach(r=>{
+    const secs = [r.s1, r.s2, r.s3].filter(s=> s && String(s).trim());
+    if(!secs.length) secs.push('(No Section)');
+    secs.forEach(sec=>{
+      if(!groups[sec]) groups[sec] = [];
+      groups[sec].push(r);
+    });
+  });
+  // Sort sections alphabetically, but push "Additional Course" and "(No Section)" to end
+  const sorted = Object.keys(groups).sort((a,b)=>{
+    const special = s=> s==='Additional Course'||s==='(No Section)' ? 1 : 0;
+    if(special(a) !== special(b)) return special(a) - special(b);
+    return a.localeCompare(b);
+  });
+  return {groups, sorted};
+}
+
+function renderSection(){
+  const {groups, sorted} = computeSectionGroups();
+  const tbody = document.getElementById('sectionBody');
+  let html = '';
+  sorted.forEach(sec=>{
+    const rows = groups[sec];
+    const totalHrs = rows.reduce((a,r)=> a + (Number(r.contact)||0), 0);
+    html += `<tr class="section-group-head"><td colspan="5">${escHtml(sec)}</td></tr>`;
+    rows.forEach(r=>{
+      const codeLabel = r.code && r.code.trim() ? r.code : '';
+      const courseLabel = codeLabel
+        ? `<span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--teal-deep);margin-right:5px;">${escHtml(codeLabel)}</span>${escHtml(r.course||'')}`
+        : escHtml(r.course||'—');
+      const cr = (r.cr===undefined||r.cr===null||String(r.cr).trim()==='') ? '—' : r.cr;
+      const contact = (r.contact===undefined||r.contact===null||String(r.contact).trim()==='') ? '—' : r.contact;
+      html += `<tr class="section-course-row${r.flag?' flagged':''}">
+        <td>${courseLabel}</td>
+        <td>${escHtml(r.name||'')}</td>
+        <td style="font-size:11.5px;color:var(--muted);">${escHtml(r.rank||'')}</td>
+        <td class="num">${cr}</td>
+        <td class="num">${contact}</td>
+      </tr>`;
+    });
+    html += `<tr class="section-total-row"><td colspan="3" style="text-align:right;color:var(--muted);">Total contact hours</td><td></td><td class="num" style="font-weight:700;">${totalHrs}</td></tr>`;
+  });
+  tbody.innerHTML = html;
+}
+
+// ─── PRINT HELPERS ────────────────────────────────────────────────────────────
+const PRINT_CSS = `
+  @import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600;8..60,700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:11pt;color:#16243B;background:#fff;padding:18mm 16mm;}
+  h1{font-family:'Source Serif 4',serif;font-size:17pt;font-weight:600;margin-bottom:2px;}
+  .sub{font-size:9pt;color:#8A93A3;margin-bottom:14px;font-family:'IBM Plex Mono',monospace;letter-spacing:.06em;text-transform:uppercase;}
+  table{width:100%;border-collapse:collapse;font-size:9.5pt;}
+  thead th{background:#16243B;color:#fff;text-align:left;font-weight:600;font-size:8.5pt;letter-spacing:.04em;text-transform:uppercase;padding:6px 7px;}
+  tbody td{padding:5px 7px;border-bottom:1px solid #DADFE6;vertical-align:top;}
+  tbody tr:nth-child(even){background:#FAFBFC;}
+  .group-head td{background:#E9EDEF!important;border-top:2px solid #16243B;font-family:'Source Serif 4',serif;font-weight:600;font-size:11pt;padding:7px;}
+  .group-head-inner{display:flex;justify-content:space-between;align-items:baseline;}
+  .ghn-no{color:#8A93A3;font-family:'IBM Plex Mono',monospace;font-size:8.5pt;margin-right:5px;font-weight:400;}
+  .ghr{font-size:9pt;color:#3C4A60;font-weight:400;margin-left:7px;}
+  .ght{font-family:'IBM Plex Mono',monospace;font-size:10pt;font-weight:700;}
+  .ccode{font-family:'IBM Plex Mono',monospace;font-size:8pt;color:#1F5349;margin-right:4px;}
+  .grand td{font-weight:700;border-top:2px solid #16243B;background:#F1F3F5!important;font-family:'IBM Plex Mono',monospace;}
+  .sec-head td{background:#1F3D5A!important;color:#fff;font-family:'Source Serif 4',serif;font-size:11pt;font-weight:600;padding:7px;}
+  .sec-total td{font-weight:600;background:#F4F6F8!important;border-top:1px solid #DADFE6;font-size:8.5pt;}
+  .flagged{background:#FCE9A8!important;}
+  .num{text-align:center;}
+  @page{margin:16mm 14mm;size:A4;}
+  @media print{body{padding:0;}}
+`;
+
+function printFacultySummary(){
+  const list = computeSummary();
+  const calcSum = list.reduce((a,g)=>a+g.total,0);
+  let rows = list.map(g=>{
+    const header = `<tr class="group-head"><td colspan="4"><div class="group-head-inner">
+      <div><span class="ghn-no">${g.sno}.</span><strong>${escHtml(g.name)}</strong><span class="ghr">${escHtml(g.rank)}</span></div>
+      <div class="ght">${g.total} hrs</div>
+    </div></td></tr>`;
+    const courses = g.rows.map(r=>{
+      const sections = [r.s1,r.s2,r.s3].filter(v=>v&&String(v).trim()).join(' / ');
+      const cr = (r.cr===undefined||r.cr===null||String(r.cr).trim()==='') ? '—' : r.cr;
+      const contact = (r.contact===undefined||r.contact===null||String(r.contact).trim()==='') ? '—' : r.contact;
+      const codeLabel = r.code && r.code.trim() ? `<span class="ccode">${escHtml(r.code)}</span>` : '';
+      return `<tr class="${r.flag?'flagged':''}">
+        <td style="padding-left:16px;">${codeLabel}${escHtml(r.course||'')}</td>
+        <td class="num">${cr}</td>
+        <td>${escHtml(sections||'—')}</td>
+        <td class="num">${contact}</td>
+      </tr>`;
+    }).join('');
+    return header + courses;
+  }).join('');
+
+  const html = `<!doctype html><html><head><meta charset="utf-8"><title>Faculty Summary — EE Spring 2026</title><style>${PRINT_CSS}</style></head><body>
+    <h1>Faculty Workload Summary</h1>
+    <div class="sub">Department of Electrical Engineering &nbsp;·&nbsp; Spring 2026 &nbsp;·&nbsp; Generated ${new Date().toLocaleDateString()}</div>
+    <table>
+      <thead><tr><th>Course &amp; Code</th><th style="width:40px;">Cr</th><th style="width:180px;">Sections</th><th style="width:50px;">Hrs</th></tr></thead>
+      <tbody>${rows}</tbody>
+      <tfoot><tr class="grand"><td colspan="3">GRAND TOTAL</td><td class="num">${calcSum}</td></tr></tfoot>
+    </table>
+  </body></html>`;
+  openPrintWindow(html);
+}
+
+function printSectionSummary(){
+  const {groups, sorted} = computeSectionGroups();
+  let rows = '';
+  sorted.forEach(sec=>{
+    const secRows = groups[sec];
+    const totalHrs = secRows.reduce((a,r)=> a + (Number(r.contact)||0), 0);
+    rows += `<tr class="sec-head"><td colspan="5">${escHtml(sec)}</td></tr>`;
+    secRows.forEach(r=>{
+      const codeLabel = r.code && r.code.trim() ? `<span class="ccode">${escHtml(r.code)}</span>` : '';
+      const cr = (r.cr===undefined||r.cr===null||String(r.cr).trim()==='') ? '—' : r.cr;
+      const contact = (r.contact===undefined||r.contact===null||String(r.contact).trim()==='') ? '—' : r.contact;
+      rows += `<tr class="${r.flag?'flagged':''}">
+        <td style="padding-left:14px;">${codeLabel}${escHtml(r.course||'—')}</td>
+        <td>${escHtml(r.name||'')}</td>
+        <td style="font-size:8pt;color:#8A93A3;">${escHtml(r.rank||'')}</td>
+        <td class="num">${cr}</td>
+        <td class="num">${contact}</td>
+      </tr>`;
+    });
+    rows += `<tr class="sec-total"><td colspan="3" style="text-align:right;color:#8A93A3;">Total</td><td></td><td class="num">${totalHrs}</td></tr>`;
+  });
+
+  const html = `<!doctype html><html><head><meta charset="utf-8"><title>Section-wise Summary — EE Spring 2026</title><style>${PRINT_CSS}</style></head><body>
+    <h1>Section-wise Workload Summary</h1>
+    <div class="sub">Department of Electrical Engineering &nbsp;·&nbsp; Spring 2026 &nbsp;·&nbsp; Generated ${new Date().toLocaleDateString()}</div>
+    <table>
+      <thead><tr><th>Course &amp; Code</th><th style="width:160px;">Faculty</th><th style="width:100px;">Rank</th><th style="width:40px;">Cr</th><th style="width:50px;">Hrs</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+  </body></html>`;
+  openPrintWindow(html);
+}
+
+function openPrintWindow(html){
+  const w = window.open('','_blank','width=900,height=750');
+  if(!w){ alert('Pop-up blocked — please allow pop-ups for this page.'); return; }
+  w.document.write(html);
+  w.document.close();
+  w.onload = ()=>{ w.focus(); w.print(); };
+}
+
+function renderAll(){ renderDetail(); renderSummary(); renderSection(); }
+
+// ─── TABS ─────────────────────────────────────────────────────────────────────
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('panel-'+btn.dataset.tab).classList.add('active');
+    document.getElementById('toolbarDetail').style.display = btn.dataset.tab==='detail' ? 'flex' : 'none';
+    document.getElementById('toolbarSummary').style.display = btn.dataset.tab==='summary' ? 'flex' : 'none';
+  });
+});
+
+// Summary view toggle
+let summaryView = 'compact';
+function setSummaryView(v){
+  summaryView = v;
+  document.getElementById('summaryCompact').style.display  = v==='compact'  ? '' : 'none';
+  document.getElementById('summaryDetail').style.display   = v==='detail'   ? '' : 'none';
+  document.getElementById('summarySection').style.display  = v==='section'  ? '' : 'none';
+  document.getElementById('btnCompact').className = 'btn' + (v==='compact' ? ' active-toggle':'');
+  document.getElementById('btnDetail').className  = 'btn' + (v==='detail'  ? ' active-toggle':'');
+  document.getElementById('btnSection').className = 'btn' + (v==='section' ? ' active-toggle':'');
+}
+document.getElementById('btnCompact').addEventListener('click', ()=> setSummaryView('compact'));
+document.getElementById('btnDetail').addEventListener('click',  ()=> setSummaryView('detail'));
+document.getElementById('btnSection').addEventListener('click', ()=> setSummaryView('section'));
+
+document.getElementById('btnPrintFaculty').addEventListener('click', printFacultySummary);
+document.getElementById('btnPrintSection').addEventListener('click', printSectionSummary);
+
+document.getElementById('searchBox').addEventListener('input', renderDetail);
+
+function addRow(){
+  const last = data.length ? data[data.length-1] : null;
+  const row = { id: nextId++, sno: 0, name: last?last.name:'', rank: last?last.rank:'',
+                code:'', course:'', cr:'', s1:'', s2:'', s3:'', contact:0, notes:'', flag:false };
+  data.push(row);
+  recomputeSnos();
+  scheduleSave();
+  renderAll();
+}
+
+// Auto-assign sno: each unique FM name gets a sequential number in order of first appearance
+function recomputeSnos(){
+  const fmOrder = [];
+  const fmMap = {};
+  data.forEach(r => {
+    const name = (r.name||'').trim();
+    if(name && !(name in fmMap)){
+      fmOrder.push(name);
+      fmMap[name] = fmOrder.length;
+    }
+  });
+  data.forEach(r => {
+    const name = (r.name||'').trim();
+    r.sno = name ? (fmMap[name] || 0) : 0;
+  });
+}
+document.getElementById('addRowBtn').addEventListener('click', addRow);
+document.getElementById('addRowBtn2').addEventListener('click', addRow);
+
+document.getElementById('exportCsvBtn').addEventListener('click', ()=>{
+  const headers = ['S.No','Faculty Name','Rank','Course Code','Course Name','Cr Hrs','Section 1','Section 2','Section 3','Tutorial','Contact Hours','Notes'];
+  const esc = v => '"' + String(v===undefined||v===null?'':v).replace(/"/g,'""') + '"';
+  const lines = [headers.map(esc).join(',')];
+  data.forEach(r=>{
+    lines.push([r.sno,r.name,r.rank,r.code,r.course,r.cr,r.s1,r.s2,r.s3,r.tut,r.contact,r.notes].map(esc).join(','));
+  });
+  const blob = new Blob([lines.join('\n')], {type:'text/csv'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download='ee-faculty-load-'+new Date().toISOString().slice(0,10)+'.csv'; a.click();
+});
+
+// ─── MANAGE LISTS MODAL ───────────────────────────────────────────────────────
+document.getElementById('manageLists').addEventListener('click', ()=>{
+  renderModal();
+  document.getElementById('manageModal').classList.add('open');
+});
+document.getElementById('modalClose').addEventListener('click', ()=>{
+  document.getElementById('manageModal').classList.remove('open');
+});
+document.getElementById('manageModal').addEventListener('click', e=>{
+  if(e.target === document.getElementById('manageModal'))
+    document.getElementById('manageModal').classList.remove('open');
+});
+
+document.querySelectorAll('.modal-tab').forEach(tab=>{
+  tab.addEventListener('click', ()=>{
+    document.querySelectorAll('.modal-tab').forEach(t=>t.classList.remove('active'));
+    document.querySelectorAll('.list-section').forEach(s=>s.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('section-'+tab.dataset.section).classList.add('active');
+  });
+});
+
+function renderModal(){
+  // ── Courses ──────────────────────────────────────────────────────────────
+  const cl = document.getElementById('coursesList');
+  cl.innerHTML = lists.courses.map((c,i)=>`
+    <div class="list-item" id="ci-${i}">
+      <input type="checkbox" class="list-item-cb course-cb" data-idx="${i}" title="Select">
+      <div class="list-item-text" id="ci-view-${i}">
+        <strong style="font-family:'IBM Plex Mono',monospace;font-size:12px;">${escHtml(c.code)}</strong>
+        — ${escHtml(c.name)}
+        ${(c.cr!==undefined&&c.cr!=='') ? `<span class="cr-badge">${escHtml(String(c.cr))} cr</span>` : ''}
+        ${(c.totalSections) ? `<span class="cr-badge" style="background:var(--teal);color:#fff;" title="Sections offered in Fall 2026">${c.totalSections} sec</span>` : ''}
+      </div>
+      <div class="inline-edit-row" id="ci-edit-${i}" style="display:none;">
+        <input class="ci-code" data-idx="${i}" placeholder="Code" value="${escAttr(c.code)}" style="width:90px;flex:none;font-family:'IBM Plex Mono',monospace;font-size:12px;">
+        <input class="ci-name" data-idx="${i}" placeholder="Name" value="${escAttr(c.name)}">
+        <input class="ci-cr cr-input" data-idx="${i}" type="number" min="0" max="9" placeholder="Cr" value="${escAttr(c.cr!==undefined?c.cr:'')}">
+        <button class="save-btn" data-idx="${i}" onclick="saveCourse(${i})">Save</button>
+        <button class="cancel-btn" onclick="cancelCourseEdit(${i})">✕</button>
+      </div>
+      <button class="list-item-edit" onclick="startCourseEdit(${i})" id="ci-editbtn-${i}" title="Edit">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+      </button>
+      <button class="list-item-del" data-type="course" data-idx="${i}" title="Remove">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>`).join('') || '<div style="color:var(--muted);font-size:12px;padding:4px 0;">No courses yet.</div>';
+
+  // ── Faculty ───────────────────────────────────────────────────────────────
+  const fl = document.getElementById('fmsList');
+  fl.innerHTML = lists.fms.map((f,i)=>`
+    <div class="list-item" id="fi-${i}">
+      <input type="checkbox" class="list-item-cb fm-cb" data-idx="${i}" title="Select">
+      <div class="list-item-text" id="fi-view-${i}">${escHtml(f.name)}<div class="list-item-sub">${escHtml(f.rank)}</div></div>
+      <div class="inline-edit-row" id="fi-edit-${i}" style="display:none;">
+        <input class="fi-name" data-idx="${i}" placeholder="Name" value="${escAttr(f.name)}">
+        <input class="fi-rank" data-idx="${i}" placeholder="Rank" value="${escAttr(f.rank)}" style="max-width:180px;">
+        <button class="save-btn" onclick="saveFm(${i})">Save</button>
+        <button class="cancel-btn" onclick="cancelFmEdit(${i})">✕</button>
+      </div>
+      <button class="list-item-edit" onclick="startFmEdit(${i})" id="fi-editbtn-${i}" title="Edit">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+      </button>
+      <button class="list-item-del" data-type="fm" data-idx="${i}" title="Remove">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>`).join('') || '<div style="color:var(--muted);font-size:12px;padding:4px 0;">No faculty members yet.</div>';
+
+  // ── Sections ──────────────────────────────────────────────────────────────
+  const sl = document.getElementById('sectionsList');
+  sl.innerHTML = lists.sections.map((s,i)=>`
+    <div class="list-item" id="si-${i}">
+      <input type="checkbox" class="list-item-cb sec-cb" data-idx="${i}" title="Select">
+      <div class="list-item-text" id="si-view-${i}">${escHtml(s)}</div>
+      <div class="inline-edit-row" id="si-edit-${i}" style="display:none;">
+        <input class="si-val" data-idx="${i}" placeholder="Section" value="${escAttr(s)}">
+        <button class="save-btn" onclick="saveSection(${i})">Save</button>
+        <button class="cancel-btn" onclick="cancelSecEdit(${i})">✕</button>
+      </div>
+      <button class="list-item-edit" onclick="startSecEdit(${i})" id="si-editbtn-${i}" title="Edit">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+      </button>
+      <button class="list-item-del" data-type="section" data-idx="${i}" title="Remove">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>`).join('') || '<div style="color:var(--muted);font-size:12px;padding:4px 0;">No sections yet.</div>';
+
+  // Delete handlers
+  document.querySelectorAll('.list-item-del').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const type = btn.dataset.type;
+      const idx = Number(btn.dataset.idx);
+      if(type==='course') lists.courses.splice(idx,1);
+      else if(type==='fm') lists.fms.splice(idx,1);
+      else if(type==='section') lists.sections.splice(idx,1);
+      scheduleSave();
+      renderModal();
+      renderDetail();
+    });
+  });
+
+  // Checkbox → update bulk-delete bar
+  function updateBulkBar(cbClass, barId, countId){
+    const checked = document.querySelectorAll('.'+cbClass+':checked').length;
+    const total   = document.querySelectorAll('.'+cbClass).length;
+    const bar = document.getElementById(barId);
+    const cnt = document.getElementById(countId);
+    bar.classList.toggle('visible', checked > 0);
+    cnt.textContent = checked + ' of ' + total + ' selected';
+    // highlight
+    document.querySelectorAll('.'+cbClass).forEach(cb=>{
+      cb.closest('.list-item').classList.toggle('selected', cb.checked);
+    });
+  }
+  document.querySelectorAll('.course-cb').forEach(cb=>cb.addEventListener('change',()=>updateBulkBar('course-cb','bulkDelBarCourse','bulkDelCountCourse')));
+  document.querySelectorAll('.fm-cb').forEach(cb=>cb.addEventListener('change',()=>updateBulkBar('fm-cb','bulkDelBarFm','bulkDelCountFm')));
+  document.querySelectorAll('.sec-cb').forEach(cb=>cb.addEventListener('change',()=>updateBulkBar('sec-cb','bulkDelBarSec','bulkDelCountSec')));
+}
+
+// ── Bulk delete & select-all wiring ─────────────────────────────────────────
+function wireSelAll(btnId, cbClass, barId, countId){
+  const btn = document.getElementById(btnId);
+  if(!btn) return;
+  btn.addEventListener('click', ()=>{
+    const cbs = document.querySelectorAll('.'+cbClass);
+    const allChecked = [...cbs].every(c=>c.checked);
+    cbs.forEach(c=>{ c.checked = !allChecked; c.closest('.list-item').classList.toggle('selected',!allChecked); });
+    const checked = document.querySelectorAll('.'+cbClass+':checked').length;
+    const bar = document.getElementById(barId);
+    const cnt = document.getElementById(countId);
+    bar.classList.toggle('visible', checked > 0);
+    cnt.textContent = checked + ' of ' + cbs.length + ' selected';
+    btn.textContent = (!allChecked && cbs.length) ? 'Deselect all' : 'Select all';
+  });
+}
+wireSelAll('selAllCourses','course-cb','bulkDelBarCourse','bulkDelCountCourse');
+wireSelAll('selAllFms','fm-cb','bulkDelBarFm','bulkDelCountFm');
+wireSelAll('selAllSecs','sec-cb','bulkDelBarSec','bulkDelCountSec');
+
+function wireBulkDel(doId, cancelId, cbClass, listKey, barId){
+  document.getElementById(doId)?.addEventListener('click', ()=>{
+    const toDelete = [...document.querySelectorAll('.'+cbClass+':checked')].map(c=>Number(c.dataset.idx));
+    if(!toDelete.length) return;
+    if(!confirm(`Delete ${toDelete.length} item(s)? This cannot be undone.`)) return;
+    toDelete.sort((a,b)=>b-a).forEach(idx=>lists[listKey].splice(idx,1));
+    scheduleSave(); renderModal(); renderDetail();
+  });
+  document.getElementById(cancelId)?.addEventListener('click', ()=>{
+    document.querySelectorAll('.'+cbClass).forEach(c=>{ c.checked=false; c.closest('.list-item').classList.remove('selected'); });
+    document.getElementById(barId)?.classList.remove('visible');
+  });
+}
+wireBulkDel('bulkDelDoCourse','bulkDelCancelCourse','course-cb','courses','bulkDelBarCourse');
+wireBulkDel('bulkDelDoFm','bulkDelCancelFm','fm-cb','fms','bulkDelBarFm');
+wireBulkDel('bulkDelDoSec','bulkDelCancelSec','sec-cb','sections','bulkDelBarSec');
+
+// ── Inline edit helpers – Courses ────────────────────────────────────────────
+function startCourseEdit(i){
+  document.getElementById('ci-view-'+i).style.display='none';
+  document.getElementById('ci-editbtn-'+i).style.display='none';
+  document.getElementById('ci-edit-'+i).style.display='flex';
+  document.querySelector(`#ci-edit-${i} .ci-code`).focus();
+}
+function cancelCourseEdit(i){
+  document.getElementById('ci-view-'+i).style.display='';
+  document.getElementById('ci-editbtn-'+i).style.display='';
+  document.getElementById('ci-edit-'+i).style.display='none';
+}
+function saveCourse(i){
+  const code = document.querySelector(`#ci-edit-${i} .ci-code`).value.trim();
+  const name = document.querySelector(`#ci-edit-${i} .ci-name`).value.trim();
+  const crRaw = document.querySelector(`#ci-edit-${i} .ci-cr`).value.trim();
+  const cr = crRaw !== '' ? Number(crRaw) : '';
+  if(!code && !name){ alert('Enter a code or name.'); return; }
+  // Check duplicate excluding self
+  if(lists.courses.some((c,j)=>j!==i && c.code===code && c.name===name)){ alert('Already exists.'); return; }
+  lists.courses[i] = {code, name, cr};
+  lists.courses.sort((a,b)=>a.code.localeCompare(b.code));
+  scheduleSave(); renderModal(); renderDetail();
+}
+
+// ── Inline edit helpers – FM ─────────────────────────────────────────────────
+function startFmEdit(i){
+  document.getElementById('fi-view-'+i).style.display='none';
+  document.getElementById('fi-editbtn-'+i).style.display='none';
+  document.getElementById('fi-edit-'+i).style.display='flex';
+  document.querySelector(`#fi-edit-${i} .fi-name`).focus();
+}
+function cancelFmEdit(i){
+  document.getElementById('fi-view-'+i).style.display='';
+  document.getElementById('fi-editbtn-'+i).style.display='';
+  document.getElementById('fi-edit-'+i).style.display='none';
+}
+function saveFm(i){
+  const name = document.querySelector(`#fi-edit-${i} .fi-name`).value.trim();
+  const rank = document.querySelector(`#fi-edit-${i} .fi-rank`).value.trim();
+  if(!name){ alert('Enter a name.'); return; }
+  if(lists.fms.some((f,j)=>j!==i && f.name===name)){ alert('Already exists.'); return; }
+  lists.fms[i] = {name, rank};
+  scheduleSave(); renderModal(); renderDetail();
+}
+
+// ── Inline edit helpers – Section ────────────────────────────────────────────
+function startSecEdit(i){
+  document.getElementById('si-view-'+i).style.display='none';
+  document.getElementById('si-editbtn-'+i).style.display='none';
+  document.getElementById('si-edit-'+i).style.display='flex';
+  document.querySelector(`#si-edit-${i} .si-val`).focus();
+}
+function cancelSecEdit(i){
+  document.getElementById('si-view-'+i).style.display='';
+  document.getElementById('si-editbtn-'+i).style.display='';
+  document.getElementById('si-edit-'+i).style.display='none';
+}
+function saveSection(i){
+  const val = document.querySelector(`#si-edit-${i} .si-val`).value.trim();
+  if(!val){ alert('Enter a section.'); return; }
+  if(lists.sections.some((s,j)=>j!==i && s===val)){ alert('Already exists.'); return; }
+  lists.sections[i] = val;
+  lists.sections.sort();
+  scheduleSave(); renderModal(); renderDetail();
+}
+
+// Add course
+document.getElementById('addCourseBtn').addEventListener('click', ()=>{
+  const code = document.getElementById('newCourseCode').value.trim();
+  const name = document.getElementById('newCourseName').value.trim();
+  const crRaw = document.getElementById('newCourseCr').value.trim();
+  const cr = crRaw !== '' ? Number(crRaw) : '';
+  if(!code && !name){ alert('Please enter at least a course code or name.'); return; }
+  if(lists.courses.some(c=>c.code===code && c.name===name)){ alert('Already exists.'); return; }
+  lists.courses.push({code, name, cr});
+  lists.courses.sort((a,b)=>a.code.localeCompare(b.code));
+  document.getElementById('newCourseCode').value='';
+  document.getElementById('newCourseName').value='';
+  document.getElementById('newCourseCr').value='';
+  scheduleSave(); renderModal(); renderDetail();
+});
+
+// Bulk import – Courses
+document.getElementById('bulkCourseBtn').addEventListener('click', ()=>{
+  const raw = document.getElementById('bulkCourseText').value;
+  const lines = raw.split('\n').map(l=>l.trim()).filter(Boolean);
+  let added=0, skipped=0;
+  lines.forEach(line=>{
+    // split by tab or 2+ spaces or comma
+    const parts = line.split(/\t|,\s*|\s{2,}/).map(p=>p.trim()).filter(Boolean);
+    if(parts.length < 1) return;
+    const code = parts[0] || '';
+    const name = parts.length >= 2 ? parts.slice(1, parts.length > 2 ? parts.length-1 : undefined).join(' ') : '';
+    const lastPart = parts[parts.length-1];
+    const crNum = parts.length >= 3 && !isNaN(lastPart) ? Number(lastPart) : '';
+    const finalName = (parts.length >= 3 && crNum !== '') ? parts.slice(1, parts.length-1).join(' ') : (parts.length >= 2 ? parts.slice(1).join(' ') : '');
+    if(!code){ skipped++; return; }
+    if(lists.courses.some(c=>c.code===code)){ skipped++; return; }
+    lists.courses.push({code, name: finalName||name, cr: crNum});
+    added++;
+  });
+  lists.courses.sort((a,b)=>a.code.localeCompare(b.code));
+  if(added) { document.getElementById('bulkCourseText').value=''; scheduleSave(); renderModal(); renderDetail(); }
+  const res = document.getElementById('bulkCourseResult');
+  res.textContent = `+${added} added${skipped ? ', '+skipped+' skipped' : ''}`;
+  res.className = 'bulk-result' + (added===0?' err':'');
+});
+
+// Bulk import – Faculty
+document.getElementById('bulkFmBtn').addEventListener('click', ()=>{
+  const raw = document.getElementById('bulkFmText').value;
+  const lines = raw.split('\n').map(l=>l.trim()).filter(Boolean);
+  let added=0, skipped=0;
+  lines.forEach(line=>{
+    const parts = line.split(/\t|,\s*|\s{2,}/).map(p=>p.trim()).filter(Boolean);
+    const name = parts[0]||'';
+    const rank = parts.slice(1).join(', ')||'';
+    if(!name){ skipped++; return; }
+    if(lists.fms.some(f=>f.name===name)){ skipped++; return; }
+    lists.fms.push({name, rank});
+    added++;
+  });
+  if(added) { document.getElementById('bulkFmText').value=''; scheduleSave(); renderModal(); renderDetail(); }
+  const res = document.getElementById('bulkFmResult');
+  res.textContent = `+${added} added${skipped ? ', '+skipped+' skipped' : ''}`;
+  res.className = 'bulk-result' + (added===0?' err':'');
+});
+
+// Bulk import – Sections
+document.getElementById('bulkSecBtn').addEventListener('click', ()=>{
+  const raw = document.getElementById('bulkSecText').value;
+  // split by newline, tab, or comma
+  const items = raw.split(/[\n\t,]+/).map(s=>s.trim()).filter(Boolean);
+  let added=0, skipped=0;
+  items.forEach(s=>{
+    if(lists.sections.includes(s)){ skipped++; return; }
+    lists.sections.push(s);
+    added++;
+  });
+  lists.sections.sort();
+  if(added) { document.getElementById('bulkSecText').value=''; scheduleSave(); renderModal(); renderDetail(); }
+  const res = document.getElementById('bulkSecResult');
+  res.textContent = `+${added} added${skipped ? ', '+skipped+' skipped' : ''}`;
+  res.className = 'bulk-result' + (added===0?' err':'');
+});
+
+// Add FM
+document.getElementById('addFmBtn').addEventListener('click', ()=>{
+  const name = document.getElementById('newFmName').value.trim();
+  const rank = document.getElementById('newFmRank').value.trim();
+  if(!name){ alert('Please enter a faculty name.'); return; }
+  if(lists.fms.some(f=>f.name===name)){ alert('Already exists.'); return; }
+  lists.fms.push({name, rank});
+  document.getElementById('newFmName').value='';
+  document.getElementById('newFmRank').value='';
+  scheduleSave(); renderModal(); renderDetail();
+});
+
+// Add section
+document.getElementById('addSectionBtn').addEventListener('click', ()=>{
+  const s = document.getElementById('newSection').value.trim();
+  if(!s){ alert('Please enter a section.'); return; }
+  if(lists.sections.includes(s)){ alert('Already exists.'); return; }
+  lists.sections.push(s);
+  lists.sections.sort();
+  document.getElementById('newSection').value='';
+  scheduleSave(); renderModal(); renderDetail();
+});
+
+// Enter key helpers
+['newCourseCode','newCourseName','newCourseCr'].forEach(id=>{
+  document.getElementById(id)?.addEventListener('keydown', e=>{ if(e.key==='Enter') document.getElementById('addCourseBtn').click(); });
+});
+document.getElementById('newFmName').addEventListener('keydown', e=>{ if(e.key==='Enter') document.getElementById('addFmBtn').click(); });
+document.getElementById('newSection').addEventListener('keydown', e=>{ if(e.key==='Enter') document.getElementById('addSectionBtn').click(); });
+
+loadData();
+</script>
+</body>
+</html>
