@@ -615,6 +615,16 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
     <div class="stat-label">Unassigned Courses</div>
     <div class="stat-hint">click to see list ↓</div>
   </div>
+  <div class="stat-card" id="statFmAssigned">
+    <div class="stat-value teal" id="statFmAssignedVal">—</div>
+    <div class="stat-label">FM Assigned</div>
+    <div class="stat-hint">faculty with a course row</div>
+  </div>
+  <div class="stat-card clickable" id="statFmNotAssigned" title="Click to show/hide unassigned faculty">
+    <div class="stat-value red" id="statFmNotAssignedVal">—</div>
+    <div class="stat-label">FM Not Assigned</div>
+    <div class="stat-hint">click to see list ↓</div>
+  </div>
 </div>
 
 <!-- ── Unassigned Courses Drawer ─────────────────────────────────────────── -->
@@ -627,6 +637,21 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
       <svg class="ua-drawer-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
     </div>
     <div class="ua-drawer-body" id="uaDrawerBody">
+      <!-- filled by renderStatCards() -->
+    </div>
+  </div>
+</div>
+
+<!-- ── Unassigned FM Drawer ─────────────────────────────────────────────── -->
+<div class="ua-drawer" id="uaFmDrawer" style="display:none;">
+  <div class="ua-drawer-inner" id="uaFmDrawerInner">
+    <div class="ua-drawer-header" id="uaFmDrawerHeader">
+      <svg class="ua-drawer-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+      <span class="ua-drawer-title">Faculty Not Assigned</span>
+      <span class="ua-drawer-count" id="uaFmDrawerCount">0</span>
+      <svg class="ua-drawer-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+    </div>
+    <div class="ua-drawer-body" id="uaFmDrawerBody">
       <!-- filled by renderStatCards() -->
     </div>
   </div>
@@ -4040,6 +4065,7 @@ function openPrintWindow(html){
 
 // ─── STAT CARDS ───────────────────────────────────────────────────────────────
 let uaDrawerOpen = false;
+let uaFmDrawerOpen = false;
 
 function renderStatCards(){
   // Count unique course codes in master list
@@ -4053,15 +4079,23 @@ function renderStatCards(){
   const unassignedCourses = lists.courses.filter(c => !assignedCodes.has((c.code||'').trim()));
   const unassignedCount = unassignedCourses.length;
 
+  // FM assigned / not assigned
+  const assignedFmNames = new Set(data.map(r=>(r.name||'').trim()).filter(Boolean));
+  const fmAssignedCount = lists.fms.filter(f=>assignedFmNames.has((f.name||'').trim())).length;
+  const fmNotAssignedList = lists.fms.filter(f=>!assignedFmNames.has((f.name||'').trim()));
+  const fmNotAssignedCount = fmNotAssignedList.length;
+
   document.getElementById('statTotalVal').textContent     = totalCourses;
   document.getElementById('statAssignedVal').textContent  = assignedCount;
   document.getElementById('statUnassignedVal').textContent = unassignedCount;
+  document.getElementById('statFmAssignedVal').textContent = fmAssignedCount;
+  document.getElementById('statFmNotAssignedVal').textContent = fmNotAssignedCount;
 
   // Active state on unassigned card
   const card = document.getElementById('statUnassigned');
   card.classList.toggle('active-card', uaDrawerOpen);
 
-  // Show/hide the drawer
+  // Show/hide the course unassigned drawer
   const drawer = document.getElementById('uaDrawer');
   if(unassignedCount > 0){
     drawer.style.display = '';
@@ -4077,23 +4111,57 @@ function renderStatCards(){
   badge.textContent = unassignedCount;
   badge.className = 'ua-drawer-count' + (unassignedCount === 0 ? ' zero' : '');
 
-  // Populate body
+  // Populate course unassigned body
   const body = document.getElementById('uaDrawerBody');
   if(!unassignedCourses.length){
     body.innerHTML = '<div class="ua-empty">All courses have been assigned. 🎉</div>';
-    return;
+  } else {
+    let html = '<div class="ua-section-title">Courses not yet assigned to any faculty (' + unassignedCount + ')</div>';
+    html += '<div class="ua-chips">' +
+      unassignedCourses.map(c =>
+        `<div class="ua-chip">
+          <span class="ua-code">${escHtml(c.code||'—')}</span>
+          <span>${escHtml(c.name)}</span>
+          ${(c.cr!==undefined&&c.cr!=='') ? `<span class="ua-cr">${escHtml(String(c.cr))}cr</span>` : ''}
+         </div>`
+      ).join('') +
+    '</div>';
+    body.innerHTML = html;
   }
-  let html = '<div class="ua-section-title">Courses not yet assigned to any faculty (' + unassignedCount + ')</div>';
-  html += '<div class="ua-chips">' +
-    unassignedCourses.map(c =>
-      `<div class="ua-chip">
-        <span class="ua-code">${escHtml(c.code||'—')}</span>
-        <span>${escHtml(c.name)}</span>
-        ${(c.cr!==undefined&&c.cr!=='') ? `<span class="ua-cr">${escHtml(String(c.cr))}cr</span>` : ''}
-       </div>`
-    ).join('') +
-  '</div>';
-  body.innerHTML = html;
+
+  // ── FM Not Assigned drawer ───────────────────────────────────────────────
+  const fmCard = document.getElementById('statFmNotAssigned');
+  fmCard.classList.toggle('active-card', uaFmDrawerOpen);
+
+  const fmDrawer = document.getElementById('uaFmDrawer');
+  if(fmNotAssignedCount > 0){
+    fmDrawer.style.display = '';
+  } else {
+    fmDrawer.style.display = 'none';
+    uaFmDrawerOpen = false;
+    document.getElementById('uaFmDrawerInner').classList.remove('open');
+    fmCard.classList.remove('active-card');
+  }
+
+  const fmBadge = document.getElementById('uaFmDrawerCount');
+  fmBadge.textContent = fmNotAssignedCount;
+  fmBadge.className = 'ua-drawer-count' + (fmNotAssignedCount === 0 ? ' zero' : '');
+
+  const fmBody = document.getElementById('uaFmDrawerBody');
+  if(!fmNotAssignedList.length){
+    fmBody.innerHTML = '<div class="ua-empty">All faculty members have been assigned. 🎉</div>';
+  } else {
+    let html = '<div class="ua-section-title">Faculty not yet assigned to any course (' + fmNotAssignedCount + ')</div>';
+    html += '<div class="ua-chips">' +
+      fmNotAssignedList.map(f =>
+        `<div class="ua-chip">
+          <span class="ua-code">${escHtml(f.name||'—')}</span>
+          ${f.rank ? `<span class="ua-sub">${escHtml(f.rank)}</span>` : ''}
+         </div>`
+      ).join('') +
+    '</div>';
+    fmBody.innerHTML = html;
+  }
 }
 
 // Toggle drawer on card or header click
@@ -4106,6 +4174,18 @@ function toggleUaDrawer(){
   uaDrawerOpen = !uaDrawerOpen;
   document.getElementById('uaDrawerInner').classList.toggle('open', uaDrawerOpen);
   document.getElementById('statUnassigned').classList.toggle('active-card', uaDrawerOpen);
+}
+
+// Toggle FM not-assigned drawer
+document.getElementById('statFmNotAssigned').addEventListener('click', toggleUaFmDrawer);
+document.getElementById('uaFmDrawerHeader').addEventListener('click', toggleUaFmDrawer);
+
+function toggleUaFmDrawer(){
+  const count = parseInt(document.getElementById('statFmNotAssignedVal').textContent, 10) || 0;
+  if(count === 0) return;
+  uaFmDrawerOpen = !uaFmDrawerOpen;
+  document.getElementById('uaFmDrawerInner').classList.toggle('open', uaFmDrawerOpen);
+  document.getElementById('statFmNotAssigned').classList.toggle('active-card', uaFmDrawerOpen);
 }
 
 function renderAll(){ renderDetail(); renderSummary(); renderSection(); renderStatCards(); }
