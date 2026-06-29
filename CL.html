@@ -888,7 +888,7 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
     <div class="stat-label">Total Courses</div>
     <div class="stat-hint">in course list</div>
   </div>
-  <div class="stat-card" id="statAssigned">
+  <div class="stat-card clickable" id="statAssigned" title="Click to view assigned courses">
     <div class="stat-value teal" id="statAssignedVal">3</div>
     <div class="stat-label">Assigned Courses</div>
     <div class="stat-hint" style="display:flex;gap:10px;margin-top:5px;flex-wrap:wrap;">
@@ -907,10 +907,10 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
     <div class="stat-label">Unassigned Courses</div>
     <div class="stat-hint">click to see list ↓</div>
   </div>
-  <div class="stat-card" id="statFmAssigned">
+  <div class="stat-card clickable" id="statFmAssigned" title="Click to view assigned faculty">
     <div class="stat-value teal" id="statFmAssignedVal">3</div>
     <div class="stat-label">FM Assigned</div>
-    <div class="stat-hint">faculty with a course row</div>
+    <div class="stat-hint">click to jump to list ↓</div>
   </div>
   <div class="stat-card clickable" id="statFmNotAssigned" title="Click to show/hide unassigned faculty">
     <div class="stat-value red" id="statFmNotAssignedVal">2</div>
@@ -5632,17 +5632,40 @@ function toggleUaDrawer(){
   document.getElementById('statUnassigned').classList.toggle('active-card', uaDrawerOpen);
 }
 
-// Toggle FM not-assigned drawer
-document.getElementById('statFmNotAssigned').addEventListener('click', toggleUaFmDrawer);
-document.getElementById('uaFmDrawerHeader').addEventListener('click', toggleUaFmDrawer);
-
-function toggleUaFmDrawer(){
+// FM Not Assigned card → open drawer and scroll to it
+document.getElementById('statFmNotAssigned').addEventListener('click', ()=>{
   const count = parseInt(document.getElementById('statFmNotAssignedVal').textContent, 10) || 0;
   if(count === 0) return;
+  uaFmDrawerOpen = true;
+  document.getElementById('uaFmDrawerInner').classList.add('open');
+  document.getElementById('statFmNotAssigned').classList.add('active-card');
+  setTimeout(()=>document.getElementById('uaFmDrawer').scrollIntoView({behavior:'smooth', block:'start'}), 50);
+});
+document.getElementById('uaFmDrawerHeader').addEventListener('click', ()=>{
   uaFmDrawerOpen = !uaFmDrawerOpen;
   document.getElementById('uaFmDrawerInner').classList.toggle('open', uaFmDrawerOpen);
   document.getElementById('statFmNotAssigned').classList.toggle('active-card', uaFmDrawerOpen);
-}
+});
+
+// "Assigned Courses" card → jump to the Course Load table, where every
+// assigned course row already lives. No new list is built; this just
+// takes you to the existing data.
+document.getElementById('statAssigned').addEventListener('click', ()=>{
+  document.querySelector('.tab-btn[data-tab="detail"]').click();
+  setTimeout(()=>document.getElementById('detailTable').scrollIntoView({behavior:'smooth', block:'start'}), 50);
+});
+
+// "FM Assigned" card → jump to the Faculty Summary table, where every
+// assigned faculty member (and their assigned courses) already lives.
+document.getElementById('statFmAssigned').addEventListener('click', ()=>{
+  document.querySelector('.tab-btn[data-tab="summary"]').click();
+  setTimeout(()=>{
+    const target = summaryView === 'detail' ? document.getElementById('summaryBody')
+                 : summaryView === 'section' ? document.getElementById('summarySection')
+                 : document.getElementById('compactGrid');
+    if(target) target.scrollIntoView({behavior:'smooth', block:'start'});
+  }, 50);
+});
 
 // Toggle EE program-card FM not-assigned drawer
 document.getElementById('statEeFmNotAssignedChip').addEventListener('click', toggleUaEeFmDrawer);
