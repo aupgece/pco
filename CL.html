@@ -125,7 +125,7 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
   }
   .table-scroll{ overflow-x:auto; }
   table{ width:100%; border-collapse:collapse; font-size:13px; }
-  #detailTable{ min-width:1100px; }
+  #detailTable{ min-width:1200px; }
   thead th{
     background: linear-gradient(135deg, #1A0B40 0%, #0F2560 100%); color:#EDEFF3; text-align:left; font-weight:600;
     font-size:11.5px; letter-spacing:.04em; text-transform:uppercase;
@@ -153,7 +153,22 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
   }
   td.num input{ text-align:center; }
   td.code input{ font-family:'IBM Plex Mono',monospace; font-size:12px; }
-  .col-notes textarea{ resize:vertical; min-height:30px; font-size:11.5px; color:var(--ink-soft); }
+  /* ── FM Name column: always show full name ──────────────────────────────── */
+  #detailTable td:nth-child(3),
+  #detailTable th:nth-child(3){
+    min-width:230px;
+    width:230px;
+  }
+  #detailTable td:nth-child(3) select{
+    white-space:normal;
+    word-break:break-word;
+    min-width:210px;
+    width:100%;
+    height:auto;
+    padding-right:22px;
+  }
+
+  .col-cb{ width:28px; min-width:28px; }
   .row-del{
     background:none; border:none; cursor:pointer; color:var(--muted);
     width:24px; height:24px; border-radius:6px; display:flex; align-items:center; justify-content:center;
@@ -1349,7 +1364,7 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
             <tr>
               <th class="col-cb"><input type="checkbox" class="sel-all-cb" id="selAllCb" title="Select all"></th>
               <th style="width:30px;">#</th>
-              <th style="width:170px;">Faculty</th>
+              <th style="width:230px;min-width:230px;">Faculty</th>
               <th style="width:110px;">Designation</th>
               <th style="width:260px;">Course Code &amp; Name <span style="font-weight:400;font-size:10px;color:#8A93A3;">(badge = sections offered)</span></th>
               <th style="width:40px;">Cr</th>
@@ -1364,7 +1379,7 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
           <tbody id="detailBody"><tr>
       <td class="col-cb"><input type="checkbox" class="row-cb" data-id="4"></td>
       <td class="num" data-sno="4" style="font-family:&#39;IBM Plex Mono&#39;,monospace;font-size:12px;font-weight:600;text-align:center;color:var(--teal-deep);">1</td>
-      <td><select data-id="4" data-field="name"><option value="">— select —</option><option value="EE-Engr. Dr. Hafiz Ashiq Hussain">EE-Engr. Dr. Hafiz Ashiq Hussain</option><option value="EE-Engr. Dr. Waseem Khan">EE-Engr. Dr. Waseem Khan</option><option value="CE- Dr. Jehanzeb Khan" selected="">CE- Dr. Jehanzeb Khan</option><option value="CE-Dr. Hadi Abdullah">CE-Dr. Hadi Abdullah</option><option value="EE-Dr. Amina Asif">EE-Dr. Amina Asif</option></select></td>
+      <td style="min-width:230px;"><select data-id="4" data-field="name" style="white-space:normal;word-break:break-word;height:auto;"><option value="">— select —</option><option value="EE-Engr. Dr. Hafiz Ashiq Hussain">EE-Engr. Dr. Hafiz Ashiq Hussain</option><option value="EE-Engr. Dr. Waseem Khan">EE-Engr. Dr. Waseem Khan</option><option value="CE- Dr. Jehanzeb Khan" selected="">CE- Dr. Jehanzeb Khan</option><option value="CE-Dr. Hadi Abdullah">CE-Dr. Hadi Abdullah</option><option value="EE-Dr. Amina Asif">EE-Dr. Amina Asif</option></select></td>
       <td><input data-id="4" data-field="rank" value="Assistant Profesdor" placeholder="Rank" style="font-size:11.5px;"></td>
       <td><div class="course-combo" data-id="4">
         <input type="text" class="cc-input" data-id="4" data-field="course_combined" autocomplete="off" placeholder="Search course…" value="CE216 — Database Management Systems">
@@ -1382,7 +1397,7 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
     </tr><tr>
       <td class="col-cb"><input type="checkbox" class="row-cb" data-id="3"></td>
       <td class="num" data-sno="3" style="font-family:&#39;IBM Plex Mono&#39;,monospace;font-size:12px;font-weight:600;text-align:center;color:var(--teal-deep);">2</td>
-      <td><select data-id="3" data-field="name"><option value="">— select —</option><option value="EE-Engr. Dr. Hafiz Ashiq Hussain">EE-Engr. Dr. Hafiz Ashiq Hussain</option><option value="EE-Engr. Dr. Waseem Khan" selected="">EE-Engr. Dr. Waseem Khan</option><option value="CE- Dr. Jehanzeb Khan">CE- Dr. Jehanzeb Khan</option><option value="CE-Dr. Hadi Abdullah">CE-Dr. Hadi Abdullah</option><option value="EE-Dr. Amina Asif">EE-Dr. Amina Asif</option></select></td>
+      <td style="min-width:230px;"><select data-id="3" data-field="name" style="white-space:normal;word-break:break-word;height:auto;"><option value="">— select —</option><option value="EE-Engr. Dr. Hafiz Ashiq Hussain">EE-Engr. Dr. Hafiz Ashiq Hussain</option><option value="EE-Engr. Dr. Waseem Khan" selected="">EE-Engr. Dr. Waseem Khan</option><option value="CE- Dr. Jehanzeb Khan">CE- Dr. Jehanzeb Khan</option><option value="CE-Dr. Hadi Abdullah">CE-Dr. Hadi Abdullah</option><option value="EE-Dr. Amina Asif">EE-Dr. Amina Asif</option></select></td>
       <td><input data-id="3" data-field="rank" value="Associate Professor" placeholder="Rank" style="font-size:11.5px;"></td>
       <td><div class="course-combo" data-id="3">
         <input type="text" class="cc-input" data-id="3" data-field="course_combined" autocomplete="off" placeholder="Search course…" value="CE215 — Data Structures and Algorithms">
@@ -1400,7 +1415,7 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
     </tr><tr>
       <td class="col-cb"><input type="checkbox" class="row-cb" data-id="5"></td>
       <td class="num" data-sno="5" style="font-family:&#39;IBM Plex Mono&#39;,monospace;font-size:12px;font-weight:600;text-align:center;color:var(--teal-deep);">3</td>
-      <td><select data-id="5" data-field="name"><option value="">— select —</option><option value="EE-Engr. Dr. Hafiz Ashiq Hussain" selected="">EE-Engr. Dr. Hafiz Ashiq Hussain</option><option value="EE-Engr. Dr. Waseem Khan">EE-Engr. Dr. Waseem Khan</option><option value="CE- Dr. Jehanzeb Khan">CE- Dr. Jehanzeb Khan</option><option value="CE-Dr. Hadi Abdullah">CE-Dr. Hadi Abdullah</option><option value="EE-Dr. Amina Asif">EE-Dr. Amina Asif</option></select></td>
+      <td style="min-width:230px;"><select data-id="5" data-field="name" style="white-space:normal;word-break:break-word;height:auto;"><option value="">— select —</option><option value="EE-Engr. Dr. Hafiz Ashiq Hussain" selected="">EE-Engr. Dr. Hafiz Ashiq Hussain</option><option value="EE-Engr. Dr. Waseem Khan">EE-Engr. Dr. Waseem Khan</option><option value="CE- Dr. Jehanzeb Khan">CE- Dr. Jehanzeb Khan</option><option value="CE-Dr. Hadi Abdullah">CE-Dr. Hadi Abdullah</option><option value="EE-Dr. Amina Asif">EE-Dr. Amina Asif</option></select></td>
       <td><input data-id="5" data-field="rank" value="Professor &amp; HoD" placeholder="Rank" style="font-size:11.5px;"></td>
       <td><div class="course-combo" data-id="5">
         <input type="text" class="cc-input" data-id="5" data-field="course_combined" autocomplete="off" placeholder="Search course…" value="ee1 — msee1">
@@ -4792,7 +4807,7 @@ function renderDetail(){
     tr.innerHTML = `
       <td class="col-cb"><input type="checkbox" class="row-cb" data-id="${r.id}"></td>
       <td class="num" data-sno="${r.id}" style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;text-align:center;color:var(--teal-deep);">${r.sno||''}</td>
-      <td><select data-id="${r.id}" data-field="name">${fmOptions(r.name)}</select></td>
+      <td style="min-width:230px;"><select data-id="${r.id}" data-field="name" style="white-space:normal;word-break:break-word;height:auto;">${fmOptions(r.name)}</select></td>
       <td><input data-id="${r.id}" data-field="rank" value="${escAttr(r.rank)}" placeholder="Rank" style="font-size:11.5px;"></td>
       <td><div class="course-combo" data-id="${r.id}">
         <input type="text" class="cc-input" data-id="${r.id}" data-field="course_combined" autocomplete="off" placeholder="Search course…" value="${escAttr(courseComboLabel(r.code, r.course))}">
