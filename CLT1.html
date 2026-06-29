@@ -438,6 +438,9 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
   .program-card.clickable{ cursor:pointer; transition:box-shadow .15s, border-color .15s; }
   .program-card.clickable:hover{ border-color:var(--teal); box-shadow:0 2px 10px rgba(42,111,98,.12); }
   .program-card.active-card{ border-color:var(--teal); background:#EEF6F4; box-shadow:0 2px 10px rgba(42,111,98,.16); }
+  .program-stat.clickable{ cursor:pointer; transition:box-shadow .15s, background .15s; }
+  .program-stat.clickable:hover{ background:#EEF6F4; box-shadow:0 0 0 1px var(--teal) inset; }
+  .program-stat.active-card{ background:#EEF6F4; box-shadow:0 0 0 1px var(--teal) inset; }
 
   /* ── Unassigned Drawer ────────────────────────────────────────────────────── */
   .ua-drawer{
@@ -907,7 +910,7 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
 
 <!-- ── Faculty Loading by Program ─────────────────────────────────────────── -->
 <div class="program-loading" id="programLoading">
-  <div class="program-card clickable" id="programCardEe" title="Click to see EE faculty not yet assigned">
+  <div class="program-card" id="programCardEe">
     <div class="program-card-head">
       <span class="program-card-title">Electrical Engineering</span>
       <span class="program-card-streams">by name prefix (CE-/EE-)</span>
@@ -921,14 +924,13 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
         <div class="program-stat-val teal" id="statEeFmAssigned">2</div>
         <div class="program-stat-lbl">FM ASSIGNED</div>
       </div>
-      <div class="program-stat">
+      <div class="program-stat clickable" id="statEeFmNotAssignedChip" title="Click to see EE faculty not yet assigned">
         <div class="program-stat-val red" id="statEeFmNotAssigned">1</div>
         <div class="program-stat-lbl">FM NOT ASSIGNED</div>
       </div>
     </div>
-    <div class="stat-hint">click to see list ↓</div>
   </div>
-  <div class="program-card clickable" id="programCardCe" title="Click to see CE faculty not yet assigned">
+  <div class="program-card" id="programCardCe">
     <div class="program-card-head">
       <span class="program-card-title">Computer Engineering</span>
       <span class="program-card-streams">by name prefix (CE-/EE-)</span>
@@ -942,12 +944,11 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
         <div class="program-stat-val teal" id="statCeFmAssigned">1</div>
         <div class="program-stat-lbl">FM ASSIGNED</div>
       </div>
-      <div class="program-stat">
+      <div class="program-stat clickable" id="statCeFmNotAssignedChip" title="Click to see CE faculty not yet assigned">
         <div class="program-stat-val red" id="statCeFmNotAssigned">1</div>
         <div class="program-stat-lbl">FM NOT ASSIGNED</div>
       </div>
     </div>
-    <div class="stat-hint">click to see list ↓</div>
   </div>
 </div>
 
@@ -5493,8 +5494,8 @@ function renderStatCards(){
   }
 
   // ── EE FM Not Assigned drawer (Faculty Loading by Program card) ────────
-  const eeCard = document.getElementById('programCardEe');
-  eeCard.classList.toggle('active-card', uaEeFmDrawerOpen);
+  const eeChip = document.getElementById('statEeFmNotAssignedChip');
+  eeChip.classList.toggle('active-card', uaEeFmDrawerOpen);
 
   const eeFmDrawer = document.getElementById('uaEeFmDrawer');
   if(eeFmNotAssigned > 0){
@@ -5503,7 +5504,7 @@ function renderStatCards(){
     eeFmDrawer.style.display = 'none';
     uaEeFmDrawerOpen = false;
     document.getElementById('uaEeFmDrawerInner').classList.remove('open');
-    eeCard.classList.remove('active-card');
+    eeChip.classList.remove('active-card');
   }
 
   const eeFmBadge = document.getElementById('uaEeFmDrawerCount');
@@ -5527,8 +5528,8 @@ function renderStatCards(){
   }
 
   // ── CE FM Not Assigned drawer (Faculty Loading by Program card) ────────
-  const ceCard = document.getElementById('programCardCe');
-  ceCard.classList.toggle('active-card', uaCeFmDrawerOpen);
+  const ceChip = document.getElementById('statCeFmNotAssignedChip');
+  ceChip.classList.toggle('active-card', uaCeFmDrawerOpen);
 
   const ceFmDrawer = document.getElementById('uaCeFmDrawer');
   if(ceFmNotAssigned > 0){
@@ -5537,7 +5538,7 @@ function renderStatCards(){
     ceFmDrawer.style.display = 'none';
     uaCeFmDrawerOpen = false;
     document.getElementById('uaCeFmDrawerInner').classList.remove('open');
-    ceCard.classList.remove('active-card');
+    ceChip.classList.remove('active-card');
   }
 
   const ceFmBadge = document.getElementById('uaCeFmDrawerCount');
@@ -5586,7 +5587,7 @@ function toggleUaFmDrawer(){
 }
 
 // Toggle EE program-card FM not-assigned drawer
-document.getElementById('programCardEe').addEventListener('click', toggleUaEeFmDrawer);
+document.getElementById('statEeFmNotAssignedChip').addEventListener('click', toggleUaEeFmDrawer);
 document.getElementById('uaEeFmDrawerHeader').addEventListener('click', toggleUaEeFmDrawer);
 
 function toggleUaEeFmDrawer(){
@@ -5594,11 +5595,11 @@ function toggleUaEeFmDrawer(){
   if(count === 0) return;
   uaEeFmDrawerOpen = !uaEeFmDrawerOpen;
   document.getElementById('uaEeFmDrawerInner').classList.toggle('open', uaEeFmDrawerOpen);
-  document.getElementById('programCardEe').classList.toggle('active-card', uaEeFmDrawerOpen);
+  document.getElementById('statEeFmNotAssignedChip').classList.toggle('active-card', uaEeFmDrawerOpen);
 }
 
 // Toggle CE program-card FM not-assigned drawer
-document.getElementById('programCardCe').addEventListener('click', toggleUaCeFmDrawer);
+document.getElementById('statCeFmNotAssignedChip').addEventListener('click', toggleUaCeFmDrawer);
 document.getElementById('uaCeFmDrawerHeader').addEventListener('click', toggleUaCeFmDrawer);
 
 function toggleUaCeFmDrawer(){
@@ -5606,7 +5607,7 @@ function toggleUaCeFmDrawer(){
   if(count === 0) return;
   uaCeFmDrawerOpen = !uaCeFmDrawerOpen;
   document.getElementById('uaCeFmDrawerInner').classList.toggle('open', uaCeFmDrawerOpen);
-  document.getElementById('programCardCe').classList.toggle('active-card', uaCeFmDrawerOpen);
+  document.getElementById('statCeFmNotAssignedChip').classList.toggle('active-card', uaCeFmDrawerOpen);
 }
 
 function renderAll(){ renderDetail(); renderSummary(); renderSection(); renderStatCards(); }
