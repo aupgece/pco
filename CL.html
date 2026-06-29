@@ -153,19 +153,51 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
   }
   td.num input{ text-align:center; }
   td.code input{ font-family:'IBM Plex Mono',monospace; font-size:12px; }
-  /* ── FM Name column: always show full name ──────────────────────────────── */
-  #detailTable td:nth-child(3),
-  #detailTable th:nth-child(3){
-    min-width:230px;
-    width:230px;
+  /* ── Detail table: all columns properly sized, no clipping ──────────────── */
+  #detailTable{ min-width:1380px; table-layout:fixed; }
+
+  /* col 1: checkbox */
+  #detailTable th:nth-child(1), #detailTable td:nth-child(1){ width:34px; min-width:34px; }
+  /* col 2: # */
+  #detailTable th:nth-child(2), #detailTable td:nth-child(2){ width:34px; min-width:34px; }
+  /* col 3: Faculty name */
+  #detailTable th:nth-child(3), #detailTable td:nth-child(3){ width:230px; min-width:230px; }
+  /* col 4: Designation */
+  #detailTable th:nth-child(4), #detailTable td:nth-child(4){ width:170px; min-width:170px; }
+  /* col 5: Course */
+  #detailTable th:nth-child(5), #detailTable td:nth-child(5){ width:260px; min-width:240px; }
+  /* col 6: Cr */
+  #detailTable th:nth-child(6), #detailTable td:nth-child(6){ width:44px; min-width:44px; }
+  /* col 7-9: Sections */
+  #detailTable th:nth-child(7), #detailTable td:nth-child(7),
+  #detailTable th:nth-child(8), #detailTable td:nth-child(8),
+  #detailTable th:nth-child(9), #detailTable td:nth-child(9){ width:140px; min-width:130px; }
+  /* col 10: Total Hours */
+  #detailTable th:nth-child(10), #detailTable td:nth-child(10){ width:80px; min-width:80px; }
+  /* col 11: Notes */
+  #detailTable th:nth-child(11), #detailTable td:nth-child(11){ width:180px; min-width:160px; }
+  /* col 12: delete */
+  #detailTable th:nth-child(12), #detailTable td:nth-child(12){ width:34px; min-width:34px; }
+
+  /* All inputs and selects fill their cell and never clip text */
+  #detailTable td input[type="text"],
+  #detailTable td input:not([type]),
+  #detailTable td textarea{
+    width:100%; box-sizing:border-box;
+    white-space:normal; word-break:break-word;
   }
-  #detailTable td:nth-child(3) select{
-    white-space:normal;
-    word-break:break-word;
-    min-width:210px;
-    width:100%;
+  #detailTable td select{
+    width:100%; box-sizing:border-box;
+    white-space:normal; word-break:break-word;
     height:auto;
-    padding-right:22px;
+  }
+  /* FM name select */
+  #detailTable td:nth-child(3) select{
+    white-space:normal; word-break:break-word; height:auto; padding-right:22px;
+  }
+  /* Designation input: allow wrapping */
+  #detailTable td:nth-child(4) input{
+    white-space:normal; word-break:break-word;
   }
 
   .col-cb{ width:28px; min-width:28px; }
@@ -1363,24 +1395,24 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
           <thead>
             <tr>
               <th class="col-cb"><input type="checkbox" class="sel-all-cb" id="selAllCb" title="Select all"></th>
-              <th style="width:30px;">#</th>
+              <th style="width:34px;min-width:34px;">#</th>
               <th style="width:230px;min-width:230px;">Faculty</th>
-              <th style="width:110px;">Designation</th>
-              <th style="width:260px;">Course Code &amp; Name <span style="font-weight:400;font-size:10px;color:#8A93A3;">(badge = sections offered)</span></th>
-              <th style="width:40px;">Cr</th>
-              <th style="width:140px;">Section 1</th>
-              <th style="width:140px;">Section 2</th>
-              <th style="width:140px;">Section 3</th>
-              <th style="width:70px;">Total Hours</th>
-              <th style="width:200px;">Notes</th>
-              <th class="col-del" style="width:30px;"></th>
+              <th style="width:170px;min-width:170px;">Designation</th>
+              <th style="width:260px;min-width:240px;">Course Code &amp; Name <span style="font-weight:400;font-size:10px;color:#8A93A3;">(badge = sections offered)</span></th>
+              <th style="width:44px;min-width:44px;">Cr</th>
+              <th style="width:140px;min-width:130px;">Section 1</th>
+              <th style="width:140px;min-width:130px;">Section 2</th>
+              <th style="width:140px;min-width:130px;">Section 3</th>
+              <th style="width:80px;min-width:80px;">Total Hours</th>
+              <th style="width:180px;min-width:160px;">Notes</th>
+              <th class="col-del" style="width:34px;min-width:34px;"></th>
             </tr>
           </thead>
           <tbody id="detailBody"><tr>
       <td class="col-cb"><input type="checkbox" class="row-cb" data-id="4"></td>
       <td class="num" data-sno="4" style="font-family:&#39;IBM Plex Mono&#39;,monospace;font-size:12px;font-weight:600;text-align:center;color:var(--teal-deep);">1</td>
       <td style="min-width:230px;"><select data-id="4" data-field="name" style="white-space:normal;word-break:break-word;height:auto;"><option value="">— select —</option><option value="EE-Engr. Dr. Hafiz Ashiq Hussain">EE-Engr. Dr. Hafiz Ashiq Hussain</option><option value="EE-Engr. Dr. Waseem Khan">EE-Engr. Dr. Waseem Khan</option><option value="CE- Dr. Jehanzeb Khan" selected="">CE- Dr. Jehanzeb Khan</option><option value="CE-Dr. Hadi Abdullah">CE-Dr. Hadi Abdullah</option><option value="EE-Dr. Amina Asif">EE-Dr. Amina Asif</option></select></td>
-      <td><input data-id="4" data-field="rank" value="Assistant Profesdor" placeholder="Rank" style="font-size:11.5px;"></td>
+      <td style="min-width:170px;"><input data-id="4" data-field="rank" value="Assistant Profesdor" placeholder="Rank" style="font-size:11.5px;white-space:normal;word-break:break-word;"></td>
       <td><div class="course-combo" data-id="4">
         <input type="text" class="cc-input" data-id="4" data-field="course_combined" autocomplete="off" placeholder="Search course…" value="CE216 — Database Management Systems">
         <div class="cc-list" id="cc-list-4"></div>
@@ -1398,7 +1430,7 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
       <td class="col-cb"><input type="checkbox" class="row-cb" data-id="3"></td>
       <td class="num" data-sno="3" style="font-family:&#39;IBM Plex Mono&#39;,monospace;font-size:12px;font-weight:600;text-align:center;color:var(--teal-deep);">2</td>
       <td style="min-width:230px;"><select data-id="3" data-field="name" style="white-space:normal;word-break:break-word;height:auto;"><option value="">— select —</option><option value="EE-Engr. Dr. Hafiz Ashiq Hussain">EE-Engr. Dr. Hafiz Ashiq Hussain</option><option value="EE-Engr. Dr. Waseem Khan" selected="">EE-Engr. Dr. Waseem Khan</option><option value="CE- Dr. Jehanzeb Khan">CE- Dr. Jehanzeb Khan</option><option value="CE-Dr. Hadi Abdullah">CE-Dr. Hadi Abdullah</option><option value="EE-Dr. Amina Asif">EE-Dr. Amina Asif</option></select></td>
-      <td><input data-id="3" data-field="rank" value="Associate Professor" placeholder="Rank" style="font-size:11.5px;"></td>
+      <td style="min-width:170px;"><input data-id="3" data-field="rank" value="Associate Professor" placeholder="Rank" style="font-size:11.5px;white-space:normal;word-break:break-word;"></td>
       <td><div class="course-combo" data-id="3">
         <input type="text" class="cc-input" data-id="3" data-field="course_combined" autocomplete="off" placeholder="Search course…" value="CE215 — Data Structures and Algorithms">
         <div class="cc-list" id="cc-list-3"></div>
@@ -1416,7 +1448,7 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
       <td class="col-cb"><input type="checkbox" class="row-cb" data-id="5"></td>
       <td class="num" data-sno="5" style="font-family:&#39;IBM Plex Mono&#39;,monospace;font-size:12px;font-weight:600;text-align:center;color:var(--teal-deep);">3</td>
       <td style="min-width:230px;"><select data-id="5" data-field="name" style="white-space:normal;word-break:break-word;height:auto;"><option value="">— select —</option><option value="EE-Engr. Dr. Hafiz Ashiq Hussain" selected="">EE-Engr. Dr. Hafiz Ashiq Hussain</option><option value="EE-Engr. Dr. Waseem Khan">EE-Engr. Dr. Waseem Khan</option><option value="CE- Dr. Jehanzeb Khan">CE- Dr. Jehanzeb Khan</option><option value="CE-Dr. Hadi Abdullah">CE-Dr. Hadi Abdullah</option><option value="EE-Dr. Amina Asif">EE-Dr. Amina Asif</option></select></td>
-      <td><input data-id="5" data-field="rank" value="Professor &amp; HoD" placeholder="Rank" style="font-size:11.5px;"></td>
+      <td style="min-width:170px;"><input data-id="5" data-field="rank" value="Professor &amp; HoD" placeholder="Rank" style="font-size:11.5px;white-space:normal;word-break:break-word;"></td>
       <td><div class="course-combo" data-id="5">
         <input type="text" class="cc-input" data-id="5" data-field="course_combined" autocomplete="off" placeholder="Search course…" value="ee1 — msee1">
         <div class="cc-list" id="cc-list-5"></div>
@@ -4808,7 +4840,7 @@ function renderDetail(){
       <td class="col-cb"><input type="checkbox" class="row-cb" data-id="${r.id}"></td>
       <td class="num" data-sno="${r.id}" style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;text-align:center;color:var(--teal-deep);">${r.sno||''}</td>
       <td style="min-width:230px;"><select data-id="${r.id}" data-field="name" style="white-space:normal;word-break:break-word;height:auto;">${fmOptions(r.name)}</select></td>
-      <td><input data-id="${r.id}" data-field="rank" value="${escAttr(r.rank)}" placeholder="Rank" style="font-size:11.5px;"></td>
+      <td style="min-width:170px;"><input data-id="${r.id}" data-field="rank" value="${escAttr(r.rank)}" placeholder="Rank" style="font-size:11.5px;white-space:normal;word-break:break-word;"></td>
       <td><div class="course-combo" data-id="${r.id}">
         <input type="text" class="cc-input" data-id="${r.id}" data-field="course_combined" autocomplete="off" placeholder="Search course…" value="${escAttr(courseComboLabel(r.code, r.course))}">
         <div class="cc-list" id="cc-list-${r.id}"></div>
