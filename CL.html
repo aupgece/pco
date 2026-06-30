@@ -11,6 +11,7 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
 <link rel="preconnect" href="https://fonts.googleapis.com/">
 <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600;8..60,700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
+  html, body{ max-width:100%; overflow-x:hidden; }
   :root{
     --ink:#0F1B35;
     --ink-soft:#2D3A55;
@@ -114,6 +115,7 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
   .btn svg{width:14px; height:14px; flex:none;}
 
   main{max-width:1400px; margin:0 auto; padding:14px 16px 60px 16px;}
+  main:has(#panel-detail.active){ max-width:100%; }
 
   .panel{display:none;}
   .panel.active{display:block;}
@@ -232,14 +234,29 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
     box-shadow:0 0 0 2px rgba(42,111,98,.12);
   }
   .cc-list{
-    display:none; position:absolute; top:100%; left:0; right:0; z-index:50;
-    background:#fff; border:1px solid var(--line); border-radius:8px;
-    box-shadow:0 8px 20px rgba(22,36,59,.14); max-height:260px; overflow-y:auto;
-    margin-top:3px; padding:4px;
+    display:none; position:fixed; top:0; left:0; right:0; bottom:0; z-index:500;
+    background:#fff; border:none; border-radius:0;
+    box-shadow:none; max-height:none; overflow-y:auto;
+    margin-top:0; padding:0 0 24px;
   }
   .cc-list.open{ display:block; }
+  .cc-search-bar{
+    position:sticky; top:0; z-index:501; background:var(--paper-card);
+    border-bottom:1px solid var(--line); padding:14px 20px; display:flex; gap:10px; align-items:center;
+  }
+  .cc-search-bar input{
+    flex:1; max-width:900px; margin:0 auto; padding:11px 14px; border:1px solid var(--line);
+    border-radius:9px; font-family:inherit; font-size:14.5px; color:var(--ink);
+  }
+  .cc-search-bar input:focus{ border-color:var(--teal); outline:none; box-shadow:0 0 0 2px rgba(42,111,98,.12); }
+  .cc-close-btn{
+    background:none; border:1px solid var(--line); color:var(--ink-soft); border-radius:8px;
+    width:38px; height:38px; flex:none; cursor:pointer; font-size:18px; line-height:1;
+  }
+  .cc-close-btn:hover{ background:var(--red-bg); color:var(--red); border-color:transparent; }
+  .cc-opts-wrap{ max-width:900px; margin:0 auto; padding:10px 20px 0; }
   .cc-opt{
-    padding:7px 9px; font-size:12.6px; border-radius:6px; cursor:pointer;
+    padding:13px 16px; font-size:14.5px; border-radius:8px; cursor:pointer;
     color:var(--ink); white-space:normal;
   }
   .cc-opt:hover, .cc-opt.cc-active{ background:#F0EEFF; }
@@ -576,7 +593,7 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
   .modal-overlay.open{ display:flex; }
   .modal{
     background:#fff; border-radius:12px; box-shadow:0 8px 40px rgba(0,0,0,.18);
-    width:600px; max-width:95vw; max-height:90vh; overflow:hidden;
+    width:95vw; max-width:1100px; height:92vh; max-height:92vh; overflow:hidden;
     display:flex; flex-direction:column;
   }
   .modal-head{
@@ -592,7 +609,7 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
   .modal-body{ padding:16px 22px; overflow-y:auto; flex:1; }
   .list-section{ display:none; }
   .list-section.active{ display:block; }
-  .list-items{ margin:0 0 10px; }
+  .list-items{ margin:0 0 10px; display:grid; grid-template-columns:1fr 1fr; gap:0 16px; }
   .list-item{ display:flex; align-items:center; gap:8px; padding:5px 0; border-bottom:1px solid #F0F2F5; }
   .list-item:last-child{ border-bottom:none; }
   .list-item-text{ flex:1; font-size:13px; color:var(--ink); }
@@ -638,6 +655,7 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
   .list-item.selected{ background:#F0F8F6; border-radius:6px; }
 
 
+  @media (max-width:700px){ .list-items{ grid-template-columns:1fr; } .modal{ width:100vw; height:100vh; max-width:100vw; max-height:100vh; border-radius:0; } }
   /* Modal search */
   .modal-search-wrap{ position:relative; margin-bottom:10px; }
   .modal-search-wrap input{
@@ -4612,7 +4630,10 @@ function renderCourseComboList(rowId, queryOverride){
   // every other course since it's no longer an empty search).
   const query = queryOverride !== undefined ? queryOverride : input.value;
   const items = courseComboItems(row.code, row.course, query);
-  let html = '';
+  let html = `<div class="cc-search-bar">
+    <input type="text" class="cc-search-input" data-id="${rowId}" placeholder="Search course…" autocomplete="off" value="${escAttr(query)}">
+    <button type="button" class="cc-close-btn" data-close="${rowId}" title="Close">×</button>
+  </div><div class="cc-opts-wrap">`;
   if(!query){
     html += `<div class="cc-opt cc-none" data-code="" data-name="">— none —</div>`;
   }
@@ -4623,18 +4644,24 @@ function renderCourseComboList(rowId, queryOverride){
   } else if(query){
     html += `<div class="cc-opt-empty">No matching courses</div>`;
   }
-  html += `<div class="cc-opt cc-add" data-add="1">+ Add custom course…</div>`;
+  html += `<div class="cc-opt cc-add" data-add="1">+ Add custom course…</div></div>`;
   list.innerHTML = html;
 }
 
 function openCourseComboList(rowId, showFullList){
   renderCourseComboList(rowId, showFullList ? '' : undefined);
   const list = document.getElementById('cc-list-'+rowId);
-  if(list) list.classList.add('open');
+  if(list){
+    list.classList.add('open');
+    document.body.style.overflow = 'hidden';
+    const sInput = list.querySelector('.cc-search-input');
+    if(sInput && showFullList) setTimeout(()=>sInput.focus(), 0);
+  }
 }
 function closeCourseComboList(rowId){
   const list = document.getElementById('cc-list-'+rowId);
   if(list) list.classList.remove('open');
+  document.body.style.overflow = '';
 }
 
 function applyCourseSelection(rowId, code, name){
@@ -4653,10 +4680,12 @@ function applyCourseSelection(rowId, code, name){
   const input = document.querySelector(`input.cc-input[data-id="${rowId}"]`);
   if(input) input.value = courseComboLabel(row.code, row.course);
   closeCourseComboList(rowId);
-  refreshAllCourseAndSectionDropdowns();
-  scheduleSave();
-  renderSummary();
-  renderStatCards();
+  withScrollPreserved(()=>{
+    refreshAllCourseAndSectionDropdowns();
+    scheduleSave();
+    renderSummary();
+    renderStatCards();
+  });
 }
 
 function promptAddCustomCourseForRow(rowId){
@@ -4694,6 +4723,17 @@ document.addEventListener('input', e=>{
     const rowId = Number(e.target.getAttribute('data-id'));
     openCourseComboList(rowId);
   }
+  if(e.target.matches('input.cc-search-input')){
+    const rowId = Number(e.target.getAttribute('data-id'));
+    renderCourseComboList(rowId, e.target.value);
+    // re-focus the search box after re-render (innerHTML wipe loses focus)
+    const list = document.getElementById('cc-list-'+rowId);
+    const sInput = list ? list.querySelector('.cc-search-input') : null;
+    if(sInput){
+      sInput.focus();
+      const v = sInput.value; sInput.value=''; sInput.value=v;
+    }
+  }
 });
 document.addEventListener('focusin', e=>{
   if(e.target.matches('input.cc-input')){
@@ -4703,6 +4743,15 @@ document.addEventListener('focusin', e=>{
   }
 });
 document.addEventListener('mousedown', e=>{
+  if(e.target.matches('button.cc-close-btn')){
+    e.preventDefault();
+    const rowId = Number(e.target.getAttribute('data-close'));
+    const row = data.find(r=>r.id===rowId);
+    const input = document.querySelector(`input.cc-input[data-id="${rowId}"]`);
+    if(input && row) input.value = courseComboLabel(row.code, row.course);
+    closeCourseComboList(rowId);
+    return;
+  }
   const opt = e.target.closest('.cc-opt');
   if(opt){
     e.preventDefault();
@@ -4715,9 +4764,14 @@ document.addEventListener('mousedown', e=>{
     }
     return;
   }
-  // Click outside any combobox: close all open lists
-  if(!e.target.closest('.course-combo')){
-    document.querySelectorAll('.cc-list.open').forEach(l=>l.classList.remove('open'));
+  // Click on the overlay background (not the search bar / options): close it
+  if(e.target.matches('.cc-list.open')){
+    const rowId = Number(e.target.id.replace('cc-list-',''));
+    const row = data.find(r=>r.id===rowId);
+    const input = document.querySelector(`input.cc-input[data-id="${rowId}"]`);
+    if(input && row) input.value = courseComboLabel(row.code, row.course);
+    closeCourseComboList(rowId);
+    return;
   }
 });
 document.addEventListener('keydown', e=>{
@@ -4731,6 +4785,23 @@ document.addEventListener('keydown', e=>{
     } else if(e.key === 'Enter'){
       e.preventDefault();
       const rowId = Number(e.target.getAttribute('data-id'));
+      const list = document.getElementById('cc-list-'+rowId);
+      const first = list ? list.querySelector('.cc-opt') : null;
+      if(first){
+        if(first.hasAttribute('data-add')) promptAddCustomCourseForRow(rowId);
+        else applyCourseSelection(rowId, first.getAttribute('data-code'), first.getAttribute('data-name'));
+      }
+    }
+  }
+  if(e.target.matches('input.cc-search-input')){
+    const rowId = Number(e.target.getAttribute('data-id'));
+    if(e.key === 'Escape'){
+      const row = data.find(r=>r.id===rowId);
+      const input = document.querySelector(`input.cc-input[data-id="${rowId}"]`);
+      if(input && row) input.value = courseComboLabel(row.code, row.course);
+      closeCourseComboList(rowId);
+    } else if(e.key === 'Enter'){
+      e.preventDefault();
       const list = document.getElementById('cc-list-'+rowId);
       const first = list ? list.querySelector('.cc-opt') : null;
       if(first){
@@ -4939,7 +5010,7 @@ function onSelectEdit(e){
   // course and section dropdowns so newly-taken sections (and newly-full
   // courses) disappear everywhere, and freed-up ones reappear.
   if(field === 'course_combined' || field === 's1' || field === 's2' || field === 's3'){
-    refreshAllCourseAndSectionDropdowns();
+    withScrollPreserved(()=> refreshAllCourseAndSectionDropdowns());
   }
   scheduleSave();
   renderSummary();
@@ -5691,7 +5762,15 @@ function toggleUaCeFmDrawer(){
   document.getElementById('statCeFmNotAssignedChip').classList.toggle('active-card', uaCeFmDrawerOpen);
 }
 
-function renderAll(){ renderDetail(); renderSummary(); renderSection(); renderStatCards(); }
+function withScrollPreserved(fn){
+  const sx = window.scrollX, sy = window.scrollY;
+  fn();
+  window.scrollTo(sx, sy);
+  requestAnimationFrame(()=> window.scrollTo(sx, sy));
+}
+function renderAll(){
+  withScrollPreserved(()=>{ renderDetail(); renderSummary(); renderSection(); renderStatCards(); });
+}
 
 // ── EE / CE split-button print dropdowns ─────────────────────────────────────
 ['Ee','Ce'].forEach(tag=>{
@@ -5763,7 +5842,7 @@ document.getElementById('searchBox').addEventListener('input', renderDetail);
 
 function addRow(){
   const last = data.length ? data[data.length-1] : null;
-  const row = { id: nextId++, sno: 0, name: last?last.name:'', rank: last?last.rank:'',
+  const row = { id: nextId++, sno: 0, name: '', rank: '',
                 code:'', course:'', cr:'', s1:'', s2:'', s3:'', contact:0, notes:'', flag:false };
   data.push(row);
   recomputeSnos();
