@@ -6742,9 +6742,9 @@ function exportSessionToWord(){
 
     // Page width A4 landscape: content = 15840 - 1440*2 = 12960 DXA
     var TW=12960;
-    var cols=[1200,4400,1700,900,1400]; // Code, Title, Pre-req, Cr Hrs, Area — must sum ≤ TW
+    var cols=[1400,6500,2000,1200]; // Code, Title, Pre-req, Cr Hrs — Area column removed for report export
     // Pad last col to fill exactly
-    cols[4]=TW-cols[0]-cols[1]-cols[2]-cols[3]; // 3260
+    cols[3]=TW-cols[0]-cols[1]-cols[2];
 
     function makeHeaderCell(text,w){
       return new TableCell({
@@ -6790,7 +6790,7 @@ function exportSessionToWord(){
       children.push(new Paragraph({
         alignment:AlignmentType.CENTER,
         spacing:{after:120},
-        children:[ new ImageRun({ data: logoBytes, transformation:{ width:90, height:67 } }) ]
+        children:[ new ImageRun({ type:'png', data: logoBytes, transformation:{ width:90, height:67 } }) ]
       }));
     }
 
@@ -6890,7 +6890,6 @@ function exportSessionToWord(){
             makeHeaderCell('Course Title',cols[1]),
             makeHeaderCell('Pre-req',cols[2]),
             makeHeaderCell('Cr Hrs',cols[3]),
-            makeHeaderCell('Area',cols[4]),
           ]
         });
 
@@ -6901,7 +6900,6 @@ function exportSessionToWord(){
             makeCell(r[1],cols[1],{shade:shade}),
             makeCell(r[2]||'—',cols[2],{shade:shade,center:true,color:'666666'}),
             makeCell(r[3],cols[3],{shade:shade,center:true}),
-            makeCell(r[4],cols[4],{shade:shade,color:'555555'}),
           ]});
         });
 
