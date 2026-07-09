@@ -6732,7 +6732,8 @@ function exportSessionToWord(){
         TableCell=lib.TableCell, HeadingLevel=lib.HeadingLevel,
         AlignmentType=lib.AlignmentType, BorderStyle=lib.BorderStyle,
         WidthType=lib.WidthType, ShadingType=lib.ShadingType,
-        VerticalAlign=lib.VerticalAlign, PageOrientation=lib.PageOrientation;
+        VerticalAlign=lib.VerticalAlign, PageOrientation=lib.PageOrientation,
+        ImageRun=lib.ImageRun;
 
     var border={style:BorderStyle.SINGLE,size:1,color:'CCCCCC'};
     var borders={top:border,bottom:border,left:border,right:border};
@@ -6775,21 +6776,53 @@ function exportSessionToWord(){
 
     var children=[];
 
-    // ── Doc title ────────────────────────────────────────────────────────────
+    // ── Official letterhead ─────────────────────────────────────────────────
+    var sessionTag = cfg.label.replace(/\s+/g,'-'); // e.g. "Fall 2026" -> "Fall-2026"
+
+    // Reuse the same Air University logo already shown in the page header
+    var logoImgEl = document.getElementById('headerLogo');
+    if (logoImgEl && logoImgEl.src && logoImgEl.src.indexOf('base64,') !== -1) {
+      var logoBase64 = logoImgEl.src.split('base64,')[1];
+      var logoBinary = atob(logoBase64);
+      var logoBytes = new Uint8Array(logoBinary.length);
+      for (var li=0; li<logoBinary.length; li++) { logoBytes[li] = logoBinary.charCodeAt(li); }
+
+      children.push(new Paragraph({
+        alignment:AlignmentType.CENTER,
+        spacing:{after:120},
+        children:[ new ImageRun({ data: logoBytes, transformation:{ width:90, height:67 } }) ]
+      }));
+    }
+
     children.push(new Paragraph({
       alignment:AlignmentType.CENTER,
-      spacing:{after:80},
-      children:[new TextRun({text:'Session Course Plan',bold:true,size:36,font:'Arial',color:'1A5276'})]
+      spacing:{after:20},
+      children:[new TextRun({text:'Air University',bold:true,size:32,font:'Arial',color:'1A5276'})]
     }));
     children.push(new Paragraph({
       alignment:AlignmentType.CENTER,
+      spacing:{after:200},
+      children:[new TextRun({text:'Department of Electrical & Computer Engineering',bold:true,size:22,font:'Arial',color:'1A5276'})]
+    }));
+    children.push(new Paragraph({
+      alignment:AlignmentType.LEFT,
       spacing:{after:40},
-      children:[new TextRun({text:cfg.label,bold:true,size:26,font:'Arial',color:'2E86AB'})]
+      children:[new TextRun({text:'IBD/404/DETE/PCEE/',size:20,font:'Arial',color:'000000'})]
     }));
     children.push(new Paragraph({
-      alignment:AlignmentType.CENTER,
+      alignment:AlignmentType.LEFT,
+      spacing:{after:200},
+      children:[new TextRun({text:'Deputy Registrar,',size:20,font:'Arial',color:'000000'})]
+    }));
+    children.push(new Paragraph({
+      alignment:AlignmentType.LEFT,
+      spacing:{after:200},
+      children:[new TextRun({text:'Courses to be offered to Electrical & Computer Engineering students during Semester '+sessionTag,bold:true,underline:{},size:22,font:'Arial',color:'000000'})]
+    }));
+    children.push(new Paragraph({
+      alignment:AlignmentType.LEFT,
       spacing:{after:360},
-      children:[new TextRun({text:cfg.subLabel.replace(/&amp;/g,'&').replace(/&middot;/g,'·'),size:18,font:'Arial',color:'555555'})]
+      children:[new TextRun({text:'The following regular courses are to be offered to students of Electrical & Computer Engineering during the semester '+sessionTag+':',size:20,font:'Arial',color:'000000'})]
     }));
 
     cfg.intakes.forEach(function(slot,slotIdx){
