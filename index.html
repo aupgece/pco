@@ -1333,7 +1333,7 @@ function loadNotesFromFirebase(){
 }
 </script>
 </head>
-<body style="" class="admin-bar-shown admin-mode">
+<body style="" class="">
 
 <header>
   <div class="header-inner">
@@ -5597,6 +5597,13 @@ function adminLogout(){
   closeAdminPanel();
   hideAdminBar();
 }
+
+// ── Force logged-out admin state on every page load/refresh ──────────────────
+// (The static HTML can have admin-active markup baked in from a prior "Export
+// HTML" save while an admin was logged in. Always reset to locked/hidden on load.)
+document.addEventListener('DOMContentLoaded', function(){
+  adminLogout();
+});
 
 function flashSaved(msg){
   var el = document.getElementById('saveIndicator');
@@ -27261,15 +27268,15 @@ var __async = (__this, __arguments, generator) => {
 </div>
 
 <!-- ADMIN BAR -->
-<div class="admin-bar visible" id="adminBar">
+<div class="admin-bar" id="adminBar">
   <span class="admin-bar-label">⚙ ADMIN</span>
-  <span class="admin-bar-status" id="adminBarStatus" style="color: var(--teal);">✓ Admin active — click cells to edit · 🛠 Edit Panel for all options</span>
+  <span class="admin-bar-status" id="adminBarStatus" style="">Locked — click to enable editing</span>
   <span style="font-family: &quot;Source Code Pro&quot;, monospace; font-size: 0.6rem; color: rgba(100, 220, 100, 0.7); margin-left: auto; margin-right: 0.5rem;" id="fbStatusLabel">🔥 Firebase</span>
-  <button class="admin-btn" id="adminToggleBtn" onclick="showAdminLogin()" style="display: none;">🔓 Login</button>
-  <span class="admin-bar-sep" id="adminSepA" style=""></span>
-  <button class="admin-btn warn" id="adminPanelBtn" onclick="openAdminPanel()" style="">🛠 Edit Panel</button>
-  <button class="admin-btn primary" id="adminExportBtn" onclick="exportData()" style="">💾 Export HTML</button>
-  <button class="admin-btn danger" id="adminLogoutBtn" onclick="adminLogout()" style="">✕ Logout</button>
+  <button class="admin-btn" id="adminToggleBtn" onclick="showAdminLogin()" style="">🔓 Login</button>
+  <span class="admin-bar-sep" id="adminSepA" style="display: none;"></span>
+  <button class="admin-btn warn" id="adminPanelBtn" onclick="openAdminPanel()" style="display: none;">🛠 Edit Panel</button>
+  <button class="admin-btn primary" id="adminExportBtn" onclick="exportData()" style="display: none;">💾 Export HTML</button>
+  <button class="admin-btn danger" id="adminLogoutBtn" onclick="adminLogout()" style="display: none;">✕ Logout</button>
 </div>
 
 <!-- ADMIN PANEL (Full side panel) -->
