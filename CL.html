@@ -636,6 +636,10 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
   .course-subtab .cst-count{ font-family:'IBM Plex Mono',monospace; font-weight:400; opacity:.75; margin-left:3px; }
   .course-subtab:hover{ color:var(--ink); border-color:#C7CDD6; }
   .course-subtab.active{ background:var(--teal-deep); border-color:var(--teal-deep); color:#fff; }
+  .tab-remove{ margin-left:5px; opacity:.6; font-weight:400; }
+  .tab-remove:hover{ opacity:1; color:var(--red); }
+  .tab-edit{ margin-left:5px; opacity:.6; font-weight:400; }
+  .tab-edit:hover{ opacity:1; color:#fff; }
   .modal-body{ padding:16px 22px; overflow-y:auto; flex:1; }
   .list-section{ display:none; }
   .list-section.active{ display:block; }
@@ -649,8 +653,8 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
   .add-item-row{ display:flex; gap:8px; margin-top:10px; }
   .add-item-row input{ flex:1; padding:8px 10px; border:1px solid var(--line); border-radius:7px; font-family:inherit; font-size:13px; }
   .add-item-row input:focus{ border-color:var(--teal); outline:none; box-shadow:0 0 0 2px rgba(42,111,98,.12); }
-  .course-add-grid{ display:grid; grid-template-columns:110px 1fr 60px 90px; gap:8px; margin-top:10px; }
-  .course-add-grid input{ padding:8px 10px; border:1px solid var(--line); border-radius:7px; font-family:inherit; font-size:13px; }
+  .course-add-grid{ display:grid; grid-template-columns:110px 1fr 60px 90px 150px; gap:8px; margin-top:10px; }
+  .course-add-grid input, .course-add-grid select{ padding:8px 10px; border:1px solid var(--line); border-radius:7px; font-family:inherit; font-size:13px; }
   .course-add-grid input:focus{ border-color:var(--teal); outline:none; box-shadow:0 0 0 2px rgba(42,111,98,.12); }
   .list-item-edit{ background:none; border:none; cursor:pointer; color:var(--muted); width:22px; height:22px; border-radius:5px; display:flex; align-items:center; justify-content:center; flex:none; }
   .list-item-edit:hover{ background:#EEF3F1; color:var(--teal-deep); }
@@ -872,7 +876,7 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
         </a>
         <div class="save-indicator ok" id="saveIndicator">Firebase connected</div>
         <button class="btn" id="changePwBtn" style="display:none;font-size:12px;padding:6px 10px;" title="Change admin password">Change Password</button>
-        <div class="admin-badge locked" id="adminBadge" title="Ctrl+Shift+A to unlock admin"><span class="dot"></span><span id="adminBadgeLabel">View Only</span></div>
+        <div class="admin-badge locked" id="adminBadge" title="Ctrl+Shift+A to unlock admin · double-tap for Super Admin"><span class="dot"></span><span id="adminBadgeLabel">View Only</span></div>
       </div>
     </div>
     <div class="tabs">
@@ -1700,11 +1704,11 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
         <div class="list-bar">
           <button class="list-bar-selall" id="selAllCourses">Select all</button>
         </div>
-        <div class="course-subtabs" id="courseSubtabs">
-          <button class="course-subtab active" data-subtab="all">All<span class="cst-count" id="cst-count-all"></span></button>
-          <button class="course-subtab" data-subtab="EE">EE Courses<span class="cst-count" id="cst-count-EE"></span></button>
-          <button class="course-subtab" data-subtab="CE">CE Courses<span class="cst-count" id="cst-count-CE"></span></button>
-          <button class="course-subtab" data-subtab="other">Other Courses<span class="cst-count" id="cst-count-other"></span></button>
+        <div class="course-subtabs" id="courseSubtabs"></div>
+        <div class="add-tab-row" id="addTabRow" style="display:none; gap:6px; align-items:center; margin:0 0 10px;">
+          <input type="text" id="newTabLabel" placeholder="Tab name (e.g. FM Demand by Other Dept)" style="max-width:240px;">
+          <button class="btn primary" id="addTabBtn" style="padding:4px 10px;font-size:12px;">+ Add</button>
+          <button class="cancel-btn" id="cancelTabBtn">✕</button>
         </div>
         <div class="modal-search-wrap"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4.3-4.3"></path></svg><input type="text" id="searchCourses" placeholder="Search courses…" oninput="filterModalList(&#39;courses&#39;)"></div>
         <div class="list-items" id="coursesList">
@@ -3517,6 +3521,7 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
           <input type="text" id="newCourseName" placeholder="Course name">
           <input type="number" id="newCourseCr" placeholder="Cr" min="0" max="9" step="1" title="Credit hours">
           <input type="number" id="newCourseSections" placeholder="Sections" min="0" step="1" title="Number of sections offered">
+          <select id="newCourseCategory" title="Tab / category"></select>
         </div>
         <div style="margin-top:8px; display:flex; gap:8px; align-items:center;">
           <button class="btn primary" id="addCourseBtn">+ Add Course</button>
@@ -4344,8 +4349,23 @@ const FALL2026_SECTIONS = [
 let lists = {
   courses: [], // {code, name, cr}
   fms: [],     // {name, rank}
-  sections: [] // string[]
+  sections: [], // string[]
+  programs: [] // {key, label, prefix} — custom course-category tabs (EE/CE/…)
 };
+
+// Makes sure lists.programs exists and has the default EE/CE tabs the first
+// time this app ever runs (or when loading older saved data that predates
+// the programs feature). Safe to call repeatedly — it's a no-op once
+// lists.programs is already populated.
+function ensureProgramsList(){
+  if(!Array.isArray(lists.programs)) lists.programs = [];
+  if(lists.programs.length === 0){
+    lists.programs = [
+      {key:'EE', label:'EE Courses', prefix:'EE'},
+      {key:'CE', label:'CE Courses', prefix:'CE'}
+    ];
+  }
+}
 
 function buildListsFromData(rows){
   const courseMap = {};
@@ -4477,6 +4497,7 @@ async function loadData(){
 }
 
 function mergeFall2026Lists(){
+  ensureProgramsList();
   // Merge courses: add any Fall 2026 course not already present; update totalSections if present
   FALL2026_COURSES.forEach(fc => {
     const existing = lists.courses.find(c => c.code === fc.code);
@@ -4670,11 +4691,13 @@ function renderCourseComboList(rowId, queryOverride){
   // every other course since it's no longer an empty search).
   const query = queryOverride !== undefined ? queryOverride : input.value;
   const allItems = courseComboItems(row.code, row.course, query);
+  ensureProgramsList();
   const subtab = ccSubtab[rowId] || 'all';
-  const counts = { all: allItems.length, EE: 0, CE: 0, other: 0 };
+  const counts = { all: allItems.length, other: 0 };
+  lists.programs.forEach(p=>{ counts[p.key]=0; });
   allItems.forEach(it=>{ counts[courseCodeProgram(it.code)]++; });
   const items = subtab==='all' ? allItems : allItems.filter(it=>courseCodeProgram(it.code)===subtab);
-  const subtabDefs = [ ['all','All'], ['EE','EE Courses'], ['CE','CE Courses'], ['other','Other Courses'] ];
+  const subtabDefs = [ ['all','All'], ...lists.programs.map(p=>[p.key,p.label]), ['other','Other Courses'] ];
   let html = `<div class="cc-search-bar">
     <div class="cc-search-row">
       <input type="text" class="cc-search-input" data-id="${rowId}" placeholder="Search course…" autocomplete="off" value="${escAttr(query)}">
@@ -5595,12 +5618,44 @@ function fmNameProgram(name){
   return m ? m[1].toUpperCase() : '';
 }
 
-// A course's program is read off its own code, e.g. "EE301" → "EE",
-// "CE100" → "CE". Anything else (MS, HU, ISL, blank codes, etc.) is "other".
+// A course's program is read off its own code against the current set of
+// custom program tabs (lists.programs), e.g. "EE301" → "EE", "CE100" → "CE",
+// "SE210" → "SE" (if an "SE" tab has been added). Anything that matches no
+// tab's prefix (MS, HU, ISL, blank codes, etc.) is "other". Longer prefixes
+// are checked first so a more specific tab (e.g. "EET") wins over a shorter
+// overlapping one (e.g. "EE").
 function courseCodeProgram(code){
   if(!code) return 'other';
-  const m = String(code).trim().match(/^(CE|EE)/i);
-  return m ? m[1].toUpperCase() : 'other';
+  ensureProgramsList();
+  const c = String(code).trim().toUpperCase();
+  // Explicit manual assignment (set via the Tab/category picker when adding
+  // or editing a course) always wins — this is what lets a tab like "FM
+  // Demand by Other Dept" hold courses from any department, since those
+  // courses won't share a common code prefix.
+  const entry = lists.courses.find(x=>(x.code||'').trim().toUpperCase()===c && x.category);
+  if(entry && (entry.category==='other' || lists.programs.some(p=>p.key===entry.category))){
+    return entry.category;
+  }
+  const sorted = [...lists.programs].sort((a,b)=>(b.prefix||'').length-(a.prefix||'').length);
+  for(const p of sorted){
+    if(p.prefix && c.startsWith(String(p.prefix).toUpperCase())) return p.key;
+  }
+  return 'other';
+}
+
+// Builds the <option> list for the Tab/category pickers (both the "+ Add
+// Course" form and each course's inline edit row) from the current
+// lists.programs tabs, plus "Auto" (prefix-based, the old default) and an
+// explicit "Other Courses".
+function categoryOptionsHtml(selected){
+  ensureProgramsList();
+  const sel = selected || 'auto';
+  let html = `<option value="auto"${sel==='auto'?' selected':''}>Auto (by code prefix)</option>`;
+  lists.programs.forEach(p=>{
+    html += `<option value="${escAttr(p.key)}"${sel===p.key?' selected':''}>${escHtml(p.label)}</option>`;
+  });
+  html += `<option value="other"${sel==='other'?' selected':''}>Other Courses</option>`;
+  return html;
 }
 
 function renderStatCards(){
@@ -6053,14 +6108,38 @@ document.querySelectorAll('.modal-tab').forEach(tab=>{
 // independent of (and combined with) the text search box above.
 let courseSubtab = 'all';
 
+// Builds the full ('all' + every lists.programs tab + 'other' + a "+ Add
+// tab" button) row of subtab buttons. Called from renderModal() so it stays
+// in sync whenever a tab is added/removed or courses change.
+function renderCourseSubtabs(){
+  ensureProgramsList();
+  const wrap = document.getElementById('courseSubtabs');
+  if(!wrap) return;
+  const defs = [
+    {key:'all', label:'All', removable:false},
+    ...lists.programs.map(p=>({key:p.key, label:p.label, removable:true})),
+    {key:'other', label:'Other Courses', removable:false}
+  ];
+  wrap.innerHTML = defs.map(d=>`
+    <button type="button" class="course-subtab${courseSubtab===d.key?' active':''}" data-subtab="${escAttr(d.key)}">
+      ${escHtml(d.label)}<span class="cst-count" id="cst-count-${escAttr(d.key)}"></span>
+      ${(d.removable && isSuperAdmin) ? `<span class="tab-edit" data-edit-tab="${escAttr(d.key)}" title="Rename this tab">✎</span>` : ''}
+      ${(d.removable && isSuperAdmin) ? `<span class="tab-remove" data-remove-tab="${escAttr(d.key)}" title="Remove this tab">×</span>` : ''}
+    </button>`).join('') +
+    (isSuperAdmin ? `<button type="button" class="course-subtab" id="showAddTabBtn" style="border-style:dashed;">+ Add tab</button>` : '');
+  updateCourseSubtabCounts();
+}
+
 function updateCourseSubtabCounts(){
-  const counts = { all:0, EE:0, CE:0, other:0 };
+  ensureProgramsList();
+  const keys = ['all', ...lists.programs.map(p=>p.key), 'other'];
+  const counts = {}; keys.forEach(k=>counts[k]=0);
   document.querySelectorAll('#coursesList .list-item[data-prog]').forEach(item=>{
     counts.all++;
     const p = item.dataset.prog;
     if(counts[p]!==undefined) counts[p]++;
   });
-  ['all','EE','CE','other'].forEach(k=>{
+  keys.forEach(k=>{
     const el = document.getElementById('cst-count-'+k);
     if(el) el.textContent = ' (' + counts[k] + ')';
   });
@@ -6074,14 +6153,80 @@ function applyCourseSubtabFilter(){
   filterModalList('courses');
 }
 
-document.querySelectorAll('.course-subtab').forEach(btn=>{
-  btn.addEventListener('click', ()=>{
+// Event delegation: the subtab buttons are re-rendered often, so we bind
+// once on the (static) parent container instead of re-binding after every
+// render.
+document.getElementById('courseSubtabs').addEventListener('click', (e)=>{
+  const editBtn = e.target.closest('[data-edit-tab]');
+  if(editBtn){
+    e.stopPropagation();
+    if(!isSuperAdmin) return; // rename is Super Admin only
+    const key = editBtn.getAttribute('data-edit-tab');
+    const prog = lists.programs.find(p=>p.key===key);
+    if(prog){
+      const next = prompt('Rename tab:', prog.label);
+      if(next !== null && next.trim() && next.trim() !== prog.label){
+        prog.label = next.trim();
+        renderModal();
+        scheduleSave();
+      }
+    }
+    return;
+  }
+  const removeBtn = e.target.closest('[data-remove-tab]');
+  if(removeBtn){
+    e.stopPropagation();
+    if(!isSuperAdmin) return; // remove is Super Admin only
+    const key = removeBtn.getAttribute('data-remove-tab');
+    const prog = lists.programs.find(p=>p.key===key);
+    if(prog && confirm(`Remove the "${prog.label}" tab? Its courses will just show up under "Other Courses" — nothing gets deleted.`)){
+      lists.programs = lists.programs.filter(p=>p.key!==key);
+      if(courseSubtab===key) courseSubtab='all';
+      renderModal();
+      scheduleSave();
+    }
+    return;
+  }
+  if(e.target.id==='showAddTabBtn'){
+    document.getElementById('addTabRow').style.display = 'flex';
+    document.getElementById('newTabLabel').focus();
+    return;
+  }
+  const btn = e.target.closest('.course-subtab');
+  if(btn && btn.dataset.subtab){
     courseSubtab = btn.dataset.subtab;
-    document.querySelectorAll('.course-subtab').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('#courseSubtabs .course-subtab').forEach(b=>b.classList.remove('active'));
     btn.classList.add('active');
     applyCourseSubtabFilter();
-  });
+  }
 });
+
+// Tabs no longer use a code prefix — courses are filed into a tab by an
+// explicit "category" chosen when the course is added/edited (see
+// courseCodeProgram()), so tabs like "FM Demand by Other Dept" can hold
+// courses with any code, not just ones sharing a common prefix.
+function addProgramTab(){
+  if(!isSuperAdmin){ alert('Only Super Admin can add tabs.'); return; }
+  const labelInput = document.getElementById('newTabLabel');
+  let label = labelInput.value.trim();
+  if(!label){ alert('Please enter a tab name.'); return; }
+  ensureProgramsList();
+  let base = label.toUpperCase().replace(/[^A-Z0-9]+/g,'_').replace(/^_+|_+$/g,'') || 'TAB';
+  let key = base, n = 2;
+  while(lists.programs.some(p=>p.key===key)){ key = base + '_' + n; n++; }
+  lists.programs.push({key, label, prefix:''});
+  labelInput.value='';
+  document.getElementById('addTabRow').style.display='none';
+  courseSubtab = key;
+  renderModal();
+  scheduleSave();
+}
+document.getElementById('addTabBtn').addEventListener('click', addProgramTab);
+document.getElementById('cancelTabBtn').addEventListener('click', ()=>{
+  document.getElementById('newTabLabel').value='';
+  document.getElementById('addTabRow').style.display='none';
+});
+document.getElementById('newTabLabel').addEventListener('keydown', e=>{ if(e.key==='Enter') addProgramTab(); });
 
 // ── Modal list search filter ──────────────────────────────────────────────────
 function filterModalList(type){
@@ -6207,6 +6352,7 @@ function renderModal(){
         <input class="ci-name" data-idx="${i}" placeholder="Name" value="${escAttr(c.name)}">
         <input class="ci-cr cr-input" data-idx="${i}" type="number" min="0" max="9" placeholder="Cr" value="${escAttr(c.cr!==undefined?c.cr:'')}">
         <input class="ci-sections cr-input" data-idx="${i}" type="number" min="0" placeholder="Sec" title="Number of sections" value="${escAttr(c.totalSections!==undefined?c.totalSections:'')}">
+        <select class="ci-category" data-idx="${i}" title="Tab / category">${categoryOptionsHtml(c.category)}</select>
         <button class="save-btn" data-idx="${i}" onclick="saveCourse(${i})">Save</button>
         <button class="cancel-btn" onclick="cancelCourseEdit(${i})">✕</button>
       </div>
@@ -6218,7 +6364,12 @@ function renderModal(){
       </button>
     </div>`;
   }).join('') || '<div style="color:var(--muted);font-size:12px;padding:4px 0;">No courses yet.</div>';
-  updateCourseSubtabCounts();
+  const newCatSel = document.getElementById('newCourseCategory');
+  if(newCatSel){
+    const keep = newCatSel.value || 'auto';
+    newCatSel.innerHTML = categoryOptionsHtml(keep);
+  }
+  renderCourseSubtabs();
   applyCourseSubtabFilter();
 
   // ── Faculty ───────────────────────────────────────────────────────────────
@@ -6353,10 +6504,12 @@ function saveCourse(i){
   const cr = crRaw !== '' ? Number(crRaw) : '';
   const secRaw = document.querySelector(`#ci-edit-${i} .ci-sections`).value.trim();
   const totalSections = secRaw !== '' ? Number(secRaw) : undefined;
+  const catRaw = document.querySelector(`#ci-edit-${i} .ci-category`)?.value || 'auto';
+  const category = catRaw !== 'auto' ? catRaw : undefined;
   if(!code && !name){ alert('Enter a code or name.'); return; }
   // Check duplicate excluding self
   if(lists.courses.some((c,j)=>j!==i && c.code===code && c.name===name)){ alert('Already exists.'); return; }
-  lists.courses[i] = {code, name, cr, totalSections};
+  lists.courses[i] = {code, name, cr, totalSections, category};
   lists.courses.sort((a,b)=>a.code.localeCompare(b.code));
   scheduleSave(); renderModal(); renderDetail(); renderStatCards();
 }
@@ -6411,9 +6564,11 @@ document.getElementById('addCourseBtn').addEventListener('click', ()=>{
   const cr = crRaw !== '' ? Number(crRaw) : '';
   const secRaw = document.getElementById('newCourseSections').value.trim();
   const totalSections = secRaw !== '' ? Number(secRaw) : undefined;
+  const catRaw = document.getElementById('newCourseCategory')?.value || 'auto';
+  const category = catRaw !== 'auto' ? catRaw : undefined;
   if(!code && !name){ alert('Please enter at least a course code or name.'); return; }
   if(lists.courses.some(c=>c.code===code && c.name===name)){ alert('Already exists.'); return; }
-  lists.courses.push({code, name, cr, totalSections});
+  lists.courses.push({code, name, cr, totalSections, category});
   lists.courses.sort((a,b)=>a.code.localeCompare(b.code));
   document.getElementById('newCourseCode').value='';
   document.getElementById('newCourseName').value='';
@@ -6530,15 +6685,17 @@ document.getElementById('newSection').addEventListener('keydown', e=>{ if(e.key=
 // ─── ADMIN ACCESS SYSTEM ─────────────────────────────────────────────────────
 let ADMIN_PASSWORD = 'cl2026';
 let isAdmin = false;
+let isSuperAdmin = false;
 
 function setAdminMode(on){
   isAdmin = on;
+  if(!on) isSuperAdmin = false; // logging out clears super admin status too
   const badge = document.getElementById('adminBadge');
   const label = document.getElementById('adminBadgeLabel');
   const changePwBtn = document.getElementById('changePwBtn');
   if(on){
     badge.classList.remove('locked');
-    label.textContent = 'Admin Mode';
+    label.textContent = isSuperAdmin ? 'Super Admin Mode' : 'Admin Mode';
     document.body.classList.remove('view-only');
     changePwBtn.style.display = '';
   } else {
@@ -6575,6 +6732,29 @@ document.addEventListener('keydown', e=>{
 document.getElementById('adminBadge').addEventListener('click', ()=>{
   if(isAdmin){ setAdminMode(false); } else { openAdminModal(); }
 });
+
+// Double-tap the admin badge to open Super Admin login (touch-friendly
+// equivalent of the Ctrl+Shift+S shortcut, since keyboard shortcuts
+// aren't available on mobile). Debounced so a quick double-tap opens
+// Super Admin only, without also popping the regular Admin modal first.
+(function(){
+  const badge = document.getElementById('adminBadge');
+  let tapCount = 0, tapTimer = null;
+  badge.addEventListener('touchend', (e)=>{
+    e.preventDefault(); // we handle taps ourselves; suppress the trailing click
+    tapCount++;
+    if(tapCount === 1){
+      tapTimer = setTimeout(()=>{
+        tapCount = 0;
+        if(isAdmin){ setAdminMode(false); } else { openAdminModal(); }
+      }, 300);
+    } else if(tapCount === 2){
+      clearTimeout(tapTimer);
+      tapCount = 0;
+      if(!(isAdmin && isSuperAdmin)) openSuperAdminModal();
+    }
+  });
+})();
 
 document.getElementById('adminLoginBtn').addEventListener('click', ()=>{
   const val = document.getElementById('adminPwInput').value;
@@ -6685,6 +6865,7 @@ document.getElementById('superAdminSubmitBtn').addEventListener('click', ()=>{
   const err = document.getElementById('superAdminErrMsg');
   if(val === SUPER_ADMIN_PASSWORD){
     closeSuperAdminModal();
+    isSuperAdmin = true;
     setAdminMode(true);
     document.getElementById('superAdminRevealValue').value = ADMIN_PASSWORD;
     document.getElementById('superAdminRevealOverlay').classList.add('open');
