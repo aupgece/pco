@@ -252,13 +252,24 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
   .cc-list.open{ display:block; }
   .cc-search-bar{
     position:sticky; top:0; z-index:501; background:var(--paper-card);
-    border-bottom:1px solid var(--line); padding:14px 20px; display:flex; gap:10px; align-items:center;
+    border-bottom:1px solid var(--line); padding:14px 20px;
+    display:flex; flex-direction:column; gap:10px;
   }
-  .cc-search-bar input{
+  .cc-search-row{ display:flex; gap:10px; align-items:center; }
+  .cc-search-row input{
     flex:1; max-width:900px; margin:0 auto; padding:11px 14px; border:1px solid var(--line);
     border-radius:9px; font-family:inherit; font-size:14.5px; color:var(--ink);
   }
-  .cc-search-bar input:focus{ border-color:var(--teal); outline:none; box-shadow:0 0 0 2px rgba(42,111,98,.12); }
+  .cc-search-row input:focus{ border-color:var(--teal); outline:none; box-shadow:0 0 0 2px rgba(42,111,98,.12); }
+  .cc-subtabs{ display:flex; gap:6px; flex-wrap:wrap; max-width:900px; margin:0 auto; width:100%; }
+  .cc-subtab{
+    background:#F4F6F8; border:1px solid var(--line); border-radius:20px;
+    padding:5px 13px; cursor:pointer; font-family:inherit; font-size:12.3px;
+    font-weight:600; color:var(--muted);
+  }
+  .cc-subtab .cst-count{ font-family:'IBM Plex Mono',monospace; font-weight:400; opacity:.75; margin-left:3px; }
+  .cc-subtab:hover{ color:var(--ink); border-color:#C7CDD6; }
+  .cc-subtab.active{ background:var(--teal-deep); border-color:var(--teal-deep); color:#fff; }
   .cc-close-btn{
     background:none; border:1px solid var(--line); color:var(--ink-soft); border-radius:8px;
     width:38px; height:38px; flex:none; cursor:pointer; font-size:18px; line-height:1;
@@ -4629,6 +4640,9 @@ function courseComboItems(selectedCode, selectedName, query){
   return items;
 }
 
+// Per-row active filter tab ('all' | 'EE' | 'CE' | 'other') for the course picker.
+const ccSubtab = {};
+
 function renderCourseComboList(rowId, queryOverride){
   const row = data.find(r=>r.id===rowId);
   const input = document.querySelector(`input.cc-input[data-id="${rowId}"]`);
@@ -4639,10 +4653,22 @@ function renderCourseComboList(rowId, queryOverride){
   // label text (which would otherwise be used — and mostly filtered out
   // every other course since it's no longer an empty search).
   const query = queryOverride !== undefined ? queryOverride : input.value;
-  const items = courseComboItems(row.code, row.course, query);
+  const allItems = courseComboItems(row.code, row.course, query);
+  const subtab = ccSubtab[rowId] || 'all';
+  const counts = { all: allItems.length, EE: 0, CE: 0, other: 0 };
+  allItems.forEach(it=>{ counts[courseCodeProgram(it.code)]++; });
+  const items = subtab==='all' ? allItems : allItems.filter(it=>courseCodeProgram(it.code)===subtab);
+  const subtabDefs = [ ['all','All'], ['EE','EE Courses'], ['CE','CE Courses'], ['other','Other Courses'] ];
   let html = `<div class="cc-search-bar">
-    <input type="text" class="cc-search-input" data-id="${rowId}" placeholder="Search course…" autocomplete="off" value="${escAttr(query)}">
-    <button type="button" class="cc-close-btn" data-close="${rowId}" title="Close">×</button>
+    <div class="cc-search-row">
+      <input type="text" class="cc-search-input" data-id="${rowId}" placeholder="Search course…" autocomplete="off" value="${escAttr(query)}">
+      <button type="button" class="cc-close-btn" data-close="${rowId}" title="Close">×</button>
+    </div>
+    <div class="cc-subtabs" data-row="${rowId}">` +
+      subtabDefs.map(([key,label])=>
+        `<button type="button" class="cc-subtab${subtab===key?' active':''}" data-row="${rowId}" data-subtab="${key}">${label}<span class="cst-count">(${counts[key]})</span></button>`
+      ).join('') +
+    `</div>
   </div><div class="cc-opts-wrap">`;
   if(!query){
     html += `<div class="cc-opt cc-none" data-code="" data-name="">— none —</div>`;
@@ -4651,7 +4677,7 @@ function renderCourseComboList(rowId, queryOverride){
     items.forEach(it=>{
       html += `<div class="cc-opt" data-code="${escAttr(it.code)}" data-name="${escAttr(it.name)}">${escHtml(it.label)}</div>`;
     });
-  } else if(query){
+  } else if(query || subtab!=='all'){
     html += `<div class="cc-opt-empty">No matching courses</div>`;
   }
   html += `<div class="cc-opt cc-add" data-add="1">+ Add custom course…</div></div>`;
@@ -4760,6 +4786,17 @@ document.addEventListener('mousedown', e=>{
     const input = document.querySelector(`input.cc-input[data-id="${rowId}"]`);
     if(input && row) input.value = courseComboLabel(row.code, row.course);
     closeCourseComboList(rowId);
+    return;
+  }
+  const subtabBtn = e.target.closest('.cc-subtab');
+  if(subtabBtn){
+    e.preventDefault();
+    const rowId = Number(subtabBtn.getAttribute('data-row'));
+    ccSubtab[rowId] = subtabBtn.getAttribute('data-subtab');
+    const sInput = document.querySelector(`.cc-search-input[data-id="${rowId}"]`);
+    renderCourseComboList(rowId, sInput ? sInput.value : undefined);
+    const newInput = document.querySelector(`.cc-search-input[data-id="${rowId}"]`);
+    if(newInput) newInput.focus();
     return;
   }
   const opt = e.target.closest('.cc-opt');
@@ -5540,6 +5577,14 @@ function fmNameProgram(name){
   if(!name) return '';
   const m = String(name).trim().match(/^(CE|EE)\s*-\s*/i);
   return m ? m[1].toUpperCase() : '';
+}
+
+// A course's program is read off its own code, e.g. "EE301" → "EE",
+// "CE100" → "CE". Anything else (MS, HU, ISL, blank codes, etc.) is "other".
+function courseCodeProgram(code){
+  if(!code) return 'other';
+  const m = String(code).trim().match(/^(CE|EE)/i);
+  return m ? m[1].toUpperCase() : 'other';
 }
 
 function renderStatCards(){
