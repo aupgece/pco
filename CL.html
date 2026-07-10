@@ -197,6 +197,16 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
   #detailTable td:nth-child(3) select{
     white-space:normal; word-break:break-word; height:auto; padding-right:22px;
   }
+  /* Per-FM "add another course" button shown under the merged name cell */
+  .btn-add-course{
+    display:block; width:100%; margin-top:5px;
+    border:1px dashed var(--line); background:transparent; color:var(--teal-deep);
+    font-family:inherit; font-size:11px; font-weight:600;
+    padding:4px 6px; border-radius:6px; cursor:pointer;
+    transition: all .15s;
+  }
+  .btn-add-course:hover{ border-color:var(--teal); background:#F0EEFF; border-style:solid; }
+  body.view-only .btn-add-course{ display:none; }
   /* Designation input: allow wrapping */
   #detailTable td:nth-child(4) input{
     white-space:normal; word-break:break-word;
@@ -4903,14 +4913,53 @@ function renderDetail(){
   const tbody = document.getElementById('detailBody');
   const q = document.getElementById('searchBox').value.trim();
   tbody.innerHTML = '';
-  data.forEach(r=>{
-    if(!rowMatches(r,q)) return;
+
+  const rows = data.filter(r=>rowMatches(r,q));
+
+  // Work out, for each visible row, whether it's the first row of a
+  // same-FM group (so the name cell should render+rowspan there) or a
+  // continuation row (so the name cell is skipped entirely, since the
+  // rowspan above already covers it). Rows with a blank name are always
+  // their own group of size 1.
+  const groupStart = new Array(rows.length).fill(true);
+  const groupSize = new Array(rows.length).fill(1);
+  for(let i=0;i<rows.length;i++){
+    const name = (rows[i].name||'').trim();
+    if(name && i>0 && (rows[i-1].name||'').trim()===name){
+      groupStart[i] = false;
+      // walk back to the start of this group and bump its size
+      let j = i;
+      while(j>=0 && groupStart[j]===false) j--;
+      groupSize[j] += 1;
+    }
+  }
+
+  rows.forEach((r,i)=>{
     const tr = document.createElement('tr');
     if(r.flag) tr.className = 'flagged';
+    const name = (r.name||'').trim();
+
+    let nameCell = '';
+    let snoCell = '';
+    if(groupStart[i]){
+      const rowspanAttr = groupSize[i] > 1 ? ` rowspan="${groupSize[i]}"` : '';
+      const addBtn = name
+        ? `<button type="button" class="btn-add-course" data-addcourse-name="${escAttr(r.name)}" data-addcourse-rank="${escAttr(r.rank)}" title="Add another course for this faculty member">+ course</button>`
+        : '';
+      nameCell = `
+      <td style="min-width:230px;vertical-align:top;"${rowspanAttr}>
+        <select data-id="${r.id}" data-field="name" style="white-space:normal;word-break:break-word;height:auto;">${fmOptions(r.name)}</select>
+        ${addBtn}
+      </td>`;
+      snoCell = `<td class="num" data-sno="${r.id}"${rowspanAttr} style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;text-align:center;color:var(--teal-deep);vertical-align:top;">${r.sno||''}</td>`;
+    }
+    // else: continuation row of the same FM group — the merged cells above
+    // (with rowspan) already cover this row, so neither <td> is emitted here.
+
     tr.innerHTML = `
       <td class="col-cb"><input type="checkbox" class="row-cb" data-id="${r.id}"></td>
-      <td class="num" data-sno="${r.id}" style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;text-align:center;color:var(--teal-deep);">${r.sno||''}</td>
-      <td style="min-width:230px;"><select data-id="${r.id}" data-field="name" style="white-space:normal;word-break:break-word;height:auto;">${fmOptions(r.name)}</select></td>
+      ${snoCell}
+      ${nameCell}
       <td style="min-width:170px;"><input data-id="${r.id}" data-field="rank" value="${escAttr(r.rank)}" placeholder="Rank" style="font-size:11.5px;white-space:normal;word-break:break-word;"></td>
       <td><div class="course-combo" data-id="${r.id}">
         <input type="text" class="cc-input" data-id="${r.id}" data-field="course_combined" autocomplete="off" placeholder="Search course…" value="${escAttr(courseComboLabel(r.code, r.course))}">
@@ -4948,6 +4997,25 @@ function renderDetail(){
       }
     });
   });
+  tbody.querySelectorAll('button[data-addcourse-name]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      addCourseForFm(btn.getAttribute('data-addcourse-name'), btn.getAttribute('data-addcourse-rank'));
+    });
+  });
+}
+
+// Adds a new blank-course row pre-filled with an existing FM's name/rank,
+// so the person can assign that FM to another course without having to
+// pick the name again. recomputeSnos() then re-sorts the data so the new
+// row lands next to its FM's other rows (and the merged name cell in
+// renderDetail will span across all of them).
+function addCourseForFm(name, rank){
+  const row = { id: nextId++, sno: 0, name: name||'', rank: rank||'',
+                code:'', course:'', cr:'', s1:'', s2:'', s3:'', contact:0, notes:'', flag:false };
+  data.push(row);
+  recomputeSnos();
+  scheduleSave();
+  renderAll();
 }
 
 function getSectionBadge(code){
