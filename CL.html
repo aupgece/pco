@@ -627,6 +627,15 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
   .modal-tabs{ display:flex; border-bottom:1px solid var(--line); padding:0 22px; gap:2px; }
   .modal-tab{ background:none; border:none; border-bottom:2px solid transparent; padding:10px 12px; cursor:pointer; font-family:inherit; font-size:13px; font-weight:500; color:var(--muted); }
   .modal-tab.active{ color:var(--teal-deep); border-bottom-color:var(--teal); }
+  .course-subtabs{ display:flex; gap:6px; margin:12px 0 10px; flex-wrap:wrap; }
+  .course-subtab{
+    background:#F4F6F8; border:1px solid var(--line); border-radius:20px;
+    padding:5px 13px; cursor:pointer; font-family:inherit; font-size:12px;
+    font-weight:600; color:var(--muted);
+  }
+  .course-subtab .cst-count{ font-family:'IBM Plex Mono',monospace; font-weight:400; opacity:.75; margin-left:3px; }
+  .course-subtab:hover{ color:var(--ink); border-color:#C7CDD6; }
+  .course-subtab.active{ background:var(--teal-deep); border-color:var(--teal-deep); color:#fff; }
   .modal-body{ padding:16px 22px; overflow-y:auto; flex:1; }
   .list-section{ display:none; }
   .list-section.active{ display:block; }
@@ -640,7 +649,7 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
   .add-item-row{ display:flex; gap:8px; margin-top:10px; }
   .add-item-row input{ flex:1; padding:8px 10px; border:1px solid var(--line); border-radius:7px; font-family:inherit; font-size:13px; }
   .add-item-row input:focus{ border-color:var(--teal); outline:none; box-shadow:0 0 0 2px rgba(42,111,98,.12); }
-  .course-add-grid{ display:grid; grid-template-columns:110px 1fr 60px; gap:8px; margin-top:10px; }
+  .course-add-grid{ display:grid; grid-template-columns:110px 1fr 60px 90px; gap:8px; margin-top:10px; }
   .course-add-grid input{ padding:8px 10px; border:1px solid var(--line); border-radius:7px; font-family:inherit; font-size:13px; }
   .course-add-grid input:focus{ border-color:var(--teal); outline:none; box-shadow:0 0 0 2px rgba(42,111,98,.12); }
   .list-item-edit{ background:none; border:none; cursor:pointer; color:var(--muted); width:22px; height:22px; border-radius:5px; display:flex; align-items:center; justify-content:center; flex:none; }
@@ -1690,6 +1699,12 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
         </div>
         <div class="list-bar">
           <button class="list-bar-selall" id="selAllCourses">Select all</button>
+        </div>
+        <div class="course-subtabs" id="courseSubtabs">
+          <button class="course-subtab active" data-subtab="all">All<span class="cst-count" id="cst-count-all"></span></button>
+          <button class="course-subtab" data-subtab="EE">EE Courses<span class="cst-count" id="cst-count-EE"></span></button>
+          <button class="course-subtab" data-subtab="CE">CE Courses<span class="cst-count" id="cst-count-CE"></span></button>
+          <button class="course-subtab" data-subtab="other">Other Courses<span class="cst-count" id="cst-count-other"></span></button>
         </div>
         <div class="modal-search-wrap"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4.3-4.3"></path></svg><input type="text" id="searchCourses" placeholder="Search courses…" oninput="filterModalList(&#39;courses&#39;)"></div>
         <div class="list-items" id="coursesList">
@@ -3501,16 +3516,17 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
           <input type="text" id="newCourseCode" placeholder="Code (e.g. EE235)">
           <input type="text" id="newCourseName" placeholder="Course name">
           <input type="number" id="newCourseCr" placeholder="Cr" min="0" max="9" step="1" title="Credit hours">
+          <input type="number" id="newCourseSections" placeholder="Sections" min="0" step="1" title="Number of sections offered">
         </div>
         <div style="margin-top:8px; display:flex; gap:8px; align-items:center;">
           <button class="btn primary" id="addCourseBtn">+ Add Course</button>
         </div>
         <details class="bulk-section" id="bulkCourseDetails">
           <summary>⬇ Bulk paste courses</summary>
-          <div class="bulk-hint">One course per line: &nbsp;<strong>CODE &nbsp; Name &nbsp; CrHrs</strong> &nbsp;(tab or comma separated)<br>Example: &nbsp;EE235&nbsp;&nbsp;&nbsp;Signal &amp; Systems&nbsp;&nbsp;&nbsp;3</div>
-          <textarea class="bulk-textarea" id="bulkCourseText" placeholder="EE235	Signal &amp; Systems	3
-EE338	Digital Signal Processing	3
-EE100L	Electric Circuit Analysis Lab	1"></textarea>
+          <div class="bulk-hint">One course per line: &nbsp;<strong>CODE &nbsp; Name &nbsp; CrHrs &nbsp; Sections</strong> &nbsp;(tab or comma separated; CrHrs/Sections optional)<br>Example: &nbsp;EE235&nbsp;&nbsp;&nbsp;Signal &amp; Systems&nbsp;&nbsp;&nbsp;3&nbsp;&nbsp;&nbsp;2</div>
+          <textarea class="bulk-textarea" id="bulkCourseText" placeholder="EE235	Signal &amp; Systems	3	2
+EE338	Digital Signal Processing	3	5
+EE100L	Electric Circuit Analysis Lab	1	8"></textarea>
           <div class="bulk-actions">
             <button class="btn primary" id="bulkCourseBtn">Import</button>
             <span class="bulk-result" id="bulkCourseResult"></span>
@@ -6032,6 +6048,42 @@ document.querySelectorAll('.modal-tab').forEach(tab=>{
 
 
 // ── Modal list search filter ──────────────────────────────────────────────────
+// ── Courses sub-tabs (EE / CE / Other) ───────────────────────────────────────
+// Filters the Courses list within the Manage Lists modal by code prefix,
+// independent of (and combined with) the text search box above.
+let courseSubtab = 'all';
+
+function updateCourseSubtabCounts(){
+  const counts = { all:0, EE:0, CE:0, other:0 };
+  document.querySelectorAll('#coursesList .list-item[data-prog]').forEach(item=>{
+    counts.all++;
+    const p = item.dataset.prog;
+    if(counts[p]!==undefined) counts[p]++;
+  });
+  ['all','EE','CE','other'].forEach(k=>{
+    const el = document.getElementById('cst-count-'+k);
+    if(el) el.textContent = ' (' + counts[k] + ')';
+  });
+}
+
+function applyCourseSubtabFilter(){
+  document.querySelectorAll('#coursesList .list-item[data-prog]').forEach(item=>{
+    item.dataset.progHidden = (courseSubtab!=='all' && item.dataset.prog!==courseSubtab) ? '1' : '0';
+  });
+  // Re-run the text search on top of the sub-tab filter so both stay in sync.
+  filterModalList('courses');
+}
+
+document.querySelectorAll('.course-subtab').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    courseSubtab = btn.dataset.subtab;
+    document.querySelectorAll('.course-subtab').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    applyCourseSubtabFilter();
+  });
+});
+
+// ── Modal list search filter ──────────────────────────────────────────────────
 function filterModalList(type){
   const searchMap = { courses:'searchCourses', fms:'searchFms', sections:'searchSections' };
   const listMap   = { courses:'coursesList',   fms:'fmsList',   sections:'sectionsList' };
@@ -6039,21 +6091,26 @@ function filterModalList(type){
   const container = document.getElementById(listMap[type]);
   if(!container) return;
   let visCount = 0;
-  container.querySelectorAll('.list-item').forEach(item => {
+  const items = container.querySelectorAll('.list-item');
+  items.forEach(item => {
     const text = (item.textContent || '').toLowerCase();
-    const show = !q || text.includes(q);
+    const matchesSearch = !q || text.includes(q);
+    const matchesSubtab = type!=='courses' || item.dataset.progHidden !== '1';
+    const show = matchesSearch && matchesSubtab;
     item.style.display = show ? '' : 'none';
     if(show) visCount++;
   });
-  // Show/hide no-results message
+  // Show/hide no-results message (skip if the list itself has no items at all —
+  // that case is already covered by the "No courses/faculty yet." placeholder)
   let noRes = container.parentElement.querySelector('.modal-no-results');
   if(!noRes){
     noRes = document.createElement('div');
     noRes.className = 'modal-no-results';
     container.after(noRes);
   }
-  noRes.style.display = (q && visCount === 0) ? '' : 'none';
-  noRes.textContent = 'No results for "' + q + '"';
+  const showNoRes = items.length > 0 && visCount === 0;
+  noRes.style.display = showNoRes ? '' : 'none';
+  noRes.textContent = q ? ('No results for "' + q + '"') : 'No courses in this category.';
 }
 
 // Clear modal search fields when switching tabs or closing
@@ -6069,6 +6126,7 @@ function clearModalSearches(){
     const noRes = container?.parentElement?.querySelector('.modal-no-results');
     if(noRes) noRes.style.display='none';
   });
+  applyCourseSubtabFilter();
 }
 
 
@@ -6133,8 +6191,10 @@ function renderUnassigned(q){
 function renderModal(){
   // ── Courses ──────────────────────────────────────────────────────────────
   const cl = document.getElementById('coursesList');
-  cl.innerHTML = lists.courses.map((c,i)=>`
-    <div class="list-item" id="ci-${i}">
+  cl.innerHTML = lists.courses.map((c,i)=>{
+    const prog = courseCodeProgram(c.code);
+    return `
+    <div class="list-item" id="ci-${i}" data-prog="${prog}">
       <input type="checkbox" class="list-item-cb course-cb" data-idx="${i}" title="Select">
       <div class="list-item-text" id="ci-view-${i}">
         <strong style="font-family:'IBM Plex Mono',monospace;font-size:12px;">${escHtml(c.code)}</strong>
@@ -6146,6 +6206,7 @@ function renderModal(){
         <input class="ci-code" data-idx="${i}" placeholder="Code" value="${escAttr(c.code)}" style="width:90px;flex:none;font-family:'IBM Plex Mono',monospace;font-size:12px;">
         <input class="ci-name" data-idx="${i}" placeholder="Name" value="${escAttr(c.name)}">
         <input class="ci-cr cr-input" data-idx="${i}" type="number" min="0" max="9" placeholder="Cr" value="${escAttr(c.cr!==undefined?c.cr:'')}">
+        <input class="ci-sections cr-input" data-idx="${i}" type="number" min="0" placeholder="Sec" title="Number of sections" value="${escAttr(c.totalSections!==undefined?c.totalSections:'')}">
         <button class="save-btn" data-idx="${i}" onclick="saveCourse(${i})">Save</button>
         <button class="cancel-btn" onclick="cancelCourseEdit(${i})">✕</button>
       </div>
@@ -6155,7 +6216,10 @@ function renderModal(){
       <button class="list-item-del" data-type="course" data-idx="${i}" title="Remove">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
       </button>
-    </div>`).join('') || '<div style="color:var(--muted);font-size:12px;padding:4px 0;">No courses yet.</div>';
+    </div>`;
+  }).join('') || '<div style="color:var(--muted);font-size:12px;padding:4px 0;">No courses yet.</div>';
+  updateCourseSubtabCounts();
+  applyCourseSubtabFilter();
 
   // ── Faculty ───────────────────────────────────────────────────────────────
   const fl = document.getElementById('fmsList');
@@ -6287,10 +6351,12 @@ function saveCourse(i){
   const name = document.querySelector(`#ci-edit-${i} .ci-name`).value.trim();
   const crRaw = document.querySelector(`#ci-edit-${i} .ci-cr`).value.trim();
   const cr = crRaw !== '' ? Number(crRaw) : '';
+  const secRaw = document.querySelector(`#ci-edit-${i} .ci-sections`).value.trim();
+  const totalSections = secRaw !== '' ? Number(secRaw) : undefined;
   if(!code && !name){ alert('Enter a code or name.'); return; }
   // Check duplicate excluding self
   if(lists.courses.some((c,j)=>j!==i && c.code===code && c.name===name)){ alert('Already exists.'); return; }
-  lists.courses[i] = {code, name, cr};
+  lists.courses[i] = {code, name, cr, totalSections};
   lists.courses.sort((a,b)=>a.code.localeCompare(b.code));
   scheduleSave(); renderModal(); renderDetail(); renderStatCards();
 }
@@ -6343,13 +6409,16 @@ document.getElementById('addCourseBtn').addEventListener('click', ()=>{
   const name = document.getElementById('newCourseName').value.trim();
   const crRaw = document.getElementById('newCourseCr').value.trim();
   const cr = crRaw !== '' ? Number(crRaw) : '';
+  const secRaw = document.getElementById('newCourseSections').value.trim();
+  const totalSections = secRaw !== '' ? Number(secRaw) : undefined;
   if(!code && !name){ alert('Please enter at least a course code or name.'); return; }
   if(lists.courses.some(c=>c.code===code && c.name===name)){ alert('Already exists.'); return; }
-  lists.courses.push({code, name, cr});
+  lists.courses.push({code, name, cr, totalSections});
   lists.courses.sort((a,b)=>a.code.localeCompare(b.code));
   document.getElementById('newCourseCode').value='';
   document.getElementById('newCourseName').value='';
   document.getElementById('newCourseCr').value='';
+  document.getElementById('newCourseSections').value='';
   scheduleSave(); renderModal(); renderDetail(); renderStatCards();
 });
 
@@ -6363,13 +6432,23 @@ document.getElementById('bulkCourseBtn').addEventListener('click', ()=>{
     const parts = line.split(/\t|,\s*|\s{2,}/).map(p=>p.trim()).filter(Boolean);
     if(parts.length < 1) return;
     const code = parts[0] || '';
-    const name = parts.length >= 2 ? parts.slice(1, parts.length > 2 ? parts.length-1 : undefined).join(' ') : '';
-    const lastPart = parts[parts.length-1];
-    const crNum = parts.length >= 3 && !isNaN(lastPart) ? Number(lastPart) : '';
-    const finalName = (parts.length >= 3 && crNum !== '') ? parts.slice(1, parts.length-1).join(' ') : (parts.length >= 2 ? parts.slice(1).join(' ') : '');
     if(!code){ skipped++; return; }
     if(lists.courses.some(c=>c.code===code)){ skipped++; return; }
-    lists.courses.push({code, name: finalName||name, cr: crNum});
+    // Trailing numeric fields (up to 2) are Cr and Sections, in that order;
+    // everything in between the code and those trailing numbers is the name.
+    let rest = parts.slice(1);
+    let totalSections;
+    if(rest.length && !isNaN(rest[rest.length-1])){
+      totalSections = Number(rest[rest.length-1]);
+      rest = rest.slice(0, -1);
+    }
+    let crNum = '';
+    if(rest.length && !isNaN(rest[rest.length-1])){
+      crNum = Number(rest[rest.length-1]);
+      rest = rest.slice(0, -1);
+    }
+    const finalName = rest.join(' ');
+    lists.courses.push({code, name: finalName, cr: crNum, totalSections});
     added++;
   });
   lists.courses.sort((a,b)=>a.code.localeCompare(b.code));
@@ -6441,7 +6520,7 @@ document.getElementById('addSectionBtn').addEventListener('click', ()=>{
 });
 
 // Enter key helpers
-['newCourseCode','newCourseName','newCourseCr'].forEach(id=>{
+['newCourseCode','newCourseName','newCourseCr','newCourseSections'].forEach(id=>{
   document.getElementById(id)?.addEventListener('keydown', e=>{ if(e.key==='Enter') document.getElementById('addCourseBtn').click(); });
 });
 document.getElementById('newFmName').addEventListener('keydown', e=>{ if(e.key==='Enter') document.getElementById('addFmBtn').click(); });
