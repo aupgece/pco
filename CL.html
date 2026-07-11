@@ -931,6 +931,14 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
     Print Sections
   </button>
+  <button class="btn" id="btnPrintFmDemand" title="Print assigned-faculty report for the FM Demand by Other Dept tab">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+    FM Demand by Other Dept
+  </button>
+  <button class="btn" id="btnPrintOtherCourses" title="Print report of Other Courses">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+    Other Courses
+  </button>
 </div>
 
 <!-- ── Stat Cards ─────────────────────────────────────────────────────────── -->
@@ -4174,6 +4182,30 @@ BEET-F-24-A"></textarea>
 </div>
 
 
+<!-- FM Demand by Other Dept — unassigned reminder popup -->
+<div class="modal-overlay" id="fmDemandReminderOverlay">
+  <div class="modal" style="width:640px;max-width:92vw;height:auto;max-height:80vh;">
+    <div class="modal-head">
+      <h2 id="fmDemandReminderTitle">FMs Demand by Other Dept — Unassigned Courses</h2>
+      <button class="modal-close" id="fmDemandReminderClose">×</button>
+    </div>
+    <div class="modal-body" style="padding:16px 22px;overflow:auto;">
+      <p style="color:#6C7A8D;font-size:13px;margin-bottom:12px;">The following courses in this tab don't have a faculty member assigned yet:</p>
+      <table style="width:100%;border-collapse:collapse;">
+        <thead>
+          <tr style="text-align:left;border-bottom:1px solid #E3E7EC;">
+            <th style="padding:6px 4px;">#</th>
+            <th style="padding:6px 4px;">Course</th>
+            <th style="padding:6px 4px;">Cr</th>
+          </tr>
+        </thead>
+        <tbody id="fmDemandReminderList"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+
 <!-- Admin Auth Modal -->
 <div class="admin-modal-overlay" id="adminModalOverlay">
   <div class="admin-modal">
@@ -4463,6 +4495,7 @@ async function loadData(){
             recomputeSnos();
             renderAll();
             renderModal();
+            checkFmDemandReminder();
           }
         }
         ind.textContent = 'Firebase connected'; ind.className='save-indicator ok';
@@ -4494,6 +4527,7 @@ async function loadData(){
   recomputeSnos();
   renderAll();
   renderModal();
+  checkFmDemandReminder();
 }
 
 function mergeFall2026Lists(){
@@ -5588,6 +5622,69 @@ function buildDetailView(prefix){
   return { html, summary: fv.summary };
 }
 
+// ── Category (tab) reports: "which FM is assigned to each course in this
+// tab" — used for custom tabs like "FM Demand by Other Dept" as well as the
+// built-in "Other Courses" tab. Unlike buildFacultyView/buildSectionView
+// (which filter by the FM's own name prefix), this filters by the course's
+// tab/category, then looks up whoever is assigned to teach each course.
+function buildCategoryAssignedFmView(categoryKey){
+  const courses = lists.courses.filter(c => courseCodeProgram(c.code) === categoryKey);
+  if(!courses.length) return { html:'<p style="color:#8A93A3;font-style:italic;">No courses in this tab.</p>', summary:'' };
+
+  const matchesFor = c=>{
+    const codeKey = (c.code||'').trim();
+    const nameKey = (c.name||'').trim();
+    return data.filter(r=>{
+      const rc = (r.code||'').trim(), rn = (r.course||'').trim();
+      return codeKey ? rc===codeKey : rn===nameKey;
+    });
+  };
+
+  let assignedCount = 0;
+  const rows = courses.map((c,idx)=>{
+    const matches = matchesFor(c);
+    if(matches.length) assignedCount++;
+    const cr = (c.cr!==undefined && c.cr!=='') ? c.cr : '—';
+    const assignedSections = matches
+      .flatMap(r=>[r.s1,r.s2,r.s3])
+      .filter(v=>v && String(v).trim());
+    const sectionsCell = assignedSections.length
+      ? escHtml(assignedSections.join(' / '))
+      : (c.totalSections ? `<span style="color:#8A93A3;">${escHtml(String(c.totalSections))}</span>` : '—');
+    const fmCell = matches.length
+      ? matches.map(r=>{
+          return `${escHtml(displayFmName(r.name||''))}` +
+            (r.rank ? ` <span style="color:#8A93A3;font-size:8pt;">(${escHtml(r.rank)})</span>` : '');
+        }).join('<hr style="border:none;border-top:1px solid #E3E7EC;margin:4px 0;">')
+      : '<span style="color:#C0392B;">Not Assigned</span>';
+    return `<tr class="${matches.length?'':'flagged'}">
+      <td>${idx+1}</td>
+      <td><span class="ccode">${escHtml(c.code||'—')}</span>${escHtml(c.name||'')}</td>
+      <td class="num">${cr}</td>
+      <td>${sectionsCell}</td>
+      <td>${fmCell}</td>
+    </tr>`;
+  }).join('');
+
+  const table = `<table>
+    <thead><tr><td><strong>#</strong></td><td><strong>Course</strong></td><td class="num"><strong>Cr</strong></td><td><strong>Sections</strong></td><td><strong>Assigned Faculty</strong></td></tr></thead>
+    <tbody>${rows}</tbody>
+  </table>`;
+  const notAssigned = courses.length - assignedCount;
+  return { html: table, summary: `${courses.length} course(s) &nbsp;·&nbsp; ${assignedCount} assigned &nbsp;·&nbsp; ${notAssigned} not assigned` };
+}
+
+function printCategoryReport(categoryKey, categoryLabel, accentColor){
+  const { html: bodyHtml, summary } = buildCategoryAssignedFmView(categoryKey);
+  const fullHtml = `<!doctype html><html><head><meta charset="utf-8">
+    <title>${escHtml(categoryLabel)} — Assigned Faculty — Fall 2026</title>
+    <style>${PRINT_CSS_PROGRAM}</style></head><body>
+    ${programReportHeader(categoryLabel, accentColor || '#1F3D5A', summary)}
+    ${bodyHtml}
+  </body></html>`;
+  openPrintWindow(fullHtml);
+}
+
 function printProgramLoading(prefix, programLabel, accentColor, view){
   const builders = { faculty: buildFacultyView, section: buildSectionView, detail: buildDetailView };
   const builder = builders[view] || buildFacultyView;
@@ -6003,6 +6100,80 @@ document.querySelectorAll('.tab-btn').forEach(btn=>{
     document.getElementById('toolbarSummary').style.display = btn.dataset.tab==='summary' ? 'flex' : 'none';
   });
 });
+
+// Finds a lists.programs tab by label, matching things like "FM Demand by
+// Other Dept" or "FMs Demand by Other Dept" (plural) case-insensitively.
+// Falls back to "the one custom tab that isn't EE/CE" if the wording
+// doesn't match exactly, since that's almost certainly the right tab.
+function findProgramKeyByLabel(labelSubstr){
+  ensureProgramsList();
+  const re = /fms?\s*'?\s*demand|other\s*dept/i;
+  let hit = lists.programs.find(p => re.test(p.label||''));
+  if(!hit){
+    const customTabs = lists.programs.filter(p => p.key!=='EE' && p.key!=='CE');
+    if(customTabs.length === 1) hit = customTabs[0];
+  }
+  return hit ? hit.key : null;
+}
+
+// Shows a popup listing any course in the "FM Demand by Other Dept" tab
+// that has no faculty member assigned yet. Stays hidden once every course
+// in that tab has an assigned FM.
+function checkFmDemandReminder(){
+  const key = findProgramKeyByLabel('fm demand');
+  if(!key) return;
+  const courses = lists.courses.filter(c => courseCodeProgram(c.code) === key);
+  const unassigned = courses.filter(c=>{
+    const codeKey = (c.code||'').trim();
+    const nameKey = (c.name||'').trim();
+    return !data.some(r=>{
+      const rc = (r.code||'').trim(), rn = (r.course||'').trim();
+      return codeKey ? rc===codeKey : rn===nameKey;
+    });
+  });
+  const overlay = document.getElementById('fmDemandReminderOverlay');
+  if(!unassigned.length){
+    overlay.classList.remove('open');
+    return;
+  }
+  const label = lists.programs.find(p=>p.key===key).label;
+  document.getElementById('fmDemandReminderTitle').textContent = label + ' — Unassigned Courses';
+  document.getElementById('fmDemandReminderList').innerHTML = unassigned.map((c,idx)=>`
+    <tr style="border-bottom:1px solid #F0F2F5;">
+      <td style="padding:6px 4px;">${idx+1}</td>
+      <td style="padding:6px 4px;"><span class="ccode">${escHtml(c.code||'—')}</span>${escHtml(c.name||'')}</td>
+      <td style="padding:6px 4px;">${(c.cr!==undefined && c.cr!=='') ? escHtml(String(c.cr)) : '—'}</td>
+    </tr>`).join('');
+  overlay.classList.add('open');
+}
+document.getElementById('fmDemandReminderClose').addEventListener('click', ()=>{
+  document.getElementById('fmDemandReminderOverlay').classList.remove('open');
+});
+
+document.getElementById('btnPrintFmDemand').addEventListener('click', ()=>{
+  try{
+    const key = findProgramKeyByLabel('fm demand');
+    if(!key){
+      ensureProgramsList();
+      const names = lists.programs.map(p=>p.label).join(', ') || '(none)';
+      alert('Couldn\'t find a tab matching "FM Demand by Other Dept". Existing tabs: ' + names + '. Please check the tab name in Manage Lists → Courses.');
+      return;
+    }
+    const label = lists.programs.find(p=>p.key===key).label;
+    printCategoryReport(key, label, '#1F3D5A');
+  }catch(err){
+    alert('Report failed: ' + err.message);
+  }
+});
+
+document.getElementById('btnPrintOtherCourses').addEventListener('click', ()=>{
+  try{
+    printCategoryReport('other', 'Other Courses', '#6C7A8D');
+  }catch(err){
+    alert('Report failed: ' + err.message);
+  }
+});
+
 
 // Summary view toggle
 let summaryView = 'compact';
