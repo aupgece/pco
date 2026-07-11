@@ -653,7 +653,7 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
   .add-item-row{ display:flex; gap:8px; margin-top:10px; }
   .add-item-row input{ flex:1; padding:8px 10px; border:1px solid var(--line); border-radius:7px; font-family:inherit; font-size:13px; }
   .add-item-row input:focus{ border-color:var(--teal); outline:none; box-shadow:0 0 0 2px rgba(42,111,98,.12); }
-  .course-add-grid{ display:grid; grid-template-columns:110px 1fr 60px 90px 150px; gap:8px; margin-top:10px; }
+  .course-add-grid{ display:grid; grid-template-columns:110px 1fr 130px 60px 90px 150px; gap:8px; margin-top:10px; }
   .course-add-grid input, .course-add-grid select{ padding:8px 10px; border:1px solid var(--line); border-radius:7px; font-family:inherit; font-size:13px; }
   .course-add-grid input:focus{ border-color:var(--teal); outline:none; box-shadow:0 0 0 2px rgba(42,111,98,.12); }
   .list-item-edit{ background:none; border:none; cursor:pointer; color:var(--muted); width:22px; height:22px; border-radius:5px; display:flex; align-items:center; justify-content:center; flex:none; }
@@ -3527,6 +3527,7 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
         <div class="course-add-grid">
           <input type="text" id="newCourseCode" placeholder="Code (e.g. EE235)">
           <input type="text" id="newCourseName" placeholder="Course name">
+          <input type="text" id="newCourseDept" placeholder="Dept (e.g. Physics)" title="Department that owns this course — used to group the FM Demand by Other Dept report">
           <input type="number" id="newCourseCr" placeholder="Cr" min="0" max="9" step="1" title="Credit hours">
           <input type="number" id="newCourseSections" placeholder="Sections" min="0" step="1" title="Number of sections offered">
           <select id="newCourseCategory" title="Tab / category"></select>
@@ -5640,10 +5641,8 @@ function buildCategoryAssignedFmView(categoryKey){
     });
   };
 
-  let assignedCount = 0;
-  const rows = courses.map((c,idx)=>{
+  const rowHtml = (c, n)=>{
     const matches = matchesFor(c);
-    if(matches.length) assignedCount++;
     const cr = (c.cr!==undefined && c.cr!=='') ? c.cr : '—';
     const assignedSections = matches
       .flatMap(r=>[r.s1,r.s2,r.s3])
@@ -5657,14 +5656,47 @@ function buildCategoryAssignedFmView(categoryKey){
             (r.rank ? ` <span style="color:#8A93A3;font-size:8pt;">(${escHtml(r.rank)})</span>` : '');
         }).join('<hr style="border:none;border-top:1px solid #E3E7EC;margin:4px 0;">')
       : '<span style="color:#C0392B;">Not Assigned</span>';
-    return `<tr class="${matches.length?'':'flagged'}">
-      <td>${idx+1}</td>
+    return { assigned: !!matches.length, html: `<tr class="${matches.length?'':'flagged'}">
+      <td>${n}</td>
       <td><span class="ccode">${escHtml(c.code||'—')}</span>${escHtml(c.name||'')}</td>
       <td class="num">${cr}</td>
       <td>${sectionsCell}</td>
       <td>${fmCell}</td>
-    </tr>`;
-  }).join('');
+    </tr>` };
+  };
+
+  const hasAnyDept = courses.some(c => (c.dept||'').trim());
+  let rows = '', assignedCount = 0, n = 0;
+
+  if(hasAnyDept){
+    // Group by department: named departments first (alphabetical), courses
+    // without a department last under "Other Department".
+    const groups = {};
+    courses.forEach(c=>{
+      const key = (c.dept||'').trim() || '\uFFFFOther Department';
+      (groups[key] = groups[key] || []).push(c);
+    });
+    Object.keys(groups).sort((a,b)=>a.localeCompare(b)).forEach(key=>{
+      const label = key === '\uFFFFOther Department' ? 'Other Department' : key;
+      rows += `<tr class="sec-head"><td colspan="5">${escHtml(label)}</td></tr>`;
+      groups[key]
+        .slice()
+        .sort((a,b)=>(a.code||'').localeCompare(b.code||''))
+        .forEach(c=>{
+          n++;
+          const r = rowHtml(c, n);
+          if(r.assigned) assignedCount++;
+          rows += r.html;
+        });
+    });
+  } else {
+    courses.forEach(c=>{
+      n++;
+      const r = rowHtml(c, n);
+      if(r.assigned) assignedCount++;
+      rows += r.html;
+    });
+  }
 
   const table = `<table>
     <thead><tr><td><strong>#</strong></td><td><strong>Course</strong></td><td class="num"><strong>Cr</strong></td><td><strong>Sections</strong></td><td><strong>Assigned Faculty</strong></td></tr></thead>
@@ -6138,12 +6170,40 @@ function checkFmDemandReminder(){
   }
   const label = lists.programs.find(p=>p.key===key).label;
   document.getElementById('fmDemandReminderTitle').textContent = label + ' — Unassigned Courses';
-  document.getElementById('fmDemandReminderList').innerHTML = unassigned.map((c,idx)=>`
-    <tr style="border-bottom:1px solid #F0F2F5;">
-      <td style="padding:6px 4px;">${idx+1}</td>
-      <td style="padding:6px 4px;"><span class="ccode">${escHtml(c.code||'—')}</span>${escHtml(c.name||'')}</td>
-      <td style="padding:6px 4px;">${(c.cr!==undefined && c.cr!=='') ? escHtml(String(c.cr)) : '—'}</td>
-    </tr>`).join('');
+  const hasAnyDept = unassigned.some(c => (c.dept||'').trim());
+  let rowsHtml = '', n = 0;
+  if(hasAnyDept){
+    const groups = {};
+    unassigned.forEach(c=>{
+      const gkey = (c.dept||'').trim() || '\uFFFFOther Department';
+      (groups[gkey] = groups[gkey] || []).push(c);
+    });
+    Object.keys(groups).sort((a,b)=>a.localeCompare(b)).forEach(gkey=>{
+      const glabel = gkey === '\uFFFFOther Department' ? 'Other Department' : gkey;
+      rowsHtml += `<tr><td colspan="3" style="padding:8px 4px 4px;font-weight:600;color:#16243B;border-bottom:1px solid #E3E7EC;">${escHtml(glabel)}</td></tr>`;
+      groups[gkey]
+        .slice()
+        .sort((a,b)=>(a.code||'').localeCompare(b.code||''))
+        .forEach(c=>{
+          n++;
+          rowsHtml += `<tr style="border-bottom:1px solid #F0F2F5;">
+            <td style="padding:6px 4px;">${n}</td>
+            <td style="padding:6px 4px;"><span class="ccode">${escHtml(c.code||'—')}</span>${escHtml(c.name||'')}</td>
+            <td style="padding:6px 4px;">${(c.cr!==undefined && c.cr!=='') ? escHtml(String(c.cr)) : '—'}</td>
+          </tr>`;
+        });
+    });
+  } else {
+    unassigned.forEach(c=>{
+      n++;
+      rowsHtml += `<tr style="border-bottom:1px solid #F0F2F5;">
+        <td style="padding:6px 4px;">${n}</td>
+        <td style="padding:6px 4px;"><span class="ccode">${escHtml(c.code||'—')}</span>${escHtml(c.name||'')}</td>
+        <td style="padding:6px 4px;">${(c.cr!==undefined && c.cr!=='') ? escHtml(String(c.cr)) : '—'}</td>
+      </tr>`;
+    });
+  }
+  document.getElementById('fmDemandReminderList').innerHTML = rowsHtml;
   overlay.classList.add('open');
 }
 document.getElementById('fmDemandReminderClose').addEventListener('click', ()=>{
@@ -6515,12 +6575,14 @@ function renderModal(){
       <div class="list-item-text" id="ci-view-${i}">
         <strong style="font-family:'IBM Plex Mono',monospace;font-size:12px;">${escHtml(c.code)}</strong>
         — ${escHtml(c.name)}
+        ${(c.dept) ? `<span class="cr-badge" style="background:#5C4A9E;color:#fff;" title="Department">${escHtml(c.dept)}</span>` : ''}
         ${(c.cr!==undefined&&c.cr!=='') ? `<span class="cr-badge">${escHtml(String(c.cr))} cr</span>` : ''}
         ${(c.totalSections) ? `<span class="cr-badge" style="background:var(--teal);color:#fff;" title="Sections offered in Fall 2026">${c.totalSections} sec</span>` : ''}
       </div>
       <div class="inline-edit-row" id="ci-edit-${i}" style="display:none;">
         <input class="ci-code" data-idx="${i}" placeholder="Code" value="${escAttr(c.code)}" style="width:90px;flex:none;font-family:'IBM Plex Mono',monospace;font-size:12px;">
         <input class="ci-name" data-idx="${i}" placeholder="Name" value="${escAttr(c.name)}">
+        <input class="ci-dept" data-idx="${i}" placeholder="Dept (e.g. Physics)" title="Department that owns this course — used to group the FM Demand by Other Dept report" value="${escAttr(c.dept||'')}" style="max-width:130px;">
         <input class="ci-cr cr-input" data-idx="${i}" type="number" min="0" max="9" placeholder="Cr" value="${escAttr(c.cr!==undefined?c.cr:'')}">
         <input class="ci-sections cr-input" data-idx="${i}" type="number" min="0" placeholder="Sec" title="Number of sections" value="${escAttr(c.totalSections!==undefined?c.totalSections:'')}">
         <select class="ci-category" data-idx="${i}" title="Tab / category">${categoryOptionsHtml(c.category)}</select>
@@ -6671,6 +6733,7 @@ function cancelCourseEdit(i){
 function saveCourse(i){
   const code = document.querySelector(`#ci-edit-${i} .ci-code`).value.trim();
   const name = document.querySelector(`#ci-edit-${i} .ci-name`).value.trim();
+  const dept = document.querySelector(`#ci-edit-${i} .ci-dept`).value.trim();
   const crRaw = document.querySelector(`#ci-edit-${i} .ci-cr`).value.trim();
   const cr = crRaw !== '' ? Number(crRaw) : '';
   const secRaw = document.querySelector(`#ci-edit-${i} .ci-sections`).value.trim();
@@ -6680,7 +6743,7 @@ function saveCourse(i){
   if(!code && !name){ alert('Enter a code or name.'); return; }
   // Check duplicate excluding self
   if(lists.courses.some((c,j)=>j!==i && c.code===code && c.name===name)){ alert('Already exists.'); return; }
-  lists.courses[i] = {code, name, cr, totalSections, category};
+  lists.courses[i] = {code, name, dept, cr, totalSections, category};
   lists.courses.sort((a,b)=>a.code.localeCompare(b.code));
   scheduleSave(); renderModal(); renderDetail(); renderStatCards();
 }
@@ -6731,6 +6794,7 @@ function saveSection(i){
 document.getElementById('addCourseBtn').addEventListener('click', ()=>{
   const code = document.getElementById('newCourseCode').value.trim();
   const name = document.getElementById('newCourseName').value.trim();
+  const dept = document.getElementById('newCourseDept').value.trim();
   const crRaw = document.getElementById('newCourseCr').value.trim();
   const cr = crRaw !== '' ? Number(crRaw) : '';
   const secRaw = document.getElementById('newCourseSections').value.trim();
@@ -6739,10 +6803,11 @@ document.getElementById('addCourseBtn').addEventListener('click', ()=>{
   const category = catRaw !== 'auto' ? catRaw : undefined;
   if(!code && !name){ alert('Please enter at least a course code or name.'); return; }
   if(lists.courses.some(c=>c.code===code && c.name===name)){ alert('Already exists.'); return; }
-  lists.courses.push({code, name, cr, totalSections, category});
+  lists.courses.push({code, name, dept, cr, totalSections, category});
   lists.courses.sort((a,b)=>a.code.localeCompare(b.code));
   document.getElementById('newCourseCode').value='';
   document.getElementById('newCourseName').value='';
+  document.getElementById('newCourseDept').value='';
   document.getElementById('newCourseCr').value='';
   document.getElementById('newCourseSections').value='';
   scheduleSave(); renderModal(); renderDetail(); renderStatCards();
