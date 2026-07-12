@@ -4213,6 +4213,24 @@ BEET-F-24-A"></textarea>
   </div>
 </div>
 
+<!-- Course Sections Editor — which sections officially belong to a course -->
+<div class="modal-overlay" id="courseSectionsModalOverlay">
+  <div class="modal" style="width:520px;max-width:92vw;height:auto;max-height:80vh;">
+    <div class="modal-head">
+      <h2 id="courseSectionsModalTitle">Sections</h2>
+      <button class="modal-close" id="courseSectionsModalClose">×</button>
+    </div>
+    <div class="modal-body" style="padding:16px 22px;overflow:auto;">
+      <p style="color:#6C7A8D;font-size:13px;margin-bottom:12px;">Check every section this course is offered to. This drives the section count and codes shown in reports, and which sections appear first when assigning faculty.</p>
+      <div id="courseSectionsCheckboxList" style="display:flex;flex-direction:column;gap:6px;max-height:50vh;overflow:auto;"></div>
+    </div>
+    <div class="modal-foot" style="display:flex;justify-content:flex-end;gap:8px;padding:12px 22px;border-top:1px solid #E3E7EC;">
+      <button class="btn" id="courseSectionsModalCancel">Cancel</button>
+      <button class="btn primary" id="courseSectionsModalSave">Save</button>
+    </div>
+  </div>
+</div>
+
 
 <!-- Admin Auth Modal -->
 <div class="admin-modal-overlay" id="adminModalOverlay">
@@ -4444,6 +4462,36 @@ const COURSE_SECTIONS = {"CE100":["BEEV-F-26-A","BEEP-F-26-A","BEEE-F-26-A","BEE
 
 function cloneSeed(){ return JSON.parse(JSON.stringify(SEED.rows)); }
 
+// ─── COURSE → SECTIONS MAP (editable, persisted) ─────────────────────────────
+// lists.courseSections is the live, Firestore-saved, admin-editable version
+// of "which sections officially belong to which course". COURSE_SECTIONS
+// above is only the original Fall 2026 seed data — the first time the app
+// loads, every course gets migrated into lists.courseSections so it can be
+// edited from then on without ever touching code again.
+function ensureCourseSections(){
+  if(!lists.courseSections || typeof lists.courseSections !== 'object') lists.courseSections = {};
+  let migrated = false;
+  Object.keys(COURSE_SECTIONS).forEach(code=>{
+    if(!Object.prototype.hasOwnProperty.call(lists.courseSections, code)){
+      lists.courseSections[code] = COURSE_SECTIONS[code].slice();
+      migrated = true;
+    }
+  });
+  return migrated;
+}
+function getCourseSections(code){
+  ensureCourseSections();
+  const key = (code||'').trim();
+  if(Object.prototype.hasOwnProperty.call(lists.courseSections, key)) return lists.courseSections[key];
+  return null;
+}
+function setCourseSections(code, arr){
+  ensureCourseSections();
+  const key = (code||'').trim();
+  if(!key) return;
+  lists.courseSections[key] = arr.slice();
+}
+
 // ─── FIREBASE SETUP ───────────────────────────────────────────────────────────
 let FB_DOC = null;
 try {
@@ -4536,10 +4584,12 @@ async function loadData(){
   if(!loaded) buildListsFromData(data);
   // Always merge Fall 2026 courses and sections (idempotent)
   mergeFall2026Lists();
+  const csMigrated = ensureCourseSections();
   recomputeSnos();
   renderAll();
   renderModal();
   checkFmDemandReminder();
+  if(csMigrated) scheduleSave();
 }
 
 function mergeFall2026Lists(){
@@ -4649,12 +4699,13 @@ function getTakenSectionsForCourse(courseCode, excludeRowId, excludeField){
   return taken;
 }
 
-// Remaining/total section count for a course, based on the official
-// Fall 2026 section list (COURSE_SECTIONS). Returns null for courses we
-// don't have an official section list for (can't determine fullness).
+// Remaining/total section count for a course, based on its official
+// section list (editable via lists.courseSections). Returns null for
+// courses we don't have an official section list for (can't determine
+// fullness).
 function getRemainingSectionsCount(courseCode){
   const code = (courseCode||'').trim();
-  const official = COURSE_SECTIONS[code];
+  const official = getCourseSections(code);
   if(!official) return null;
   const taken = getTakenSectionsForCourse(code);
   const takenOfficial = official.filter(s=>taken.has(s)).length;
@@ -4960,7 +5011,7 @@ function fmOptions(selectedName){
 
 function sectionOptions(selectedVal, courseCode, rowId, field){
   // If a courseCode is known, show only its relevant sections (+ any already-assigned value)
-  const relevant = courseCode && COURSE_SECTIONS[courseCode] ? COURSE_SECTIONS[courseCode] : null;
+  const relevant = courseCode ? getCourseSections(courseCode) : null;
   // Build pool: relevant sections first, then a divider + all others
   let opts = `<option value=""></option>`;
   let found = false;
@@ -5658,9 +5709,18 @@ function buildCategoryAssignedFmView(categoryKey){
     const assignedSections = matches
       .flatMap(r=>[r.s1,r.s2,r.s3])
       .filter(v=>v && String(v).trim());
-    const sectionsCell = assignedSections.length
-      ? escHtml(assignedSections.join(' / '))
-      : (c.totalSections ? `<span style="color:#8A93A3;">${escHtml(String(c.totalSections))}</span>` : '—');
+    const officialSections = getCourseSections(c.code);
+    let sectionsCell;
+    if(assignedSections.length){
+      const totalCount = (officialSections && officialSections.length) ? officialSections.length : (c.totalSections || assignedSections.length);
+      sectionsCell = `<strong>${assignedSections.length}${totalCount!==assignedSections.length ? '/'+totalCount : ''}</strong> &nbsp;${escHtml(assignedSections.join(' / '))}`;
+    } else if(officialSections && officialSections.length){
+      sectionsCell = `<strong>${officialSections.length}</strong> &nbsp;<span style="color:#8A93A3;font-size:8pt;">${escHtml(officialSections.join(' / '))}</span>`;
+    } else if(c.totalSections){
+      sectionsCell = `<span style="color:#8A93A3;">${escHtml(String(c.totalSections))}</span>`;
+    } else {
+      sectionsCell = '—';
+    }
     const fmCell = matches.length
       ? matches.map(r=>{
           return `${escHtml(displayFmName(r.name||''))}` +
@@ -6307,6 +6367,44 @@ document.getElementById('fmDemandReminderClose').addEventListener('click', ()=>{
   document.getElementById('fmDemandReminderOverlay').classList.remove('open');
 });
 
+// ─── Course Sections Editor ───────────────────────────────────────────────
+// Lets an admin pick exactly which sections a course is officially offered
+// to. Backed by lists.courseSections (Firestore-persisted, editable) —
+// drives the section codes/counts shown in reports and the preferred group
+// in the FM-assignment section dropdown.
+let courseSectionsEditingIdx = null;
+function openCourseSectionsEditor(i){
+  const c = lists.courses[i];
+  if(!c) return;
+  courseSectionsEditingIdx = i;
+  document.getElementById('courseSectionsModalTitle').textContent = 'Sections — ' + (c.code || c.name || '');
+  const current = new Set(getCourseSections(c.code) || []);
+  const box = document.getElementById('courseSectionsCheckboxList');
+  box.innerHTML = (lists.sections||[]).map(s=>`
+    <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;">
+      <input type="checkbox" class="cs-check" value="${escAttr(s)}" ${current.has(s)?'checked':''}>
+      <span style="font-family:'IBM Plex Mono',monospace;">${escHtml(s)}</span>
+    </label>`).join('') || '<p style="color:#8A93A3;font-size:13px;">No sections defined yet — add some under Manage Lists → Sections first.</p>';
+  document.getElementById('courseSectionsModalOverlay').classList.add('open');
+}
+document.getElementById('courseSectionsModalSave').addEventListener('click', ()=>{
+  if(courseSectionsEditingIdx===null) return;
+  const c = lists.courses[courseSectionsEditingIdx];
+  if(!c) return;
+  const checked = Array.from(document.querySelectorAll('#courseSectionsCheckboxList .cs-check:checked')).map(el=>el.value);
+  setCourseSections(c.code, checked);
+  scheduleSave();
+  document.getElementById('courseSectionsModalOverlay').classList.remove('open');
+  courseSectionsEditingIdx = null;
+  renderModal(); renderDetail(); renderStatCards();
+});
+function closeCourseSectionsModal(){
+  document.getElementById('courseSectionsModalOverlay').classList.remove('open');
+  courseSectionsEditingIdx = null;
+}
+document.getElementById('courseSectionsModalCancel').addEventListener('click', closeCourseSectionsModal);
+document.getElementById('courseSectionsModalClose').addEventListener('click', closeCourseSectionsModal);
+
 document.getElementById('btnPrintFmDemand').addEventListener('click', ()=>{
   try{
     const key = findProgramKeyByLabel('fm demand');
@@ -6711,6 +6809,7 @@ function renderModal(){
         ${eDept ? `<span class="cr-badge" style="background:${c.dept?'#5C4A9E':'#9C8FC7'};color:#fff;" title="${c.dept?'Department':'Department (auto-detected from code prefix — edit to override)'}">${escHtml(eDept)}</span>` : ''}
         ${(c.cr!==undefined&&c.cr!=='') ? `<span class="cr-badge">${escHtml(String(c.cr))} cr</span>` : ''}
         ${(c.totalSections) ? `<span class="cr-badge" style="background:var(--teal);color:#fff;" title="Sections offered in Fall 2026">${c.totalSections} sec</span>` : ''}
+        ${(()=>{ const os = getCourseSections(c.code); return `<span class="cr-badge" onclick="openCourseSectionsEditor(${i})" title="Edit which sections belong to this course" style="background:#2A6F62;color:#fff;cursor:pointer;">⚏ ${os ? os.length : 0} Sections</span>`; })()}
       </div>
       <div class="inline-edit-row" id="ci-edit-${i}" style="display:none;">
         <input class="ci-code" data-idx="${i}" placeholder="Code" value="${escAttr(c.code)}" style="width:90px;flex:none;font-family:'IBM Plex Mono',monospace;font-size:12px;">
