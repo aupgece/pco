@@ -6393,6 +6393,9 @@ document.getElementById('courseSectionsModalSave').addEventListener('click', ()=
   if(!c) return;
   const checked = Array.from(document.querySelectorAll('#courseSectionsCheckboxList .cs-check:checked')).map(el=>el.value);
   setCourseSections(c.code, checked);
+  // Keep the "N sec" total in sync with however many sections were just
+  // checked, so admins don't have to maintain that number separately.
+  c.totalSections = checked.length || undefined;
   scheduleSave();
   document.getElementById('courseSectionsModalOverlay').classList.remove('open');
   courseSectionsEditingIdx = null;
