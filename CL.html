@@ -6648,6 +6648,16 @@ document.getElementById('courseSubtabs').addEventListener('click', (e)=>{
     document.querySelectorAll('#courseSubtabs .course-subtab').forEach(b=>b.classList.remove('active'));
     btn.classList.add('active');
     applyCourseSubtabFilter();
+    // Keep the "+ Add Course" form's Tab/category dropdown in sync with
+    // whichever sub-tab is being viewed, so a course added while looking at
+    // "FM Demand by Other Dept" actually files into that tab instead of
+    // silently defaulting to Auto (which no longer maps custom tabs by code
+    // prefix) and appearing to vanish.
+    const newCatSel = document.getElementById('newCourseCategory');
+    if(newCatSel){
+      const validValue = [...newCatSel.options].some(o=>o.value===courseSubtab);
+      newCatSel.value = validValue ? courseSubtab : 'auto';
+    }
   }
 });
 
