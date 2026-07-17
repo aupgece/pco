@@ -4521,84 +4521,140 @@ try {
   console.warn('Firebase init failed:', e);
 }
 
-async function loadData(){
-  const ind = document.getElementById('saveIndicator');
-  let loaded = null;
-  if(FB_DOC){
-    ind.textContent = 'connecting...'; ind.className='save-indicator';
-    try{
-      // Try cache first for an instant render on refresh, then reconcile with server.
-      let snap;
-      try{
-        snap = await FB_DOC.get({source:'cache'});
-      }catch(cacheErr){
-        snap = null;
-      }
-      if(snap && snap.exists){
-        const p = snap.data();
-        loaded = p.rows || null;
-        if(p.lists) lists = p.lists;
-        if(p.adminPassword) ADMIN_PASSWORD = p.adminPassword;
-        ind.textContent = 'Firebase connected (cached)'; ind.className='save-indicator ok';
-      }
-      // Always fetch from server to get the latest data; updates UI again when it resolves.
-      FB_DOC.get({source:'server'}).then(serverSnap=>{
-        if(serverSnap.exists){
-          const p = serverSnap.data();
-          const serverRows = p.rows || null;
-          if(p.adminPassword) ADMIN_PASSWORD = p.adminPassword;
-          if(JSON.stringify(serverRows) !== JSON.stringify(loaded)){
-            data = serverRows && Array.isArray(serverRows) && serverRows.length ? serverRows : [];
-            if(p.lists) lists = p.lists;
-            nextId = Math.max(0, ...data.map(r=>r.id||0)) + 1;
-            mergeFall2026Lists();
-            recomputeSnos();
-            renderAll();
-            renderModal();
-            checkFmDemandReminder();
-          }
-        }
-        ind.textContent = 'Firebase connected'; ind.className='save-indicator ok';
-      }).catch(e=>{
-        console.warn('Firebase server refresh failed:', e);
-      });
-      if(!snap || !snap.exists){
-        const freshSnap = await FB_DOC.get();
-        if(freshSnap.exists){
-          const p = freshSnap.data();
-          loaded = p.rows || null;
-          if(p.lists) lists = p.lists;
-          if(p.adminPassword) ADMIN_PASSWORD = p.adminPassword;
-        }
-      }
-      ind.textContent = 'Firebase connected'; ind.className='save-indicator ok';
-    }catch(e){
-      console.error('Firebase load error:', e);
-      ind.textContent = 'Firebase error - using seed data'; ind.className='save-indicator err';
-    }
-  } else {
-    ind.textContent = 'Offline - using seed data'; ind.className='save-indicator err';
+let unsubscribeSnapshot = null;
+let pendingRemoteUpdate = false;
+
+// True while the user has a text field focused (typing a name, course,
+// notes, etc). Used to avoid yanking focus out from under them with a
+// full re-render when a remote change arrives mid-keystroke.
+function isUserEditingText(){
+  const el = document.activeElement;
+  return !!el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA');
+}
+
+// Applies a Firestore document snapshot to local state and re-renders.
+// Called both for the very first snapshot (initial load, from cache or
+// server) and every subsequent one (a change made in this tab or any
+// other tab/device).
+function applyRemoteSnapshot(p, isInitial){
+  const remoteRows = p.rows || [];
+  const remoteLists = p.lists;
+  if(p.adminPassword) ADMIN_PASSWORD = p.adminPassword;
+
+  if(!isInitial){
+    const rowsChanged = JSON.stringify(remoteRows) !== JSON.stringify(data);
+    const listsChanged = remoteLists && JSON.stringify(remoteLists) !== JSON.stringify(lists);
+    if(!rowsChanged && !listsChanged) return; // nothing actually new
   }
-  data = loaded && Array.isArray(loaded) && loaded.length ? loaded : [];
+
+  data = Array.isArray(remoteRows) && remoteRows.length ? remoteRows : (isInitial ? [] : data);
+  if(remoteLists) lists = remoteLists;
+  else if(isInitial) buildListsFromData(data);
   nextId = Math.max(0, ...data.map(r=>r.id||0)) + 1;
-  if(!loaded) buildListsFromData(data);
-  // Always merge Fall 2026 courses and sections (idempotent)
   mergeFall2026Lists();
   const csMigrated = ensureCourseSections();
   recomputeSnos();
+  trackKnownPrograms();
+
+  if(!isInitial && isUserEditingText()){
+    // The fresh data is already applied in memory (so the next save builds
+    // on top of it, not a stale copy) — but skip the DOM re-render for now
+    // so we don't interrupt whatever field they're mid-typing in. A pending
+    // interval flushes the render as soon as they're done editing.
+    pendingRemoteUpdate = true;
+    const ind = document.getElementById('saveIndicator');
+    ind.textContent = 'Synced new changes — view will refresh shortly';
+    ind.className = 'save-indicator ok';
+    return;
+  }
+  pendingRemoteUpdate = false;
   renderAll();
   renderModal();
   checkFmDemandReminder();
   if(csMigrated) scheduleSave();
 }
 
+// Flush a deferred re-render as soon as the user stops actively typing, so
+// a remote update picked up mid-edit doesn't get stuck indefinitely.
+setInterval(()=>{
+  if(pendingRemoteUpdate && !isUserEditingText()){
+    pendingRemoteUpdate = false;
+    renderAll();
+    renderModal();
+    checkFmDemandReminder();
+  }
+}, 3000);
+
+// Subscribes to the Firestore document instead of fetching it once. Every
+// tab/device with the page open now gets pushed each other's changes live,
+// so a tab that's been sitting open can't later overwrite newer changes
+// made elsewhere with its own stale in-memory copy — the classic
+// "saved... then reverted" symptom this replaced.
+async function loadData(){
+  const ind = document.getElementById('saveIndicator');
+  if(!FB_DOC){
+    ind.textContent = 'Offline - using seed data'; ind.className='save-indicator err';
+    data = [];
+    nextId = 1;
+    buildListsFromData(data);
+    mergeFall2026Lists();
+    ensureCourseSections();
+    recomputeSnos();
+    renderAll();
+    renderModal();
+    checkFmDemandReminder();
+    return;
+  }
+  ind.textContent = 'connecting...'; ind.className='save-indicator';
+  let gotFirst = false;
+  unsubscribeSnapshot = FB_DOC.onSnapshot({includeMetadataChanges:true}, snapshot=>{
+    if(!snapshot.exists){
+      if(!gotFirst){
+        gotFirst = true;
+        data = [];
+        buildListsFromData(data);
+        mergeFall2026Lists();
+        recomputeSnos();
+        renderAll(); renderModal(); checkFmDemandReminder();
+        ind.textContent = 'Firebase connected (no data yet)'; ind.className='save-indicator ok';
+      }
+      return;
+    }
+    // Ignore the echo of our own not-yet-acknowledged local write — our
+    // in-memory state already reflects it, nothing to reconcile.
+    if(snapshot.metadata.hasPendingWrites) return;
+    const isInitial = !gotFirst;
+    gotFirst = true;
+    applyRemoteSnapshot(snapshot.data(), isInitial);
+    ind.textContent = snapshot.metadata.fromCache ? 'Firebase connected (cached)' : 'Firebase connected (live)';
+    ind.className = 'save-indicator ok';
+  }, err=>{
+    console.error('Firebase live sync error:', err);
+    ind.textContent = 'Firebase error - using seed data'; ind.className='save-indicator err';
+    if(!gotFirst){
+      gotFirst = true;
+      data = [];
+      buildListsFromData(data);
+      mergeFall2026Lists();
+      recomputeSnos();
+      renderAll(); renderModal(); checkFmDemandReminder();
+    }
+  });
+}
+
 function mergeFall2026Lists(){
   ensureProgramsList();
-  // Merge courses: add any Fall 2026 course not already present; update totalSections if present
+  // Merge courses: add any Fall 2026 course not already present; only seed
+  // totalSections in when the course doesn't already have one. This runs on
+  // every Firestore sync (including the echo of our own saves), so
+  // unconditionally overwriting totalSections here would silently revert
+  // any section count an admin just edited via the Sections editor or the
+  // "Sec" field — it would appear to save, then snap back to the seed
+  // value moments later once the next sync came through.
   FALL2026_COURSES.forEach(fc => {
     const existing = lists.courses.find(c => c.code === fc.code);
     if(existing){
-      existing.totalSections = fc.totalSections;
+      if(existing.totalSections === undefined || existing.totalSections === null || existing.totalSections === '') existing.totalSections = fc.totalSections;
       if(!existing.cr && fc.cr !== undefined) existing.cr = fc.cr;
     } else {
       lists.courses.push({code: fc.code, name: fc.name, cr: fc.cr, totalSections: fc.totalSections});
@@ -4611,8 +4667,43 @@ function mergeFall2026Lists(){
   lists.sections = [...secSet].sort();
 }
 
+// ─── Custom-tab self-heal ───────────────────────────────────────────────────
+// If some other browser/device still has an OLD copy of this page open (from
+// before a custom tab like "FM Demand by Other Dept" was created, or before
+// this live-sync code was deployed), any save it makes carries its outdated
+// `lists.programs` and — because saves are full-document overwrites — can
+// silently wipe out tabs that client never knew about. knownPrograms is a
+// running memory, for this session, of every custom tab we've ever confirmed
+// actually exists on the server. Before every save, we restore any of them
+// that have gone missing (unless the user just removed it on purpose here),
+// so the next save from an up-to-date tab heals the damage instead of
+// propagating it further.
+let knownPrograms = new Map(); // key -> {key,label,prefix}
+let explicitlyRemovedProgramKeys = new Set();
+function trackKnownPrograms(){
+  ensureProgramsList();
+  (lists.programs||[]).forEach(p=>{
+    if(p && p.key) knownPrograms.set(p.key, {key:p.key, label:p.label, prefix:p.prefix});
+  });
+}
+function healMissingPrograms(){
+  ensureProgramsList();
+  knownPrograms.forEach((prog, key)=>{
+    if(!explicitlyRemovedProgramKeys.has(key) && !lists.programs.some(p=>p.key===key)){
+      lists.programs.push({...prog});
+    }
+  });
+}
+
 let saveTimer = null;
-function scheduleSave(){
+// immediate=true skips the debounce and writes right away. Used for
+// discrete, infrequent actions (adding/renaming/removing a tab, adding or
+// editing a course/FM/section, bulk imports, deleting rows) so they commit
+// to Firestore immediately rather than sitting in a 600ms window where a
+// closed tab or a quick follow-up action could leave them unsaved. The
+// debounce is kept for the main table's per-keystroke field edits (typing
+// in Rank/Notes/etc), where writing on every keystroke would be wasteful.
+function scheduleSave(immediate){
   const ind = document.getElementById('saveIndicator');
   if(!FB_DOC){
     ind.textContent = 'Offline - changes not saved to cloud'; ind.className='save-indicator err';
@@ -4620,8 +4711,9 @@ function scheduleSave(){
   }
   ind.textContent = 'saving...'; ind.className='save-indicator';
   clearTimeout(saveTimer);
-  saveTimer = setTimeout(async ()=>{
+  const doSave = async ()=>{
     try{
+      healMissingPrograms();
       await FB_DOC.set({rows: data, lists, adminPassword: ADMIN_PASSWORD, updatedAt: new Date().toISOString()});
       ind.textContent = 'Saved to Firebase - ' + new Date().toLocaleTimeString();
       ind.className = 'save-indicator ok';
@@ -4630,8 +4722,26 @@ function scheduleSave(){
       ind.textContent = 'Save failed - ' + e.message;
       ind.className = 'save-indicator err';
     }
-  }, 600);
+  };
+  if(immediate){
+    doSave();
+    return;
+  }
+  saveTimer = setTimeout(doSave, 600);
 }
+
+// Safety net: if the debounced 600ms save is still pending when the user
+// closes the tab or navigates away (e.g. right after typing in a Notes/Rank
+// field), flush it immediately instead of losing that last edit.
+['beforeunload','pagehide'].forEach(evt=>{
+  window.addEventListener(evt, ()=>{
+    if(saveTimer && FB_DOC){
+      clearTimeout(saveTimer);
+      saveTimer = null;
+      FB_DOC.set({rows: data, lists, adminPassword: ADMIN_PASSWORD, updatedAt: new Date().toISOString()}).catch(()=>{});
+    }
+  });
+});
 
 // ─── BULK DELETE ─────────────────────────────────────────────────────────────
 function getSelectedIds(){
@@ -4664,7 +4774,7 @@ document.getElementById('bulkDelRowsBtn').addEventListener('click', ()=>{
   if(!ids.length) return;
   if(!confirm('Delete ' + ids.length + ' selected row(s)? This cannot be undone.')) return;
   data = data.filter(r=>!ids.includes(r.id));
-  scheduleSave(); renderAll();
+  scheduleSave(true); renderAll();
   document.getElementById('bulkActionBar').classList.remove('visible');
   const sa = document.getElementById('selAllCb'); if(sa){ sa.checked=false; sa.indeterminate=false; }
 });
@@ -4699,17 +4809,29 @@ function getTakenSectionsForCourse(courseCode, excludeRowId, excludeField){
   return taken;
 }
 
-// Remaining/total section count for a course, based on its official
-// section list (editable via lists.courseSections). Returns null for
-// courses we don't have an official section list for (can't determine
-// fullness).
+// Remaining/total section count for a course. Prefers its official section
+// list (editable via lists.courseSections). When that hasn't been set up —
+// the common case for ad-hoc courses added under a tab like "FM Demand by
+// Other Dept", which usually only get a plain "Sec" number, not named
+// section codes — falls back to that plain count (c.totalSections) against
+// the number of rows already assigned to the course, so e.g. a course
+// marked "2 sections" with 1 FM assigned still reports 1 remaining instead
+// of being treated as fully handled. Returns null only when neither an
+// official list nor a totalSections count exists (can't determine fullness).
 function getRemainingSectionsCount(courseCode){
   const code = (courseCode||'').trim();
+  if(!code) return null;
   const official = getCourseSections(code);
-  if(!official) return null;
-  const taken = getTakenSectionsForCourse(code);
-  const takenOfficial = official.filter(s=>taken.has(s)).length;
-  return { total: official.length, remaining: official.length - takenOfficial };
+  if(official){
+    const taken = getTakenSectionsForCourse(code);
+    const takenOfficial = official.filter(s=>taken.has(s)).length;
+    return { total: official.length, remaining: official.length - takenOfficial };
+  }
+  const course = lists.courses.find(c => (c.code||'').trim() === code);
+  const total = course && course.totalSections ? Number(course.totalSections) : 0;
+  if(!total) return null;
+  const assignedRows = data.filter(r => (r.code||'').trim() === code).length;
+  return { total, remaining: total - assignedRows };
 }
 
 // A course is "full" once every one of its official sections already has
@@ -4768,6 +4890,7 @@ function courseComboItems(selectedCode, selectedName, query){
     items.push({
       code: c.code, name: c.name,
       label: `${c.code} — ${c.name}${crLabel}${secLabel}`,
+      dept: effectiveDept(c),
       isSelected
     });
   });
@@ -4810,9 +4933,34 @@ function renderCourseComboList(rowId, queryOverride){
     html += `<div class="cc-opt cc-none" data-code="" data-name="">— none —</div>`;
   }
   if(items.length){
-    items.forEach(it=>{
-      html += `<div class="cc-opt" data-code="${escAttr(it.code)}" data-name="${escAttr(it.name)}">${escHtml(it.label)}</div>`;
-    });
+    // Group by department within tabs that deliberately hold courses from
+    // many departments — "Other Courses" and "FM Demand by Other Dept" —
+    // so it's easy to find the right course there. This grouping is always
+    // on for those two tabs (not just when 2+ departments happen to survive
+    // the current search filter), so the heading doesn't flicker away
+    // while narrowing a search down to one department. The "All" tab stays
+    // a flat list since it mixes every other tab together anyway.
+    const fmDemandKeyCc = findProgramKeyByLabel('fm demand');
+    const alwaysGroup = subtab==='other' || (fmDemandKeyCc && subtab===fmDemandKeyCc);
+    const deptsPresent = new Set(items.map(it=>it.dept).filter(Boolean));
+    if(subtab!=='all' && (alwaysGroup || deptsPresent.size > 1)){
+      const groups = {};
+      items.forEach(it=>{
+        const key = it.dept || '\uFFFFOther Department';
+        (groups[key] = groups[key] || []).push(it);
+      });
+      Object.keys(groups).sort((a,b)=>a.localeCompare(b)).forEach(key=>{
+        const label = key === '\uFFFFOther Department' ? 'Other Department' : key;
+        html += `<div class="course-dept-heading">${escHtml(label)}</div>`;
+        groups[key].forEach(it=>{
+          html += `<div class="cc-opt" data-code="${escAttr(it.code)}" data-name="${escAttr(it.name)}">${escHtml(it.label)}</div>`;
+        });
+      });
+    } else {
+      items.forEach(it=>{
+        html += `<div class="cc-opt" data-code="${escAttr(it.code)}" data-name="${escAttr(it.name)}">${escHtml(it.label)}</div>`;
+      });
+    }
   } else if(query || subtab!=='all'){
     html += `<div class="cc-opt-empty">No matching courses</div>`;
   }
@@ -4854,7 +5002,7 @@ function applyCourseSelection(rowId, code, name){
   closeCourseComboList(rowId);
   withScrollPreserved(()=>{
     refreshAllCourseAndSectionDropdowns();
-    scheduleSave();
+    scheduleSave(true);
     renderSummary();
     renderStatCards();
   });
@@ -5165,7 +5313,7 @@ function renderDetail(){
       const id = Number(btn.getAttribute('data-del'));
       if(confirm('Delete this row?')){
         data = data.filter(r=>r.id!==id);
-        scheduleSave();
+        scheduleSave(true);
         renderAll();
       }
     });
@@ -5187,7 +5335,7 @@ function addCourseForFm(name, rank){
                 code:'', course:'', cr:'', s1:'', s2:'', s3:'', contact:0, notes:'', flag:false };
   data.push(row);
   recomputeSnos();
-  scheduleSave();
+  scheduleSave(true);
   renderAll();
 }
 
@@ -6300,7 +6448,7 @@ document.querySelectorAll('.summary-tab-edit').forEach(el=>{
       }
       renderSummaryToolbarLabels();
       if(document.getElementById('manageModal')?.classList.contains('open')) renderCourseSubtabs();
-      scheduleSave();
+      scheduleSave(true);
     }
   });
 });
@@ -6312,14 +6460,22 @@ function checkFmDemandReminder(){
   const key = findProgramKeyByLabel('fm demand');
   if(!key) return;
   const courses = lists.courses.filter(c => courseCodeProgram(c.code) === key);
-  const unassigned = courses.filter(c=>{
-    const codeKey = (c.code||'').trim();
-    const nameKey = (c.name||'').trim();
-    return !data.some(r=>{
-      const rc = (r.code||'').trim(), rn = (r.course||'').trim();
-      return codeKey ? rc===codeKey : rn===nameKey;
-    });
-  });
+  const unassigned = courses
+    .map(c=>{
+      const codeKey = (c.code||'').trim();
+      const nameKey = (c.name||'').trim();
+      const hasAnyMatch = data.some(r=>{
+        const rc = (r.code||'').trim(), rn = (r.course||'').trim();
+        return codeKey ? rc===codeKey : rn===nameKey;
+      });
+      if(!hasAnyMatch) return { c, remaining: null }; // no info on section count — still fully unassigned
+      // At least one FM is already assigned — only keep flagging this
+      // course if it has more than one section and some are still open.
+      const info = getRemainingSectionsCount(codeKey);
+      if(info && info.remaining > 0) return { c, remaining: info.remaining };
+      return null; // fully assigned (or single-section course already taken)
+    })
+    .filter(Boolean);
   const overlay = document.getElementById('fmDemandReminderOverlay');
   if(!unassigned.length){
     overlay.classList.remove('open');
@@ -6327,35 +6483,40 @@ function checkFmDemandReminder(){
   }
   const label = lists.programs.find(p=>p.key===key).label;
   document.getElementById('fmDemandReminderTitle').textContent = label + ' — Unassigned Courses';
-  const hasAnyDept = unassigned.some(c => effectiveDept(c));
+  const hasAnyDept = unassigned.some(u => effectiveDept(u.c));
+  const remainingBadge = remaining => (remaining!==null && remaining!==undefined)
+    ? ` <span style="color:#8A93A3;font-size:8pt;">(${remaining} section${remaining===1?'':'s'} still needed)</span>`
+    : '';
   let rowsHtml = '', n = 0;
   if(hasAnyDept){
     const groups = {};
-    unassigned.forEach(c=>{
-      const gkey = effectiveDept(c) || '\uFFFFOther Department';
-      (groups[gkey] = groups[gkey] || []).push(c);
+    unassigned.forEach(u=>{
+      const gkey = effectiveDept(u.c) || '\uFFFFOther Department';
+      (groups[gkey] = groups[gkey] || []).push(u);
     });
     Object.keys(groups).sort((a,b)=>a.localeCompare(b)).forEach(gkey=>{
       const glabel = gkey === '\uFFFFOther Department' ? 'Other Department' : gkey;
       rowsHtml += `<tr><td colspan="3" style="padding:8px 4px 4px;font-weight:600;color:#16243B;border-bottom:1px solid #E3E7EC;">${escHtml(glabel)}</td></tr>`;
       groups[gkey]
         .slice()
-        .sort((a,b)=>(a.code||'').localeCompare(b.code||''))
-        .forEach(c=>{
+        .sort((a,b)=>(a.c.code||'').localeCompare(b.c.code||''))
+        .forEach(u=>{
+          const c = u.c;
           n++;
           rowsHtml += `<tr style="border-bottom:1px solid #F0F2F5;">
             <td style="padding:6px 4px;">${n}</td>
-            <td style="padding:6px 4px;"><span class="ccode">${escHtml(c.code||'—')}</span>${escHtml(c.name||'')}</td>
+            <td style="padding:6px 4px;"><span class="ccode">${escHtml(c.code||'—')}</span>${escHtml(c.name||'')}${remainingBadge(u.remaining)}</td>
             <td style="padding:6px 4px;">${(c.cr!==undefined && c.cr!=='') ? escHtml(String(c.cr)) : '—'}</td>
           </tr>`;
         });
     });
   } else {
-    unassigned.forEach(c=>{
+    unassigned.forEach(u=>{
+      const c = u.c;
       n++;
       rowsHtml += `<tr style="border-bottom:1px solid #F0F2F5;">
         <td style="padding:6px 4px;">${n}</td>
-        <td style="padding:6px 4px;"><span class="ccode">${escHtml(c.code||'—')}</span>${escHtml(c.name||'')}</td>
+        <td style="padding:6px 4px;"><span class="ccode">${escHtml(c.code||'—')}</span>${escHtml(c.name||'')}${remainingBadge(u.remaining)}</td>
         <td style="padding:6px 4px;">${(c.cr!==undefined && c.cr!=='') ? escHtml(String(c.cr)) : '—'}</td>
       </tr>`;
     });
@@ -6387,19 +6548,32 @@ function openCourseSectionsEditor(i){
     </label>`).join('') || '<p style="color:#8A93A3;font-size:13px;">No sections defined yet — add some under Manage Lists → Sections first.</p>';
   document.getElementById('courseSectionsModalOverlay').classList.add('open');
 }
-document.getElementById('courseSectionsModalSave').addEventListener('click', ()=>{
+// Applies whatever is currently checked in the Sections editor to the
+// course being edited (its official section list + the "N sec" count) and
+// persists it. Called live on every checkbox toggle — not just on Save —
+// so the section count/number updates automatically as sections are
+// checked or unchecked, without needing a separate save step.
+function applyCourseSectionsFromCheckboxes(){
   if(courseSectionsEditingIdx===null) return;
   const c = lists.courses[courseSectionsEditingIdx];
   if(!c) return;
   const checked = Array.from(document.querySelectorAll('#courseSectionsCheckboxList .cs-check:checked')).map(el=>el.value);
   setCourseSections(c.code, checked);
-  // Keep the "N sec" total in sync with however many sections were just
-  // checked, so admins don't have to maintain that number separately.
+  // Keep the "N sec" total in sync with however many sections are
+  // currently checked, so admins don't have to maintain that number
+  // separately.
   c.totalSections = checked.length || undefined;
-  scheduleSave();
+  scheduleSave(true);
+  renderModal(); renderDetail(); renderStatCards();
+}
+document.getElementById('courseSectionsCheckboxList').addEventListener('change', (e)=>{
+  if(e.target.classList && e.target.classList.contains('cs-check')) applyCourseSectionsFromCheckboxes();
+});
+document.getElementById('courseSectionsModalSave').addEventListener('click', ()=>{
+  if(courseSectionsEditingIdx===null) return;
+  applyCourseSectionsFromCheckboxes();
   document.getElementById('courseSectionsModalOverlay').classList.remove('open');
   courseSectionsEditingIdx = null;
-  renderModal(); renderDetail(); renderStatCards();
 });
 function closeCourseSectionsModal(){
   document.getElementById('courseSectionsModalOverlay').classList.remove('open');
@@ -6460,7 +6634,7 @@ function addRow(){
                 code:'', course:'', cr:'', s1:'', s2:'', s3:'', contact:0, notes:'', flag:false };
   data.push(row);
   recomputeSnos();
-  scheduleSave();
+  scheduleSave(true);
   renderAll();
 }
 
@@ -6598,7 +6772,7 @@ document.getElementById('courseSubtabs').addEventListener('click', (e)=>{
       if(next !== null && next.trim() && next.trim() !== cur){
         lists.allTabLabel = next.trim();
         renderModal();
-        scheduleSave();
+        scheduleSave(true);
       }
       return;
     }
@@ -6608,7 +6782,7 @@ document.getElementById('courseSubtabs').addEventListener('click', (e)=>{
       if(next !== null && next.trim() && next.trim() !== cur){
         lists.otherTabLabel = next.trim();
         renderModal();
-        scheduleSave();
+        scheduleSave(true);
       }
       return;
     }
@@ -6618,7 +6792,7 @@ document.getElementById('courseSubtabs').addEventListener('click', (e)=>{
       if(next !== null && next.trim() && next.trim() !== prog.label){
         prog.label = next.trim();
         renderModal();
-        scheduleSave();
+        scheduleSave(true);
       }
     }
     return;
@@ -6630,10 +6804,12 @@ document.getElementById('courseSubtabs').addEventListener('click', (e)=>{
     const key = removeBtn.getAttribute('data-remove-tab');
     const prog = lists.programs.find(p=>p.key===key);
     if(prog && confirm(`Remove the "${prog.label}" tab? Its courses will just show up under "Other Courses" — nothing gets deleted.`)){
+      explicitlyRemovedProgramKeys.add(key);
+      knownPrograms.delete(key);
       lists.programs = lists.programs.filter(p=>p.key!==key);
       if(courseSubtab===key) courseSubtab='all';
       renderModal();
-      scheduleSave();
+      scheduleSave(true);
     }
     return;
   }
@@ -6675,11 +6851,13 @@ function addProgramTab(){
   let key = base, n = 2;
   while(lists.programs.some(p=>p.key===key)){ key = base + '_' + n; n++; }
   lists.programs.push({key, label, prefix:''});
+  explicitlyRemovedProgramKeys.delete(key);
+  knownPrograms.set(key, {key, label, prefix:''});
   labelInput.value='';
   document.getElementById('addTabRow').style.display='none';
   courseSubtab = key;
   renderModal();
-  scheduleSave();
+  scheduleSave(true);
 }
 document.getElementById('addTabBtn').addEventListener('click', addProgramTab);
 document.getElementById('cancelTabBtn').addEventListener('click', ()=>{
@@ -6707,10 +6885,11 @@ function filterModalList(type){
   });
   if(type==='courses'){
     // A department heading only makes sense while viewing the "Other
-    // Courses" subtab, and only if at least one course under it is still
-    // visible after the search filter.
+    // Courses" or "FM Demand by Other Dept" subtabs, and only if at least
+    // one course under it is still visible after the search filter.
+    const fmDemandKey = findProgramKeyByLabel('fm demand');
     container.querySelectorAll('.course-dept-heading').forEach(h=>{
-      if(courseSubtab !== 'other'){ h.style.display = 'none'; return; }
+      if(courseSubtab !== 'other' && courseSubtab !== fmDemandKey){ h.style.display = 'none'; return; }
       let sib = h.nextElementSibling, anyVisible = false;
       while(sib && !sib.classList.contains('course-dept-heading')){
         if(sib.style.display !== 'none'){ anyVisible = true; break; }
@@ -6842,26 +7021,39 @@ function renderModal(){
       </button>
     </div>`;
   };
-  // Non-"other" courses render in their normal order. "Other Courses" render
-  // grouped under a department heading (explicit c.dept, or inferred from a
-  // known code prefix like MA/HU/FL/MT/ME) so that tab reads as sections by
-  // department instead of one flat alphabetical list.
-  const restIdx = [], otherIdx = [];
-  lists.courses.forEach((c,i)=>{ (courseCodeProgram(c.code)==='other' ? otherIdx : restIdx).push(i); });
-  const deptGroups = {};
-  otherIdx.forEach(i=>{
-    const gkey = effectiveDept(lists.courses[i]) || '\uFFFFOther Department';
-    (deptGroups[gkey] = deptGroups[gkey] || []).push(i);
+  // Non-"other" courses render in their normal order. "Other Courses" and
+  // "FM Demand by Other Dept" both deliberately hold courses from many
+  // departments, so they render grouped under a department heading
+  // (explicit c.dept, or inferred from a known code prefix like
+  // MA/HU/FL/MT/ME) instead of one flat alphabetical list.
+  const fmDemandKey = findProgramKeyByLabel('fm demand');
+  const restIdx = [], otherIdx = [], fmDemandIdx = [];
+  lists.courses.forEach((c,i)=>{
+    const prog = courseCodeProgram(c.code);
+    if(prog === 'other') otherIdx.push(i);
+    else if(fmDemandKey && prog === fmDemandKey) fmDemandIdx.push(i);
+    else restIdx.push(i);
   });
-  Object.keys(deptGroups).forEach(gkey=>{
-    deptGroups[gkey].sort((a,b)=>(lists.courses[a].code||'').localeCompare(lists.courses[b].code||''));
-  });
+  const buildDeptGroupedHtml = (idxs)=>{
+    const groups = {};
+    idxs.forEach(i=>{
+      const gkey = effectiveDept(lists.courses[i]) || '\uFFFFOther Department';
+      (groups[gkey] = groups[gkey] || []).push(i);
+    });
+    Object.keys(groups).forEach(gkey=>{
+      groups[gkey].sort((a,b)=>(lists.courses[a].code||'').localeCompare(lists.courses[b].code||''));
+    });
+    let html = '';
+    Object.keys(groups).sort((a,b)=>a.localeCompare(b)).forEach(gkey=>{
+      const glabel = gkey === '\uFFFFOther Department' ? 'Other Department' : gkey;
+      html += `<div class="course-dept-heading">${escHtml(glabel)}</div>`;
+      html += groups[gkey].map(i=>courseItemHtml(lists.courses[i], i)).join('');
+    });
+    return html;
+  };
   let coursesHtml = restIdx.map(i=>courseItemHtml(lists.courses[i], i)).join('');
-  Object.keys(deptGroups).sort((a,b)=>a.localeCompare(b)).forEach(gkey=>{
-    const glabel = gkey === '\uFFFFOther Department' ? 'Other Department' : gkey;
-    coursesHtml += `<div class="course-dept-heading">${escHtml(glabel)}</div>`;
-    coursesHtml += deptGroups[gkey].map(i=>courseItemHtml(lists.courses[i], i)).join('');
-  });
+  coursesHtml += buildDeptGroupedHtml(otherIdx);
+  coursesHtml += buildDeptGroupedHtml(fmDemandIdx);
   cl.innerHTML = coursesHtml || '<div style="color:var(--muted);font-size:12px;padding:4px 0;">No courses yet.</div>';
   const newCatSel = document.getElementById('newCourseCategory');
   if(newCatSel){
@@ -6926,7 +7118,7 @@ function renderModal(){
       if(type==='course') lists.courses.splice(idx,1);
       else if(type==='fm') lists.fms.splice(idx,1);
       else if(type==='section') lists.sections.splice(idx,1);
-      scheduleSave();
+      scheduleSave(true);
       renderModal();
       renderDetail();
       renderStatCards();
@@ -6977,7 +7169,7 @@ function wireBulkDel(doId, cancelId, cbClass, listKey, barId){
     if(!toDelete.length) return;
     if(!confirm(`Delete ${toDelete.length} item(s)? This cannot be undone.`)) return;
     toDelete.sort((a,b)=>b-a).forEach(idx=>lists[listKey].splice(idx,1));
-    scheduleSave(); renderModal(); renderDetail(); renderStatCards();
+    scheduleSave(true); renderModal(); renderDetail(); renderStatCards();
   });
   document.getElementById(cancelId)?.addEventListener('click', ()=>{
     document.querySelectorAll('.'+cbClass).forEach(c=>{ c.checked=false; c.closest('.list-item').classList.remove('selected'); });
@@ -7018,7 +7210,7 @@ function saveCourse(i){
   if(category !== undefined) updatedCourse.category = category;
   lists.courses[i] = updatedCourse;
   lists.courses.sort((a,b)=>a.code.localeCompare(b.code));
-  scheduleSave(); renderModal(); renderDetail(); renderStatCards();
+  scheduleSave(true); renderModal(); renderDetail(); renderStatCards();
 }
 
 // ── Inline edit helpers – FM ─────────────────────────────────────────────────
@@ -7039,7 +7231,7 @@ function saveFm(i){
   if(!name){ alert('Enter a name.'); return; }
   if(lists.fms.some((f,j)=>j!==i && f.name===name)){ alert('Already exists.'); return; }
   lists.fms[i] = {name, rank};
-  scheduleSave(); renderModal(); renderDetail(); renderStatCards();
+  scheduleSave(true); renderModal(); renderDetail(); renderStatCards();
 }
 
 // ── Inline edit helpers – Section ────────────────────────────────────────────
@@ -7060,7 +7252,7 @@ function saveSection(i){
   if(lists.sections.some((s,j)=>j!==i && s===val)){ alert('Already exists.'); return; }
   lists.sections[i] = val;
   lists.sections.sort();
-  scheduleSave(); renderModal(); renderDetail(); renderStatCards();
+  scheduleSave(true); renderModal(); renderDetail(); renderStatCards();
 }
 
 // Add course
@@ -7087,7 +7279,7 @@ document.getElementById('addCourseBtn').addEventListener('click', ()=>{
   document.getElementById('newCourseDept').dataset.userEdited='';
   document.getElementById('newCourseCr').value='';
   document.getElementById('newCourseSections').value='';
-  scheduleSave(); renderModal(); renderDetail(); renderStatCards();
+  scheduleSave(true); renderModal(); renderDetail(); renderStatCards();
 });
 
 // Bulk import – Courses
@@ -7120,7 +7312,7 @@ document.getElementById('bulkCourseBtn').addEventListener('click', ()=>{
     added++;
   });
   lists.courses.sort((a,b)=>a.code.localeCompare(b.code));
-  if(added) { document.getElementById('bulkCourseText').value=''; scheduleSave(); renderModal(); renderDetail(); renderStatCards(); }
+  if(added) { document.getElementById('bulkCourseText').value=''; scheduleSave(true); renderModal(); renderDetail(); renderStatCards(); }
   const res = document.getElementById('bulkCourseResult');
   res.textContent = `+${added} added${skipped ? ', '+skipped+' skipped' : ''}`;
   res.className = 'bulk-result' + (added===0?' err':'');
@@ -7140,7 +7332,7 @@ document.getElementById('bulkFmBtn').addEventListener('click', ()=>{
     lists.fms.push({name, rank});
     added++;
   });
-  if(added) { document.getElementById('bulkFmText').value=''; scheduleSave(); renderModal(); renderDetail(); renderStatCards(); }
+  if(added) { document.getElementById('bulkFmText').value=''; scheduleSave(true); renderModal(); renderDetail(); renderStatCards(); }
   const res = document.getElementById('bulkFmResult');
   res.textContent = `+${added} added${skipped ? ', '+skipped+' skipped' : ''}`;
   res.className = 'bulk-result' + (added===0?' err':'');
@@ -7158,7 +7350,7 @@ document.getElementById('bulkSecBtn').addEventListener('click', ()=>{
     added++;
   });
   lists.sections.sort();
-  if(added) { document.getElementById('bulkSecText').value=''; scheduleSave(); renderModal(); renderDetail(); renderStatCards(); }
+  if(added) { document.getElementById('bulkSecText').value=''; scheduleSave(true); renderModal(); renderDetail(); renderStatCards(); }
   const res = document.getElementById('bulkSecResult');
   res.textContent = `+${added} added${skipped ? ', '+skipped+' skipped' : ''}`;
   res.className = 'bulk-result' + (added===0?' err':'');
@@ -7173,7 +7365,7 @@ document.getElementById('addFmBtn').addEventListener('click', ()=>{
   lists.fms.push({name, rank});
   document.getElementById('newFmName').value='';
   document.getElementById('newFmRank').value='';
-  scheduleSave(); renderModal(); renderDetail(); renderStatCards();
+  scheduleSave(true); renderModal(); renderDetail(); renderStatCards();
 });
 
 // Add section
@@ -7184,7 +7376,7 @@ document.getElementById('addSectionBtn').addEventListener('click', ()=>{
   lists.sections.push(s);
   lists.sections.sort();
   document.getElementById('newSection').value='';
-  scheduleSave(); renderModal(); renderDetail(); renderStatCards();
+  scheduleSave(true); renderModal(); renderDetail(); renderStatCards();
 });
 
 // Enter key helpers
@@ -7341,7 +7533,7 @@ document.getElementById('changePwSaveBtn').addEventListener('click', ()=>{
   }
 
   ADMIN_PASSWORD = next;
-  scheduleSave(); // persists adminPassword to Firestore along with current data
+  scheduleSave(true); // persists adminPassword to Firestore along with current data
   closeChangePwModal();
 });
 
