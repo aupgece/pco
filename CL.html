@@ -4661,9 +4661,12 @@ function mergeFall2026Lists(){
     }
   });
   lists.courses.sort((a,b) => a.code.localeCompare(b.code));
-  // Merge sections
+  // Merge sections — but never re-seed one an admin has explicitly deleted.
+  // (Without this check, every sync/echo re-adds any hardcoded seed section,
+  // silently undoing the delete a moment after it appeared to work.)
+  const removedSecs = new Set(lists.removedSections || []);
   const secSet = new Set(lists.sections);
-  FALL2026_SECTIONS.forEach(s => secSet.add(s));
+  FALL2026_SECTIONS.forEach(s => { if(!removedSecs.has(s)) secSet.add(s); });
   lists.sections = [...secSet].sort();
 }
 
@@ -7117,7 +7120,14 @@ function renderModal(){
       const idx = Number(btn.dataset.idx);
       if(type==='course') lists.courses.splice(idx,1);
       else if(type==='fm') lists.fms.splice(idx,1);
-      else if(type==='section') lists.sections.splice(idx,1);
+      else if(type==='section'){
+        const removedVal = lists.sections[idx];
+        lists.sections.splice(idx,1);
+        if(removedVal){
+          lists.removedSections = lists.removedSections || [];
+          if(!lists.removedSections.includes(removedVal)) lists.removedSections.push(removedVal);
+        }
+      }
       scheduleSave(true);
       renderModal();
       renderDetail();
@@ -7168,7 +7178,14 @@ function wireBulkDel(doId, cancelId, cbClass, listKey, barId){
     const toDelete = [...document.querySelectorAll('.'+cbClass+':checked')].map(c=>Number(c.dataset.idx));
     if(!toDelete.length) return;
     if(!confirm(`Delete ${toDelete.length} item(s)? This cannot be undone.`)) return;
-    toDelete.sort((a,b)=>b-a).forEach(idx=>lists[listKey].splice(idx,1));
+    toDelete.sort((a,b)=>b-a).forEach(idx=>{
+      const removedVal = lists[listKey][idx];
+      lists[listKey].splice(idx,1);
+      if(listKey === 'sections' && removedVal){
+        lists.removedSections = lists.removedSections || [];
+        if(!lists.removedSections.includes(removedVal)) lists.removedSections.push(removedVal);
+      }
+    });
     scheduleSave(true); renderModal(); renderDetail(); renderStatCards();
   });
   document.getElementById(cancelId)?.addEventListener('click', ()=>{
@@ -7347,6 +7364,7 @@ document.getElementById('bulkSecBtn').addEventListener('click', ()=>{
   items.forEach(s=>{
     if(lists.sections.includes(s)){ skipped++; return; }
     lists.sections.push(s);
+    if(lists.removedSections) lists.removedSections = lists.removedSections.filter(r=>r!==s);
     added++;
   });
   lists.sections.sort();
@@ -7374,6 +7392,7 @@ document.getElementById('addSectionBtn').addEventListener('click', ()=>{
   if(!s){ alert('Please enter a section.'); return; }
   if(lists.sections.includes(s)){ alert('Already exists.'); return; }
   lists.sections.push(s);
+  if(lists.removedSections) lists.removedSections = lists.removedSections.filter(r=>r!==s);
   lists.sections.sort();
   document.getElementById('newSection').value='';
   scheduleSave(true); renderModal(); renderDetail(); renderStatCards();
