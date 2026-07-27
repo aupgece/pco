@@ -4502,8 +4502,17 @@ function smartSheetLooksLikeCode(v){
 // Parses a block's title row into {programs, letters, season, year2, ordLabel, sectionCodes}
 function smartSheetParseTitle(text){
   const upperText = text.toUpperCase();
-  const upperTokens = upperText.match(/\b[A-Z]{3,6}\b/g) || [];
-  const programs = [...new Set(upperTokens.filter(t=>!SMART_SHEET_STOPWORDS.has(t)))];
+  // Find every program-token occurrence with its position, so each one can
+  // be matched against its OWN trailing "-YY-X" / "-YY-X and Y" letters
+  // instead of one global letters match being applied to every program.
+  const tokenRe = /\b[A-Z]{3,6}\b/g;
+  const rawTokens = [];
+  let m;
+  while((m = tokenRe.exec(upperText))){
+    rawTokens.push({tok: m[0], start: m.index, end: m.index + m[0].length});
+  }
+  const tokens = rawTokens.filter(t=>!SMART_SHEET_STOPWORDS.has(t.tok));
+  const programs = [...new Set(tokens.map(t=>t.tok))];
 
   const ordMatch = text.match(/(\d+)\s*(?:st|nd|rd|th)\s*Semesters?/i);
   const ordLabel = ordMatch ? `${ordMatch[1]}${smartSheetOrdinalSuffix(ordMatch[1])} Sem` : 'Sem';
@@ -4516,18 +4525,34 @@ function smartSheetParseTitle(text){
   else if(springMatch){ season='S'; year2 = springMatch[1].slice(-2); }
   else if(shortMatch){ season = shortMatch[1].toUpperCase(); year2 = shortMatch[2]; }
 
-  const secMatch = text.match(/Sections?\s*[-:]?\s*([A-Z](?:\s*(?:and|&|\/|,)\s*[A-Z])*)/i);
-  let letters = ['A'];
-  if(secMatch){
-    letters = secMatch[1].toUpperCase().split(/AND|&|\/|,/).map(s=>s.trim()).filter(Boolean);
-  }
+  // For each program occurrence, look only at the text between it and the
+  // NEXT program occurrence (or end of title) for its own section letters —
+  // anchored on the 2-4 digit year so a trailing "(6 sections)" summary
+  // count can't be mistaken for a letter.
+  const perProgramLetters = {};
+  tokens.forEach((t, i)=>{
+    const segEnd = (i+1 < tokens.length) ? tokens[i+1].start : text.length;
+    const seg = text.slice(t.end, segEnd);
+    const letMatch = seg.match(/\d{2,4}\s*-?\s*([A-Z](?:\s*(?:and|&|\/|,)\s*[A-Z])*)/i);
+    const found = letMatch
+      ? letMatch[1].toUpperCase().split(/AND|&|\/|,/).map(s=>s.trim()).filter(Boolean)
+      : ['A'];
+    if(!perProgramLetters[t.tok]) perProgramLetters[t.tok] = new Set();
+    found.forEach(l=>perProgramLetters[t.tok].add(l));
+  });
 
   const sectionCodes = [];
   programs.forEach(p=>{
+    const letters = [...(perProgramLetters[p] || new Set(['A']))];
     letters.forEach(l=>{
       sectionCodes.push(year2 ? `${p}-${season}-${year2}-${l}` : `${p}-${l}`);
     });
   });
+
+  // Flat union of every program's letters — kept for the result summary line
+  // (which shows one combined "Section X/Y" per block), not for building
+  // sectionCodes above, since that now uses each program's own letters.
+  const letters = [...new Set(Object.values(perProgramLetters).flatMap(s=>[...s]))].sort();
 
   return {programs, letters, season, year2, ordLabel, sectionCodes};
 }
@@ -4608,15 +4633,27 @@ function smartSheetImportCourses(parsedCourses){
 // course-filtered section dropdowns in Faculty Course Assignment (and
 // anywhere else that reads getCourseSections) work immediately after
 // import instead of falling back to showing every section unfiltered.
-// Merges with (never overwrites/removes) any sections already linked by
-// hand, so prior manual edits via the ⚏ editor are preserved.
+//
+// REPLACES (does not merge with) whatever was stored before for a code
+// this import actually touches — so re-running Smart Sheet Import always
+// resets that course's sections to exactly what the sheet says now,
+// instead of stacking new codes on top of stale ones left by an earlier
+// (or buggy) import run. When the same course code appears in more than
+// one title block in THIS run (e.g. a course shared by two programs in
+// the same semester, like EE223 under both the BEEE and BEEP blocks),
+// sections from every one of those blocks are still combined together.
+// Courses this import does NOT mention are left untouched, so sections
+// added by hand via the ⚏ editor for unrelated courses are preserved.
 function smartSheetLinkCourseSections(parsedCourses){
-  let linked = 0;
+  const byCode = {};
   parsedCourses.forEach(pc=>{
     if(!pc.sectionCodes || !pc.sectionCodes.length) return;
-    const existing = getCourseSections(pc.code) || [];
-    const merged = Array.from(new Set([...existing, ...pc.sectionCodes]));
-    setCourseSections(pc.code, merged);
+    if(!byCode[pc.code]) byCode[pc.code] = new Set();
+    pc.sectionCodes.forEach(s=>byCode[pc.code].add(s));
+  });
+  let linked = 0;
+  Object.keys(byCode).forEach(code=>{
+    setCourseSections(code, [...byCode[code]]);
     linked++;
   });
   return linked;
