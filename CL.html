@@ -4516,10 +4516,10 @@ function smartSheetParseTitle(text){
   else if(springMatch){ season='S'; year2 = springMatch[1].slice(-2); }
   else if(shortMatch){ season = shortMatch[1].toUpperCase(); year2 = shortMatch[2]; }
 
-  const secMatch = text.match(/Sections?\s+([A-Z](?:\s*(?:and|\/|,)\s*[A-Z])*)/i);
+  const secMatch = text.match(/Sections?\s*[-:]?\s*([A-Z](?:\s*(?:and|&|\/|,)\s*[A-Z])*)/i);
   let letters = ['A'];
   if(secMatch){
-    letters = secMatch[1].toUpperCase().split(/AND|\/|,/).map(s=>s.trim()).filter(Boolean);
+    letters = secMatch[1].toUpperCase().split(/AND|&|\/|,/).map(s=>s.trim()).filter(Boolean);
   }
 
   const sectionCodes = [];
