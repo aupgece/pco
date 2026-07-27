@@ -937,16 +937,6 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
     <span id="btnPrintSectionLabel">Print Sections</span>
   </button>
   <span class="summary-tab-edit" data-edit-summary-btn="printSection" title="Rename this button" style="display:none;">✎</span>
-  <button class="btn" id="btnPrintFmDemand" title="Print assigned-faculty report for the FM Demand by Other Dept tab">
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
-    <span id="btnPrintFmDemandLabel">FM Demand by Other Dept</span>
-  </button>
-  <span class="summary-tab-edit" data-edit-summary-btn="fmDemand" title="Rename this button" style="display:none;">✎</span>
-  <button class="btn" id="btnPrintOtherCourses" title="Print report of Other Courses">
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
-    <span id="btnPrintOtherCoursesLabel">Other Courses</span>
-  </button>
-  <span class="summary-tab-edit" data-edit-summary-btn="otherCourses" title="Rename this button" style="display:none;">✎</span>
 </div>
 
 <!-- ── Stat Cards ─────────────────────────────────────────────────────────── -->
@@ -1224,7 +1214,7 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
         </div>
         <div class="course-subtabs" id="courseSubtabs"></div>
         <div class="add-tab-row" id="addTabRow" style="display:none; gap:6px; align-items:center; margin:0 0 10px;">
-          <input type="text" id="newTabLabel" placeholder="Tab name (e.g. FM Demand by Other Dept)" style="max-width:240px;">
+          <input type="text" id="newTabLabel" placeholder="Tab name (e.g. Electrical Engineering)" style="max-width:240px;">
           <button class="btn primary" id="addTabBtn" style="padding:4px 10px;font-size:12px;">+ Add</button>
           <button class="cancel-btn" id="cancelTabBtn">✕</button>
         </div>
@@ -1233,7 +1223,7 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
         <div class="course-add-grid">
           <input type="text" id="newCourseCode" placeholder="Code (e.g. EE235)">
           <input type="text" id="newCourseName" placeholder="Course name">
-          <select id="newCourseDept" title="Department that owns this course — used to group the Other Courses list and FM Demand by Other Dept report"></select>
+          <select id="newCourseDept" title="Department that owns this course"></select>
           <input type="number" id="newCourseCr" placeholder="Cr" min="0" max="9" step="1" title="Credit hours">
           <input type="number" id="newCourseSections" placeholder="Sections" min="0" step="1" title="Number of sections offered">
           <select id="newCourseCategory" title="Tab / category"></select>
@@ -1339,29 +1329,6 @@ BEET-F-24-A"></textarea>
 </div>
 
 
-<!-- FM Demand by Other Dept — unassigned reminder popup -->
-<div class="modal-overlay" id="fmDemandReminderOverlay">
-  <div class="modal" style="width:640px;max-width:92vw;height:auto;max-height:80vh;">
-    <div class="modal-head">
-      <h2 id="fmDemandReminderTitle">FMs Demand by Other Dept — Unassigned Courses</h2>
-      <button class="modal-close" id="fmDemandReminderClose">×</button>
-    </div>
-    <div class="modal-body" style="padding:16px 22px;overflow:auto;">
-      <p style="color:#6C7A8D;font-size:13px;margin-bottom:12px;">The following courses in this tab don't have a faculty member assigned yet:</p>
-      <table style="width:100%;border-collapse:collapse;">
-        <thead>
-          <tr style="text-align:left;border-bottom:1px solid #E3E7EC;">
-            <th style="padding:6px 4px;">#</th>
-            <th style="padding:6px 4px;">Course</th>
-            <th style="padding:6px 4px;">Cr</th>
-          </tr>
-        </thead>
-        <tbody id="fmDemandReminderList"></tbody>
-      </table>
-    </div>
-  </div>
-</div>
-
 <!-- Course Sections Editor — which sections officially belong to a course -->
 <div class="modal-overlay" id="courseSectionsModalOverlay">
   <div class="modal" style="width:520px;max-width:92vw;height:auto;max-height:80vh;">
@@ -1460,11 +1427,10 @@ let lists = {
   courses: [], // {code, name, cr}
   fms: [],     // {name, rank}
   sections: [], // string[]
-  programs: [], // {key, label, prefix} — custom course-category tabs (EE/CE/FM Demand/…)
+  programs: [], // {key, label, prefix} — custom course-category tabs (EE/…)
   removedCourses: [], // string[] of course codes explicitly deleted, so hardcoded
                        // FALL2026_COURSES seed entries never get re-added on sync
   removedSections: [], // string[] of section values explicitly deleted (same idea)
-  otherTabLabel: 'Courses for which FMs required from other Department' // hardcoded default label for the built-in "other" tab
 };
 
 // Makes sure lists.programs exists and has the default EE/CE tabs the first
@@ -1475,19 +1441,30 @@ function ensureProgramsList(){
   if(!Array.isArray(lists.programs)) lists.programs = [];
   if(lists.programs.length === 0){
     lists.programs = [
-      {key:'EE', label:'EE Courses', prefix:'EE'},
-      {key:'CE', label:'CE Courses', prefix:'CE'},
-      {key:'fmDemand', label:'FMs Demand by other Departments', prefix:''}
+      {key:'EE', label:'EE Courses', prefix:'EE'}
     ];
   }
-  // Make sure the "FMs Demand by other Departments" tab always exists, even for
-  // older/partial saved data that predates this being a hardcoded default.
-  if(!lists.programs.some(p=>p.key==='fmDemand')){
-    lists.programs.push({key:'fmDemand', label:'FMs Demand by other Departments', prefix:''});
+  // The "CE Courses" tab has been retired — CE (and SW) courses now fall
+  // through to the uncategorized bucket and get grouped under "Computer
+  // Engineering Department" via DEPT_PREFIX_MAP instead of living in their
+  // own tab. Strip it out even from already-saved data, and mark it as
+  // explicitly removed so the tab self-heal logic below doesn't resurrect
+  // it if some other still-open browser tab has an older copy that still
+  // knows about it.
+  if(lists.programs.some(p=>p.key==='CE')){
+    lists.programs = lists.programs.filter(p=>p.key!=='CE');
+    explicitlyRemovedProgramKeys.add('CE');
+    knownPrograms.delete('CE');
   }
-  // Hardcoded default label for the built-in "other" tab.
-  if(!lists.otherTabLabel){
-    lists.otherTabLabel = 'Courses for which FMs required from other Department';
+  // The "FM Demand by Other Dept" tab has been retired — strip it out even
+  // from already-saved data (its courses just fall through to the
+  // uncategorized bucket instead), and mark it as explicitly removed so it
+  // doesn't get resurrected by a stale copy of this page open in another
+  // tab/device.
+  if(lists.programs.some(p=>p.key==='fmDemand')){
+    lists.programs = lists.programs.filter(p=>p.key!=='fmDemand');
+    explicitlyRemovedProgramKeys.add('fmDemand');
+    knownPrograms.delete('fmDemand');
   }
 }
 
@@ -1590,12 +1567,18 @@ try {
 let unsubscribeSnapshot = null;
 let pendingRemoteUpdate = false;
 
-// True while the user has a text field focused (typing a name, course,
-// notes, etc). Used to avoid yanking focus out from under them with a
-// full re-render when a remote change arrives mid-keystroke.
+// True while the user has a text field or dropdown focused (typing a
+// name, course, notes, picking a department, etc), OR has an inline
+// edit row (course/FM/section) open at all. The second check matters
+// because a SELECT briefly loses focus between being changed and the
+// Save button being clicked — without it, a remote sync landing in that
+// gap would silently close the edit row and discard whatever was picked.
+// Used to avoid yanking focus (or the whole row) out from under the user
+// with a full re-render when a remote change arrives mid-edit.
 function isUserEditingText(){
   const el = document.activeElement;
-  return !!el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA');
+  if(el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT')) return true;
+  return [...document.querySelectorAll('.inline-edit-row')].some(row => row.style.display === 'flex');
 }
 
 // Applies a Firestore document snapshot to local state and re-renders.
@@ -1636,7 +1619,6 @@ function applyRemoteSnapshot(p, isInitial){
   pendingRemoteUpdate = false;
   renderAll();
   renderModal();
-  checkFmDemandReminder();
   if(csMigrated) scheduleSave();
 }
 
@@ -1647,7 +1629,6 @@ setInterval(()=>{
     pendingRemoteUpdate = false;
     renderAll();
     renderModal();
-    checkFmDemandReminder();
   }
 }, 3000);
 
@@ -1668,7 +1649,6 @@ async function loadData(){
     recomputeSnos();
     renderAll();
     renderModal();
-    checkFmDemandReminder();
     return;
   }
   ind.textContent = 'connecting...'; ind.className='save-indicator';
@@ -1681,7 +1661,7 @@ async function loadData(){
         buildListsFromData(data);
         mergeFall2026Lists();
         recomputeSnos();
-        renderAll(); renderModal(); checkFmDemandReminder();
+        renderAll(); renderModal();
         ind.textContent = 'Firebase connected (no data yet)'; ind.className='save-indicator ok';
       }
       return;
@@ -1703,7 +1683,7 @@ async function loadData(){
       buildListsFromData(data);
       mergeFall2026Lists();
       recomputeSnos();
-      renderAll(); renderModal(); checkFmDemandReminder();
+      renderAll(); renderModal();
     }
   });
 }
@@ -1744,8 +1724,8 @@ function mergeFall2026Lists(){
 
 // ─── Custom-tab self-heal ───────────────────────────────────────────────────
 // If some other browser/device still has an OLD copy of this page open (from
-// before a custom tab like "FM Demand by Other Dept" was created, or before
-// this live-sync code was deployed), any save it makes carries its outdated
+// before a custom tab was created, or before this live-sync code was
+// deployed), any save it makes carries its outdated
 // `lists.programs` and — because saves are full-document overwrites — can
 // silently wipe out tabs that client never knew about. knownPrograms is a
 // running memory, for this session, of every custom tab we've ever confirmed
@@ -1886,9 +1866,9 @@ function getTakenSectionsForCourse(courseCode, excludeRowId, excludeField){
 
 // Remaining/total section count for a course. Prefers its official section
 // list (editable via lists.courseSections). When that hasn't been set up —
-// the common case for ad-hoc courses added under a tab like "FM Demand by
-// Other Dept", which usually only get a plain "Sec" number, not named
-// section codes — falls back to that plain count (c.totalSections) against
+// the common case for ad-hoc courses added under a custom tab, which
+// usually only get a plain "Sec" number, not named section codes — falls
+// back to that plain count (c.totalSections) against
 // the number of rows already assigned to the course, so e.g. a course
 // marked "2 sections" with 1 FM assigned still reports 1 remaining instead
 // of being treated as fully handled. Returns null only when neither an
@@ -1988,11 +1968,11 @@ function renderCourseComboList(rowId, queryOverride){
   const allItems = courseComboItems(row.code, row.course, query);
   ensureProgramsList();
   const subtab = ccSubtab[rowId] || 'all';
-  const counts = { all: allItems.length, other: 0 };
+  const counts = { all: allItems.length };
   lists.programs.forEach(p=>{ counts[p.key]=0; });
   allItems.forEach(it=>{ counts[courseCodeProgram(it.code)]++; });
   const items = subtab==='all' ? allItems : allItems.filter(it=>courseCodeProgram(it.code)===subtab);
-  const subtabDefs = [ ['all', lists.allTabLabel || 'All'], ...lists.programs.map(p=>[p.key,p.label]), ['other', lists.otherTabLabel || 'Other Courses'] ];
+  const subtabDefs = [ ['all', lists.allTabLabel || 'All'], ...lists.programs.map(p=>[p.key,p.label]) ];
   let html = `<div class="cc-search-bar">
     <div class="cc-search-row">
       <input type="text" class="cc-search-input" data-id="${rowId}" placeholder="Search course…" autocomplete="off" value="${escAttr(query)}">
@@ -2008,17 +1988,11 @@ function renderCourseComboList(rowId, queryOverride){
     html += `<div class="cc-opt cc-none" data-code="" data-name="">— none —</div>`;
   }
   if(items.length){
-    // Group by department within tabs that deliberately hold courses from
-    // many departments — "Other Courses" and "FM Demand by Other Dept" —
-    // so it's easy to find the right course there. This grouping is always
-    // on for those two tabs (not just when 2+ departments happen to survive
-    // the current search filter), so the heading doesn't flicker away
-    // while narrowing a search down to one department. The "All" tab stays
-    // a flat list since it mixes every other tab together anyway.
-    const fmDemandKeyCc = findProgramKeyByLabel('fm demand');
-    const alwaysGroup = subtab==='other' || (fmDemandKeyCc && subtab===fmDemandKeyCc);
+    // Group by department whenever a program tab's courses span more than
+    // one department, so it's easy to find the right course. The "All" tab
+    // stays a flat list since it mixes every tab together anyway.
     const deptsPresent = new Set(items.map(it=>it.dept).filter(Boolean));
-    if(subtab!=='all' && (alwaysGroup || deptsPresent.size > 1)){
+    if(subtab!=='all' && deptsPresent.size > 1){
       const groups = {};
       items.forEach(it=>{
         const key = it.dept || '\uFFFFOther Department';
@@ -2909,8 +2883,8 @@ function buildDetailView(prefix){
 }
 
 // ── Category (tab) reports: "which FM is assigned to each course in this
-// tab" — used for custom tabs like "FM Demand by Other Dept" as well as the
-// built-in "Other Courses" tab. Unlike buildFacultyView/buildSectionView
+// tab" — used for custom program tabs as well as the built-in "Other
+// Courses" tab. Unlike buildFacultyView/buildSectionView
 // (which filter by the FM's own name prefix), this filters by the course's
 // tab/category, then looks up whoever is assigned to teach each course.
 function buildCategoryAssignedFmView(categoryKey){
@@ -3055,6 +3029,8 @@ const DEPT_OPTIONS = [
   'English Department',
   'Mechanical Department',
   'Mechatronics Department',
+  'Computer Engineering Department',
+  'AUSOM',
   'Engineering',
 ];
 function deptOptionsHtml(selected){
@@ -3073,8 +3049,14 @@ const DEPT_PREFIX_MAP = [
   ['MA', 'Maths Department'],
   ['HU', 'Humanities Department'],
   ['FL', 'Humanities Department'],
+  ['FQ', 'Humanities Department'],
   ['MT', 'Mechatronics Department'],
   ['ME', 'Mechanical Department'],
+  ['EM', 'AUSOM'],
+  ['CE', 'Computer Engineering Department'],
+  ['SW', 'Computer Engineering Department'],
+  ['PH', 'Physics Department'],
+  ['EL', 'English Department'],
 ];
 function inferDeptFromCode(code){
   if(!code) return '';
@@ -3093,9 +3075,9 @@ function courseCodeProgram(code){
   ensureProgramsList();
   const c = String(code).trim().toUpperCase();
   // Explicit manual assignment (set via the Tab/category picker when adding
-  // or editing a course) always wins — this is what lets a tab like "FM
-  // Demand by Other Dept" hold courses from any department, since those
-  // courses won't share a common code prefix.
+  // or editing a course) always wins — this is what lets a custom tab hold
+  // courses from any department, since those courses won't share a common
+  // code prefix.
   const entry = lists.courses.find(x=>(x.code||'').trim().toUpperCase()===c && x.category);
   if(entry && (entry.category==='other' || lists.programs.some(p=>p.key===entry.category))){
     return entry.category;
@@ -3109,8 +3091,7 @@ function courseCodeProgram(code){
 
 // Builds the <option> list for the Tab/category pickers (both the "+ Add
 // Course" form and each course's inline edit row) from the current
-// lists.programs tabs, plus "Auto" (prefix-based, the old default) and an
-// explicit "Other Courses".
+// lists.programs tabs, plus "Auto" (prefix-based, the old default).
 function categoryOptionsHtml(selected){
   ensureProgramsList();
   const sel = selected || 'auto';
@@ -3118,7 +3099,6 @@ function categoryOptionsHtml(selected){
   lists.programs.forEach(p=>{
     html += `<option value="${escAttr(p.key)}"${sel===p.key?' selected':''}>${escHtml(p.label)}</option>`;
   });
-  html += `<option value="other"${sel==='other'?' selected':''}>Other Courses</option>`;
   return html;
 }
 
@@ -3468,38 +3448,18 @@ document.querySelectorAll('.tab-btn').forEach(btn=>{
   });
 });
 
-// Finds a lists.programs tab by label, matching things like "FM Demand by
-// Other Dept" or "FMs Demand by Other Dept" (plural) case-insensitively.
-// Falls back to "the one custom tab that isn't EE/CE" if the wording
-// doesn't match exactly, since that's almost certainly the right tab.
-function findProgramKeyByLabel(labelSubstr){
-  ensureProgramsList();
-  const re = /fms?\s*'?\s*demand|other\s*dept/i;
-  let hit = lists.programs.find(p => re.test(p.label||''));
-  if(!hit){
-    const customTabs = lists.programs.filter(p => p.key!=='EE' && p.key!=='CE');
-    if(customTabs.length === 1) hit = customTabs[0];
-  }
-  return hit ? hit.key : null;
-}
-
-// Default captions for the four Faculty Summary toolbar buttons. Custom
+// Default captions for the Faculty Summary toolbar buttons. Custom
 // overrides (Super Admin only) live in lists.summaryLabels, keyed the same
-// way — except "otherCourses", which reuses lists.otherTabLabel so this
-// button and the "Other Courses" tab in Manage Lists → Courses always stay
-// in sync (renaming either one renames both).
+// way.
 const SUMMARY_BTN_DEFAULTS = {
   printFaculty: 'Print Faculty',
   printSection: 'Print Sections',
-  fmDemand: 'FM Demand by Other Dept',
-  otherCourses: 'Other Courses',
 };
 function summaryBtnLabel(key){
-  if(key === 'otherCourses') return lists.otherTabLabel || SUMMARY_BTN_DEFAULTS.otherCourses;
   return (lists.summaryLabels && lists.summaryLabels[key]) || SUMMARY_BTN_DEFAULTS[key];
 }
 function renderSummaryToolbarLabels(){
-  const idMap = { printFaculty:'btnPrintFacultyLabel', printSection:'btnPrintSectionLabel', fmDemand:'btnPrintFmDemandLabel', otherCourses:'btnPrintOtherCoursesLabel' };
+  const idMap = { printFaculty:'btnPrintFacultyLabel', printSection:'btnPrintSectionLabel' };
   Object.keys(idMap).forEach(key=>{
     const el = document.getElementById(idMap[key]);
     if(el) el.textContent = summaryBtnLabel(key);
@@ -3515,92 +3475,13 @@ document.querySelectorAll('.summary-tab-edit').forEach(el=>{
     const cur = summaryBtnLabel(key);
     const next = prompt('Rename tab:', cur);
     if(next !== null && next.trim() && next.trim() !== cur){
-      if(key === 'otherCourses'){
-        lists.otherTabLabel = next.trim();
-      } else {
-        lists.summaryLabels = lists.summaryLabels || {};
-        lists.summaryLabels[key] = next.trim();
-      }
+      lists.summaryLabels = lists.summaryLabels || {};
+      lists.summaryLabels[key] = next.trim();
       renderSummaryToolbarLabels();
       if(document.getElementById('manageModal')?.classList.contains('open')) renderCourseSubtabs();
       scheduleSave(true);
     }
   });
-});
-
-// Shows a popup listing any course in the "FM Demand by Other Dept" tab
-// that has no faculty member assigned yet. Stays hidden once every course
-// in that tab has an assigned FM.
-function checkFmDemandReminder(){
-  const key = findProgramKeyByLabel('fm demand');
-  if(!key) return;
-  const courses = lists.courses.filter(c => courseCodeProgram(c.code) === key);
-  const unassigned = courses
-    .map(c=>{
-      const codeKey = (c.code||'').trim();
-      const nameKey = (c.name||'').trim();
-      const hasAnyMatch = data.some(r=>{
-        const rc = (r.code||'').trim(), rn = (r.course||'').trim();
-        return codeKey ? rc===codeKey : rn===nameKey;
-      });
-      if(!hasAnyMatch) return { c, remaining: null }; // no info on section count — still fully unassigned
-      // At least one FM is already assigned — only keep flagging this
-      // course if it has more than one section and some are still open.
-      const info = getRemainingSectionsCount(codeKey);
-      if(info && info.remaining > 0) return { c, remaining: info.remaining };
-      return null; // fully assigned (or single-section course already taken)
-    })
-    .filter(Boolean);
-  const overlay = document.getElementById('fmDemandReminderOverlay');
-  if(!unassigned.length){
-    overlay.classList.remove('open');
-    return;
-  }
-  const label = lists.programs.find(p=>p.key===key).label;
-  document.getElementById('fmDemandReminderTitle').textContent = label + ' — Unassigned Courses';
-  const hasAnyDept = unassigned.some(u => effectiveDept(u.c));
-  const remainingBadge = remaining => (remaining!==null && remaining!==undefined)
-    ? ` <span style="color:#8A93A3;font-size:8pt;">(${remaining} section${remaining===1?'':'s'} still needed)</span>`
-    : '';
-  let rowsHtml = '', n = 0;
-  if(hasAnyDept){
-    const groups = {};
-    unassigned.forEach(u=>{
-      const gkey = effectiveDept(u.c) || '\uFFFFOther Department';
-      (groups[gkey] = groups[gkey] || []).push(u);
-    });
-    Object.keys(groups).sort((a,b)=>a.localeCompare(b)).forEach(gkey=>{
-      const glabel = gkey === '\uFFFFOther Department' ? 'Other Department' : gkey;
-      rowsHtml += `<tr><td colspan="3" style="padding:8px 4px 4px;font-weight:600;color:#16243B;border-bottom:1px solid #E3E7EC;">${escHtml(glabel)}</td></tr>`;
-      groups[gkey]
-        .slice()
-        .sort((a,b)=>(a.c.code||'').localeCompare(b.c.code||''))
-        .forEach(u=>{
-          const c = u.c;
-          n++;
-          rowsHtml += `<tr style="border-bottom:1px solid #F0F2F5;">
-            <td style="padding:6px 4px;">${n}</td>
-            <td style="padding:6px 4px;"><span class="ccode">${escHtml(c.code||'—')}</span>${escHtml(c.name||'')}${remainingBadge(u.remaining)}</td>
-            <td style="padding:6px 4px;">${(c.cr!==undefined && c.cr!=='') ? escHtml(String(c.cr)) : '—'}</td>
-          </tr>`;
-        });
-    });
-  } else {
-    unassigned.forEach(u=>{
-      const c = u.c;
-      n++;
-      rowsHtml += `<tr style="border-bottom:1px solid #F0F2F5;">
-        <td style="padding:6px 4px;">${n}</td>
-        <td style="padding:6px 4px;"><span class="ccode">${escHtml(c.code||'—')}</span>${escHtml(c.name||'')}${remainingBadge(u.remaining)}</td>
-        <td style="padding:6px 4px;">${(c.cr!==undefined && c.cr!=='') ? escHtml(String(c.cr)) : '—'}</td>
-      </tr>`;
-    });
-  }
-  document.getElementById('fmDemandReminderList').innerHTML = rowsHtml;
-  overlay.classList.add('open');
-}
-document.getElementById('fmDemandReminderClose').addEventListener('click', ()=>{
-  document.getElementById('fmDemandReminderOverlay').classList.remove('open');
 });
 
 // ─── Course Sections Editor ───────────────────────────────────────────────
@@ -3656,31 +3537,6 @@ function closeCourseSectionsModal(){
 }
 document.getElementById('courseSectionsModalCancel').addEventListener('click', closeCourseSectionsModal);
 document.getElementById('courseSectionsModalClose').addEventListener('click', closeCourseSectionsModal);
-
-document.getElementById('btnPrintFmDemand').addEventListener('click', ()=>{
-  try{
-    const key = findProgramKeyByLabel('fm demand');
-    if(!key){
-      ensureProgramsList();
-      const names = lists.programs.map(p=>p.label).join(', ') || '(none)';
-      alert('Couldn\'t find a tab matching "FM Demand by Other Dept". Existing tabs: ' + names + '. Please check the tab name in Manage Lists → Courses.');
-      return;
-    }
-    const label = (lists.summaryLabels && lists.summaryLabels.fmDemand)
-      || lists.programs.find(p=>p.key===key).label;
-    printCategoryReport(key, label, '#1F3D5A');
-  }catch(err){
-    alert('Report failed: ' + err.message);
-  }
-});
-
-document.getElementById('btnPrintOtherCourses').addEventListener('click', ()=>{
-  try{
-    printCategoryReport('other', summaryBtnLabel('otherCourses'), '#6C7A8D');
-  }catch(err){
-    alert('Report failed: ' + err.message);
-  }
-});
 
 
 // Summary view toggle
@@ -3787,8 +3643,8 @@ document.querySelectorAll('.modal-tab').forEach(tab=>{
 // independent of (and combined with) the text search box above.
 let courseSubtab = 'all';
 
-// Builds the full ('all' + every lists.programs tab + 'other' + a "+ Add
-// tab" button) row of subtab buttons. Called from renderModal() so it stays
+// Builds the full ('all' + every lists.programs tab + a "+ Add tab"
+// button) row of subtab buttons. Called from renderModal() so it stays
 // in sync whenever a tab is added/removed or courses change.
 function renderCourseSubtabs(){
   ensureProgramsList();
@@ -3796,8 +3652,7 @@ function renderCourseSubtabs(){
   if(!wrap) return;
   const defs = [
     {key:'all', label:lists.allTabLabel || 'All', removable:false},
-    ...lists.programs.map(p=>({key:p.key, label:p.label, removable:true})),
-    {key:'other', label:lists.otherTabLabel || 'Other Courses', removable:false}
+    ...lists.programs.map(p=>({key:p.key, label:p.label, removable:true}))
   ];
   wrap.innerHTML = defs.map(d=>`
     <button type="button" class="course-subtab${courseSubtab===d.key?' active':''}" data-subtab="${escAttr(d.key)}">
@@ -3811,7 +3666,7 @@ function renderCourseSubtabs(){
 
 function updateCourseSubtabCounts(){
   ensureProgramsList();
-  const keys = ['all', ...lists.programs.map(p=>p.key), 'other'];
+  const keys = ['all', ...lists.programs.map(p=>p.key)];
   const counts = {}; keys.forEach(k=>counts[k]=0);
   document.querySelectorAll('#coursesList .list-item[data-prog]').forEach(item=>{
     counts.all++;
@@ -3851,16 +3706,6 @@ document.getElementById('courseSubtabs').addEventListener('click', (e)=>{
       }
       return;
     }
-    if(key === 'other'){
-      const cur = lists.otherTabLabel || 'Other Courses';
-      const next = prompt('Rename tab:', cur);
-      if(next !== null && next.trim() && next.trim() !== cur){
-        lists.otherTabLabel = next.trim();
-        renderModal();
-        scheduleSave(true);
-      }
-      return;
-    }
     const prog = lists.programs.find(p=>p.key===key);
     if(prog){
       const next = prompt('Rename tab:', prog.label);
@@ -3878,7 +3723,7 @@ document.getElementById('courseSubtabs').addEventListener('click', (e)=>{
     if(!isSuperAdmin) return; // remove is Super Admin only
     const key = removeBtn.getAttribute('data-remove-tab');
     const prog = lists.programs.find(p=>p.key===key);
-    if(prog && confirm(`Remove the "${prog.label}" tab? Its courses will just show up under "Other Courses" — nothing gets deleted.`)){
+    if(prog && confirm(`Remove the "${prog.label}" tab? Its courses won't be deleted — they'll just no longer be filed under this tab.`)){
       explicitlyRemovedProgramKeys.add(key);
       knownPrograms.delete(key);
       lists.programs = lists.programs.filter(p=>p.key!==key);
@@ -3901,9 +3746,9 @@ document.getElementById('courseSubtabs').addEventListener('click', (e)=>{
     applyCourseSubtabFilter();
     // Keep the "+ Add Course" form's Tab/category dropdown in sync with
     // whichever sub-tab is being viewed, so a course added while looking at
-    // "FM Demand by Other Dept" actually files into that tab instead of
-    // silently defaulting to Auto (which no longer maps custom tabs by code
-    // prefix) and appearing to vanish.
+    // a custom tab actually files into that tab instead of silently
+    // defaulting to Auto (which no longer maps custom tabs by code prefix)
+    // and appearing to vanish.
     const newCatSel = document.getElementById('newCourseCategory');
     if(newCatSel){
       const validValue = [...newCatSel.options].some(o=>o.value===courseSubtab);
@@ -3914,8 +3759,8 @@ document.getElementById('courseSubtabs').addEventListener('click', (e)=>{
 
 // Tabs no longer use a code prefix — courses are filed into a tab by an
 // explicit "category" chosen when the course is added/edited (see
-// courseCodeProgram()), so tabs like "FM Demand by Other Dept" can hold
-// courses with any code, not just ones sharing a common prefix.
+// courseCodeProgram()), so a custom tab can hold courses with any code,
+// not just ones sharing a common prefix.
 function addProgramTab(){
   if(!isSuperAdmin){ alert('Only Super Admin can add tabs.'); return; }
   const labelInput = document.getElementById('newTabLabel');
@@ -3958,21 +3803,6 @@ function filterModalList(type){
     item.style.display = show ? '' : 'none';
     if(show) visCount++;
   });
-  if(type==='courses'){
-    // A department heading only makes sense while viewing the "Other
-    // Courses" or "FM Demand by Other Dept" subtabs, and only if at least
-    // one course under it is still visible after the search filter.
-    const fmDemandKey = findProgramKeyByLabel('fm demand');
-    container.querySelectorAll('.course-dept-heading').forEach(h=>{
-      if(courseSubtab !== 'other' && courseSubtab !== fmDemandKey){ h.style.display = 'none'; return; }
-      let sib = h.nextElementSibling, anyVisible = false;
-      while(sib && !sib.classList.contains('course-dept-heading')){
-        if(sib.style.display !== 'none'){ anyVisible = true; break; }
-        sib = sib.nextElementSibling;
-      }
-      h.style.display = anyVisible ? '' : 'none';
-    });
-  }
   // Show/hide no-results message (skip if the list itself has no items at all —
   // that case is already covered by the "No courses/faculty yet." placeholder)
   let noRes = container.parentElement.querySelector('.modal-no-results');
@@ -4080,7 +3910,7 @@ function renderModal(){
       <div class="inline-edit-row" id="ci-edit-${i}" style="display:none;">
         <input class="ci-code" data-idx="${i}" placeholder="Code" value="${escAttr(c.code)}" style="width:90px;flex:none;font-family:'IBM Plex Mono',monospace;font-size:12px;">
         <input class="ci-name" data-idx="${i}" placeholder="Name" value="${escAttr(c.name)}">
-        <select class="ci-dept" data-idx="${i}" title="Department that owns this course — used to group the Other Courses list and FM Demand by Other Dept report" style="max-width:150px;">${deptOptionsHtml(c.dept||'')}</select>
+        <select class="ci-dept" data-idx="${i}" title="Department that owns this course" style="max-width:150px;">${deptOptionsHtml(c.dept||'')}</select>
         <input class="ci-cr cr-input" data-idx="${i}" type="number" min="0" max="9" placeholder="Cr" value="${escAttr(c.cr!==undefined?c.cr:'')}">
         <input class="ci-sections cr-input" data-idx="${i}" type="number" min="0" placeholder="Sec" title="Number of sections" value="${escAttr(c.totalSections!==undefined?c.totalSections:'')}">
         <select class="ci-category" data-idx="${i}" title="Tab / category">${categoryOptionsHtml(c.category)}</select>
@@ -4095,39 +3925,7 @@ function renderModal(){
       </button>
     </div>`;
   };
-  // Non-"other" courses render in their normal order. "Other Courses" and
-  // "FM Demand by Other Dept" both deliberately hold courses from many
-  // departments, so they render grouped under a department heading
-  // (explicit c.dept, or inferred from a known code prefix like
-  // MA/HU/FL/MT/ME) instead of one flat alphabetical list.
-  const fmDemandKey = findProgramKeyByLabel('fm demand');
-  const restIdx = [], otherIdx = [], fmDemandIdx = [];
-  lists.courses.forEach((c,i)=>{
-    const prog = courseCodeProgram(c.code);
-    if(prog === 'other') otherIdx.push(i);
-    else if(fmDemandKey && prog === fmDemandKey) fmDemandIdx.push(i);
-    else restIdx.push(i);
-  });
-  const buildDeptGroupedHtml = (idxs)=>{
-    const groups = {};
-    idxs.forEach(i=>{
-      const gkey = effectiveDept(lists.courses[i]) || '\uFFFFOther Department';
-      (groups[gkey] = groups[gkey] || []).push(i);
-    });
-    Object.keys(groups).forEach(gkey=>{
-      groups[gkey].sort((a,b)=>(lists.courses[a].code||'').localeCompare(lists.courses[b].code||''));
-    });
-    let html = '';
-    Object.keys(groups).sort((a,b)=>a.localeCompare(b)).forEach(gkey=>{
-      const glabel = gkey === '\uFFFFOther Department' ? 'Other Department' : gkey;
-      html += `<div class="course-dept-heading">${escHtml(glabel)}</div>`;
-      html += groups[gkey].map(i=>courseItemHtml(lists.courses[i], i)).join('');
-    });
-    return html;
-  };
-  let coursesHtml = restIdx.map(i=>courseItemHtml(lists.courses[i], i)).join('');
-  coursesHtml += buildDeptGroupedHtml(otherIdx);
-  coursesHtml += buildDeptGroupedHtml(fmDemandIdx);
+  let coursesHtml = lists.courses.map((c,i)=>courseItemHtml(c, i)).join('');
   cl.innerHTML = coursesHtml || '<div style="color:var(--muted);font-size:12px;padding:4px 0;">No courses yet.</div>';
   const newCatSel = document.getElementById('newCourseCategory');
   if(newCatSel){
