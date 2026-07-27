@@ -4075,7 +4075,6 @@ function renderModal(){
         — ${escHtml(c.name)}
         ${eDept ? `<span class="cr-badge" style="background:${c.dept?'#5C4A9E':'#9C8FC7'};color:#fff;" title="${c.dept?'Department':'Department (auto-detected from code prefix — edit to override)'}">${escHtml(eDept)}</span>` : ''}
         ${(c.cr!==undefined&&c.cr!=='') ? `<span class="cr-badge">${escHtml(String(c.cr))} cr</span>` : ''}
-        ${(c.totalSections) ? `<span class="cr-badge" style="background:var(--teal);color:#fff;" title="Sections offered in Fall 2026">${c.totalSections} sec</span>` : ''}
         ${(()=>{ const os = getCourseSections(c.code); return `<span class="cr-badge" onclick="openCourseSectionsEditor(${i})" title="Edit which sections belong to this course" style="background:#2A6F62;color:#fff;cursor:pointer;">⚏ ${os ? os.length : 0} Sections</span>`; })()}
       </div>
       <div class="inline-edit-row" id="ci-edit-${i}" style="display:none;">
