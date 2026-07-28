@@ -973,13 +973,36 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
   </div>
   <div class="stat-card clickable" id="statFmAssigned" title="Click to view assigned faculty">
     <div class="stat-value teal" id="statFmAssignedVal">0</div>
-    <div class="stat-label">FM Assigned</div>
+    <div class="stat-label">FMs Assigned</div>
     <div class="stat-hint">click to jump to list ↓</div>
   </div>
   <div class="stat-card clickable" id="statFmNotAssigned" title="Click to show/hide unassigned faculty">
     <div class="stat-value red" id="statFmNotAssignedVal">0</div>
     <div class="stat-label">FM Not Assigned</div>
     <div class="stat-hint">click to see list ↓</div>
+  </div>
+  <div class="stat-card clickable" id="statLabEngAssigned" title="Click to view assigned lab engineers">
+    <div class="stat-value teal" id="statLabEngAssignedVal">0</div>
+    <div class="stat-label">Lab Engineers Assigned</div>
+    <div class="stat-hint">click to jump to list ↓</div>
+  </div>
+  <div class="stat-card clickable" id="statLabEngNotAssigned" title="Click to show/hide unassigned lab engineers">
+    <div class="stat-value red" id="statLabEngNotAssignedVal">0</div>
+    <div class="stat-label">Lab Engineers Not Assigned</div>
+    <div class="stat-hint">click to see list ↓</div>
+  </div>
+</div>
+
+<!-- ── Lab Engineers Not Assigned Drawer ─────────────────────────────────── -->
+<div class="ua-drawer" id="uaLabEngDrawer" style="">
+  <div class="ua-drawer-inner" id="uaLabEngDrawerInner">
+    <div class="ua-drawer-header" id="uaLabEngDrawerHeader">
+      <svg class="ua-drawer-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+      <span class="ua-drawer-title">Lab Engineers Not Assigned</span>
+      <span class="ua-drawer-count" id="uaLabEngDrawerCount">0</span>
+      <svg class="ua-drawer-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+    </div>
+    <div class="ua-drawer-body" id="uaLabEngDrawerBody"></div>
   </div>
 </div>
 
@@ -1045,7 +1068,7 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
       </div>
       <div class="program-stat">
         <div class="program-stat-val teal" id="statEeFmAssigned">0</div>
-        <div class="program-stat-lbl">FM ASSIGNED</div>
+        <div class="program-stat-lbl">FMs ASSIGNED</div>
       </div>
       <div class="program-stat clickable" id="statEeFmNotAssignedChip" title="Click to see EE faculty not yet assigned">
         <div class="program-stat-val red" id="statEeFmNotAssigned">0</div>
@@ -1064,7 +1087,7 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
       </div>
       <div class="program-stat">
         <div class="program-stat-val teal" id="statCeFmAssigned">0</div>
-        <div class="program-stat-lbl">FM ASSIGNED</div>
+        <div class="program-stat-lbl">FMs ASSIGNED</div>
       </div>
       <div class="program-stat clickable" id="statCeFmNotAssignedChip" title="Click to see CE faculty not yet assigned">
         <div class="program-stat-val red" id="statCeFmNotAssigned">0</div>
@@ -1895,7 +1918,7 @@ function getTakenSectionsForCourse(courseCode, excludeRowId, excludeField){
 // usually only get a plain "Sec" number, not named section codes — falls
 // back to that plain count (c.totalSections) against
 // the number of rows already assigned to the course, so e.g. a course
-// marked "2 sections" with 1 FM assigned still reports 1 remaining instead
+// marked "2 sections" with 1 FMs assigned still reports 1 remaining instead
 // of being treated as fully handled. Returns null only when neither an
 // official list nor a totalSections count exists (can't determine fullness).
 function getRemainingSectionsCount(courseCode){
@@ -1915,7 +1938,7 @@ function getRemainingSectionsCount(courseCode){
 }
 
 // A course is "full" once every one of its official sections already has
-// an FM assigned to it somewhere in the table.
+// an FMs assigned to it somewhere in the table.
 function isCourseFull(courseCode){
   const info = getRemainingSectionsCount(courseCode);
   return info ? info.remaining <= 0 : false;
@@ -1929,7 +1952,7 @@ function courseOptions(selectedCode, selectedName){
   const selName = (selectedName||'').trim();
   lists.courses.forEach(c=>{
     const isSelected = (c.code===selCode && c.name===selName);
-    // Once every section of a course has an FM assigned, drop it from the
+    // Once every section of a course has an FMs assigned, drop it from the
     // picker (unless this exact row is the one that holds it, so the row
     // can still display/edit its own assignment).
     if(!isSelected && isCourseFull(c.code)) return;
@@ -1960,7 +1983,7 @@ function courseComboItems(selectedCode, selectedName, query){
   const items = [];
   lists.courses.forEach(c=>{
     const isSelected = (c.code===selCode && c.name===selName);
-    // Once every section of a course has an FM assigned, drop it from the
+    // Once every section of a course has an FMs assigned, drop it from the
     // picker (unless this exact row is the one that holds it, so the row
     // can still display/edit its own assignment).
     if(!isSelected && isCourseFull(c.code)) return;
@@ -2300,6 +2323,25 @@ function sectionOptions(selectedVal, courseCode, rowId, field){
 // specifically for labs.
 function isLabCourse(r){
   return /L$/i.test(String(r.code||'').trim());
+}
+// ─── DESIGNATION CLASSIFIERS ──────────────────────────────────────────────────
+// The "rank" field on an FM entry is free text (e.g. "Assistant Professor",
+// "AP", "Lecturer", "Lab Engineer"). These helpers classify that text so the
+// FMs Assigned/Not Assigned cards can count only teaching faculty (AP /
+// Professor / Lecturer), and the Lab Engineer cards can count only lab
+// engineers — two disjoint groups pulled from the same lists.fms list.
+function isTeachingDesignation(rank){
+  const r = (rank||'').trim().toLowerCase();
+  if(!r) return false;
+  if(/\bap\b/.test(r)) return true;          // "AP", "Asst. AP", etc.
+  if(r.includes('professor')) return true;   // Professor, Assistant/Associate Professor
+  if(r.includes('lecturer')) return true;    // Lecturer, Senior Lecturer
+  return false;
+}
+function isLabEngineerDesignation(rank){
+  const r = (rank||'').trim().toLowerCase();
+  if(!r) return false;
+  return r.includes('engineer');             // Lab Engineer, Engineer, etc.
 }
 function calcHrs(r){
   const cr = Number(r.cr);
@@ -3041,6 +3083,7 @@ let uaDrawerOpen = false;
 let uaFmDrawerOpen = false;
 let uaEeFmDrawerOpen = false;
 let uaCeFmDrawerOpen = false;
+let uaLabEngDrawerOpen = false;
 
 // A faculty member's program is read straight off their own name, e.g.
 // "CE- Dr Jehanzeb Khan" → "CE", "EE- Engr. Sara" → "EE". Accepts an
@@ -3170,11 +3213,24 @@ function renderStatCards(){
   // Unassigned is derived from the master list, so assigned-from-list is simply:
   const assignedFromListCount = totalCourses - unassignedCount;
 
-  // FM assigned / not assigned
+  // FMs assigned / not assigned — only counts teaching faculty (AP / Professor /
+  // Lecturer). Lab Engineers and any other designation are excluded here and
+  // counted separately below.
   const assignedFmNames = new Set(data.map(r=>(r.name||'').trim()).filter(Boolean));
-  const fmAssignedCount = lists.fms.filter(f=>assignedFmNames.has((f.name||'').trim())).length;
-  const fmNotAssignedList = lists.fms.filter(f=>!assignedFmNames.has((f.name||'').trim()));
+  const teachingFms = lists.fms.filter(f=>isTeachingDesignation(f.rank));
+  const fmAssignedCount = teachingFms.filter(f=>assignedFmNames.has((f.name||'').trim())).length;
+  const fmNotAssignedList = teachingFms.filter(f=>!assignedFmNames.has((f.name||'').trim()));
   const fmNotAssignedCount = fmNotAssignedList.length;
+
+  // Lab Engineers assigned / not assigned — separate from FM counts above.
+  // "Assigned" here specifically means assigned to a LAB (course code ends
+  // in "L"), not just any course.
+  const assignedLabNames = new Set(data.filter(r=>isLabCourse(r)).map(r=>(r.name||'').trim()).filter(Boolean));
+  const labEngineers = lists.fms.filter(f=>isLabEngineerDesignation(f.rank));
+  const labEngAssignedList = labEngineers.filter(f=>assignedLabNames.has((f.name||'').trim()));
+  const labEngNotAssignedList = labEngineers.filter(f=>!assignedLabNames.has((f.name||'').trim()));
+  const labEngAssignedCount = labEngAssignedList.length;
+  const labEngNotAssignedCount = labEngNotAssignedList.length;
 
   // Count unique courses assigned to EE faculty / CE faculty
   // (matches by FM name prefix, so CE faculty teaching EE courses counts in CE)
@@ -3193,6 +3249,8 @@ function renderStatCards(){
   document.getElementById('statUnassignedVal').textContent = unassignedCount;
   document.getElementById('statFmAssignedVal').textContent = fmAssignedCount;
   document.getElementById('statFmNotAssignedVal').textContent = fmNotAssignedCount;
+  document.getElementById('statLabEngAssignedVal').textContent = labEngAssignedCount;
+  document.getElementById('statLabEngNotAssignedVal').textContent = labEngNotAssignedCount;
   // Separate program cards row
   document.getElementById('statTotalAssignedVal').textContent = totalAssignedCount;
   document.getElementById('statEeAssignedVal').textContent = assignedEeCount;
@@ -3303,7 +3361,43 @@ function renderStatCards(){
     fmBody.innerHTML = html;
   }
 
-  // ── EE FM Not Assigned drawer (Faculty Loading by Program card) ────────
+  // ── Lab Engineer Not Assigned drawer ────────────────────────────────────
+  const labEngCard = document.getElementById('statLabEngNotAssigned');
+  labEngCard.classList.toggle('active-card', uaLabEngDrawerOpen);
+
+  const labEngDrawer = document.getElementById('uaLabEngDrawer');
+  if(labEngNotAssignedCount > 0){
+    labEngDrawer.style.display = '';
+  } else {
+    labEngDrawer.style.display = 'none';
+    uaLabEngDrawerOpen = false;
+    document.getElementById('uaLabEngDrawerInner').classList.remove('open');
+    labEngCard.classList.remove('active-card');
+  }
+
+  const labEngBadge = document.getElementById('uaLabEngDrawerCount');
+  labEngBadge.textContent = labEngNotAssignedCount;
+  labEngBadge.className = 'ua-drawer-count' + (labEngNotAssignedCount === 0 ? ' zero' : '');
+
+  const labEngBody = document.getElementById('uaLabEngDrawerBody');
+  if(!labEngineers.length){
+    labEngBody.innerHTML = '<div class="ua-empty">No Lab Engineers in the faculty list yet.</div>';
+  } else if(!labEngNotAssignedList.length){
+    labEngBody.innerHTML = '<div class="ua-empty">All Lab Engineers have been assigned to a lab. 🎉</div>';
+  } else {
+    let html = '<div class="ua-section-title">Lab Engineers not yet assigned to any lab (' + labEngNotAssignedCount + ')</div>';
+    html += '<div class="ua-chips">' +
+      labEngNotAssignedList.map(f =>
+        `<div class="ua-chip">
+          <span class="ua-code">${escHtml(f.name||'—')}</span>
+          ${f.rank ? `<span class="ua-sub">${escHtml(f.rank)}</span>` : ''}
+         </div>`
+      ).join('') +
+    '</div>';
+    labEngBody.innerHTML = html;
+  }
+
+  // ── EE FMs Not Assigned drawer (Faculty Loading by Program card) ────────
   const eeChip = document.getElementById('statEeFmNotAssignedChip');
   eeChip.classList.toggle('active-card', uaEeFmDrawerOpen);
 
@@ -3337,7 +3431,7 @@ function renderStatCards(){
     eeFmBody.innerHTML = html;
   }
 
-  // ── CE FM Not Assigned drawer (Faculty Loading by Program card) ────────
+  // ── CE FMs Not Assigned drawer (Faculty Loading by Program card) ────────
   const ceChip = document.getElementById('statCeFmNotAssignedChip');
   ceChip.classList.toggle('active-card', uaCeFmDrawerOpen);
 
@@ -3384,7 +3478,7 @@ function toggleUaDrawer(){
   document.getElementById('statUnassigned').classList.toggle('active-card', uaDrawerOpen);
 }
 
-// FM Not Assigned card → open drawer and scroll to it
+// FMs Not Assigned card → open drawer and scroll to it
 document.getElementById('statFmNotAssigned').addEventListener('click', ()=>{
   const count = parseInt(document.getElementById('statFmNotAssignedVal').textContent, 10) || 0;
   if(count === 0) return;
@@ -3399,6 +3493,33 @@ document.getElementById('uaFmDrawerHeader').addEventListener('click', ()=>{
   document.getElementById('statFmNotAssigned').classList.toggle('active-card', uaFmDrawerOpen);
 });
 
+// Lab Engineers Not Assigned card → open drawer and scroll to it
+document.getElementById('statLabEngNotAssigned').addEventListener('click', ()=>{
+  const count = parseInt(document.getElementById('statLabEngNotAssignedVal').textContent, 10) || 0;
+  if(count === 0) return;
+  uaLabEngDrawerOpen = true;
+  document.getElementById('uaLabEngDrawerInner').classList.add('open');
+  document.getElementById('statLabEngNotAssigned').classList.add('active-card');
+  setTimeout(()=>document.getElementById('uaLabEngDrawer').scrollIntoView({behavior:'smooth', block:'start'}), 50);
+});
+document.getElementById('uaLabEngDrawerHeader').addEventListener('click', ()=>{
+  uaLabEngDrawerOpen = !uaLabEngDrawerOpen;
+  document.getElementById('uaLabEngDrawerInner').classList.toggle('open', uaLabEngDrawerOpen);
+  document.getElementById('statLabEngNotAssigned').classList.toggle('active-card', uaLabEngDrawerOpen);
+});
+
+// "Lab Engineers Assigned" card → jump to the Faculty Summary table, where
+// every assigned lab engineer (and the lab they're on) already lives.
+document.getElementById('statLabEngAssigned').addEventListener('click', ()=>{
+  document.querySelector('.tab-btn[data-tab="summary"]').click();
+  setTimeout(()=>{
+    const target = summaryView === 'detail' ? document.getElementById('summaryBody')
+                 : summaryView === 'section' ? document.getElementById('summarySection')
+                 : document.getElementById('compactGrid');
+    if(target) target.scrollIntoView({behavior:'smooth', block:'start'});
+  }, 50);
+});
+
 // "Assigned Courses" card → jump to the Course Load table, where every
 // assigned course row already lives. No new list is built; this just
 // takes you to the existing data.
@@ -3407,7 +3528,7 @@ document.getElementById('statAssigned').addEventListener('click', ()=>{
   setTimeout(()=>document.getElementById('detailTable').scrollIntoView({behavior:'smooth', block:'start'}), 50);
 });
 
-// "FM Assigned" card → jump to the Faculty Summary table, where every
+// "FMs Assigned" card → jump to the Faculty Summary table, where every
 // assigned faculty member (and their assigned courses) already lives.
 document.getElementById('statFmAssigned').addEventListener('click', ()=>{
   document.querySelector('.tab-btn[data-tab="summary"]').click();
