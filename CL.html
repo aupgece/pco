@@ -1210,101 +1210,69 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
     <div class="modal-body">
       <!-- Courses -->
       <div class="list-section" id="section-courses">
+        <div class="bulk-del-bar" id="bulkDelBarCourse">
+          <span class="bulk-del-count" id="bulkDelCountCourse">0 selected</span>
+          <button class="bulk-del-btn" id="bulkDelDoCourse">Delete selected</button>
+          <button class="bulk-del-cancel" id="bulkDelCancelCourse">Cancel</button>
+        </div>
+        <div class="list-bar">
+          <button class="list-bar-selall" id="selAllCourses">Select all</button>
+        </div>
         <div class="course-subtabs" id="courseSubtabs"></div>
         <div class="add-tab-row" id="addTabRow" style="display:none; gap:6px; align-items:center; margin:0 0 10px;">
           <input type="text" id="newTabLabel" placeholder="Tab name (e.g. Electrical Engineering)" style="max-width:240px;">
           <button class="btn primary" id="addTabBtn" style="padding:4px 10px;font-size:12px;">+ Add</button>
           <button class="cancel-btn" id="cancelTabBtn">✕</button>
         </div>
-        <div id="courseNormalWrap">
-          <div class="bulk-del-bar" id="bulkDelBarCourse">
-            <span class="bulk-del-count" id="bulkDelCountCourse">0 selected</span>
-            <button class="bulk-del-btn" id="bulkDelDoCourse">Delete selected</button>
-            <button class="bulk-del-cancel" id="bulkDelCancelCourse">Cancel</button>
-          </div>
-          <div class="list-bar">
-            <button class="list-bar-selall" id="selAllCourses">Select all</button>
-          </div>
-          <div class="modal-search-wrap"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4.3-4.3"></path></svg><input type="text" id="searchCourses" placeholder="Search courses…" oninput="filterModalList(&#39;courses&#39;)"></div>
-          <div class="list-items" id="coursesList"></div>
-          <div class="course-add-grid">
-            <input type="text" id="newCourseCode" placeholder="Code (e.g. EE235)">
-            <input type="text" id="newCourseName" placeholder="Course name">
-            <select id="newCourseDept" title="Department that owns this course"></select>
-            <input type="number" id="newCourseCr" placeholder="Cr" min="0" max="9" step="1" title="Credit hours">
-            <input type="number" id="newCourseSections" placeholder="Sections" min="0" step="1" title="Number of sections offered">
-            <select id="newCourseCategory" title="Tab / category"></select>
-          </div>
-          <div style="margin-top:8px; display:flex; gap:8px; align-items:center;">
-            <button class="btn primary" id="addCourseBtn">+ Add Course</button>
-          </div>
-          <details class="bulk-section" id="bulkCourseDetails">
-            <summary>⬇ Bulk paste courses</summary>
-            <div class="bulk-hint">One course per line: &nbsp;<strong>CODE &nbsp; Name &nbsp; CrHrs &nbsp; Sections</strong> &nbsp;(tab or comma separated; CrHrs/Sections optional)<br>Example: &nbsp;EE235&nbsp;&nbsp;&nbsp;Signal &amp; Systems&nbsp;&nbsp;&nbsp;3&nbsp;&nbsp;&nbsp;2</div>
-            <textarea class="bulk-textarea" id="bulkCourseText" placeholder="EE235	Signal &amp; Systems	3	2
+        <div class="modal-search-wrap"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4.3-4.3"></path></svg><input type="text" id="searchCourses" placeholder="Search courses…" oninput="filterModalList(&#39;courses&#39;)"></div>
+        <div class="list-items" id="coursesList"></div>
+        <div class="course-add-grid">
+          <input type="text" id="newCourseCode" placeholder="Code (e.g. EE235)">
+          <input type="text" id="newCourseName" placeholder="Course name">
+          <select id="newCourseDept" title="Department that owns this course"></select>
+          <input type="number" id="newCourseCr" placeholder="Cr" min="0" max="9" step="1" title="Credit hours">
+          <input type="number" id="newCourseSections" placeholder="Sections" min="0" step="1" title="Number of sections offered">
+          <select id="newCourseCategory" title="Tab / category"></select>
+        </div>
+        <div style="margin-top:8px; display:flex; gap:8px; align-items:center;">
+          <button class="btn primary" id="addCourseBtn">+ Add Course</button>
+        </div>
+        <details class="bulk-section" id="bulkCourseDetails">
+          <summary>⬇ Bulk paste courses</summary>
+          <div class="bulk-hint">One course per line: &nbsp;<strong>CODE &nbsp; Name &nbsp; CrHrs &nbsp; Sections</strong> &nbsp;(tab or comma separated; CrHrs/Sections optional)<br>Example: &nbsp;EE235&nbsp;&nbsp;&nbsp;Signal &amp; Systems&nbsp;&nbsp;&nbsp;3&nbsp;&nbsp;&nbsp;2</div>
+          <textarea class="bulk-textarea" id="bulkCourseText" placeholder="EE235	Signal &amp; Systems	3	2
 EE338	Digital Signal Processing	3	5
 EE100L	Electric Circuit Analysis Lab	1	8"></textarea>
-            <div class="bulk-actions">
-              <button class="btn primary" id="bulkCourseBtn">Import</button>
-              <span class="bulk-result" id="bulkCourseResult"></span>
-            </div>
-            <div class="bulk-hint" style="margin-top:12px;">Or upload an Excel/CSV file — one course per row, columns in order: &nbsp;<strong>Code, Name, Cr hours, Sections</strong> &nbsp;(Cr/Sections optional; a header row is auto-detected and skipped).</div>
-            <div class="bulk-actions">
-              <input type="file" id="bulkCourseExcelInput" accept=".xlsx,.xls,.csv" style="max-width:280px;">
-              <span class="bulk-result" id="bulkCourseExcelResult"></span>
-            </div>
-          </details>
-          <details class="bulk-section" id="smartSheetDetails">
-            <summary>⬇ Smart import — full semester sheet (courses + sections, one file)</summary>
-            <div class="bulk-hint">
-              Upload a sheet laid out like a semester course-offering table: a title row per block naming the
-              program(s), the term, and the section(s) — e.g. <strong>"BEEV, BEEP, BEEE, BEET– F-26 Section A and B (1st Semester) (8 sections)"</strong>
-              or <strong>"BEEE, Section A/B (3rd Semester) Fall - 2025 (2) sections"</strong> — followed by a header row
-              (S.No, Code, Courses, Prerequisites, Credit Hrs) and the course rows for that block. You can stack as many
-              blocks as you like in one sheet, one after another.<br><br>
-              Courses go into the <strong>Courses → All</strong> tab with the semester noted on the end of the name
-              (e.g. "Calculus &amp; Analytical Geometry (1st Sem)"), credit hours taken from the last number in
-              "(Theory-Lab-Credit)", and the section count set from how many program × section-letter combinations
-              that block's title implies. Sections go into the <strong>Classes / Sections</strong> tab as
-              <strong>PROGRAM-F-YY-LETTER</strong> codes (e.g. BEEV-F-26-A, BEEE-F-25-B) built from each block's title.
-            </div>
-            <div class="bulk-actions">
-              <input type="file" id="smartSheetInput" accept=".xlsx,.xls,.csv" style="max-width:280px;">
-              <span class="bulk-result" id="smartSheetResult"></span>
-            </div>
-            <div id="smartSheetDetail" style="margin-top:8px; font-size:12px; color:#6C7A8D; white-space:pre-line;"></div>
-          </details>
-        </div>
-        <div id="courseDemandWrap" style="display:none;">
-          <div class="bulk-del-bar" id="bulkDelBarDemand">
-            <span class="bulk-del-count" id="bulkDelCountDemand">0 selected</span>
-            <button class="bulk-del-btn" id="bulkDelDoDemand">Delete selected</button>
-            <button class="bulk-del-cancel" id="bulkDelCancelDemand">Cancel</button>
+          <div class="bulk-actions">
+            <button class="btn primary" id="bulkCourseBtn">Import</button>
+            <span class="bulk-result" id="bulkCourseResult"></span>
           </div>
-          <div class="list-bar">
-            <button class="list-bar-selall" id="selAllDemand">Select all</button>
+          <div class="bulk-hint" style="margin-top:12px;">Or upload an Excel/CSV file — one course per row, columns in order: &nbsp;<strong>Code, Name, Cr hours, Sections</strong> &nbsp;(Cr/Sections optional; a header row is auto-detected and skipped).</div>
+          <div class="bulk-actions">
+            <input type="file" id="bulkCourseExcelInput" accept=".xlsx,.xls,.csv" style="max-width:280px;">
+            <span class="bulk-result" id="bulkCourseExcelResult"></span>
           </div>
-          <p style="color:#6C7A8D;font-size:12px;margin:0 0 10px;">Track courses/faculty demand from other departments — course name, department, credit hours, and just a plain section <em>count</em> (no section mapping/assignment here).</p>
-          <div class="modal-search-wrap"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4.3-4.3"></path></svg><input type="text" id="searchDemand" placeholder="Search…" oninput="filterModalList(&#39;otherDeptDemand&#39;)"></div>
-          <div class="list-items" id="demandList"></div>
-          <div class="add-item-row" style="flex-wrap:wrap;">
-            <input type="text" id="newDemandCourse" placeholder="Course name">
-            <select id="newDemandDept" title="Department requesting this"></select>
-            <input type="number" id="newDemandCr" placeholder="Cr" min="0" max="9" step="1" title="Credit hours" style="max-width:70px;">
-            <input type="number" id="newDemandSections" placeholder="Sections" min="0" step="1" title="Number of sections (count only)" style="max-width:100px;">
-            <button class="btn primary" id="addDemandBtn">+ Add</button>
+        </details>
+        <details class="bulk-section" id="smartSheetDetails">
+          <summary>⬇ Smart import — full semester sheet (courses + sections, one file)</summary>
+          <div class="bulk-hint">
+            Upload a sheet laid out like a semester course-offering table: a title row per block naming the
+            program(s), the term, and the section(s) — e.g. <strong>"BEEV, BEEP, BEEE, BEET– F-26 Section A and B (1st Semester) (8 sections)"</strong>
+            or <strong>"BEEE, Section A/B (3rd Semester) Fall - 2025 (2) sections"</strong> — followed by a header row
+            (S.No, Code, Courses, Prerequisites, Credit Hrs) and the course rows for that block. You can stack as many
+            blocks as you like in one sheet, one after another.<br><br>
+            Courses go into the <strong>Courses → All</strong> tab with the semester noted on the end of the name
+            (e.g. "Calculus &amp; Analytical Geometry (1st Sem)"), credit hours taken from the last number in
+            "(Theory-Lab-Credit)", and the section count set from how many program × section-letter combinations
+            that block's title implies. Sections go into the <strong>Classes / Sections</strong> tab as
+            <strong>PROGRAM-F-YY-LETTER</strong> codes (e.g. BEEV-F-26-A, BEEE-F-25-B) built from each block's title.
           </div>
-          <details class="bulk-section" id="bulkDemandDetails">
-            <summary>⬇ Bulk paste demand entries</summary>
-            <div class="bulk-hint">One entry per line: &nbsp;<strong>Course &nbsp; Department &nbsp; CrHrs &nbsp; Sections</strong> &nbsp;(tab or comma separated; Dept/Cr/Sections optional)<br>Example: &nbsp;Signal &amp; Systems&nbsp;&nbsp;&nbsp;Mechatronics Department&nbsp;&nbsp;&nbsp;3&nbsp;&nbsp;&nbsp;2</div>
-            <textarea class="bulk-textarea" id="bulkDemandText" placeholder="Signal &amp; Systems	Mechatronics Department	3	2
-Engineering Drawing	Mechanical Department	2	4"></textarea>
-            <div class="bulk-actions">
-              <button class="btn primary" id="bulkDemandBtn">Import</button>
-              <span class="bulk-result" id="bulkDemandResult"></span>
-            </div>
-          </details>
-        </div>
+          <div class="bulk-actions">
+            <input type="file" id="smartSheetInput" accept=".xlsx,.xls,.csv" style="max-width:280px;">
+            <span class="bulk-result" id="smartSheetResult"></span>
+          </div>
+          <div id="smartSheetDetail" style="margin-top:8px; font-size:12px; color:#6C7A8D; white-space:pre-line;"></div>
+        </details>
       </div>
       <!-- Faculty Members -->
       <div class="list-section active" id="section-fms">
@@ -1465,7 +1433,6 @@ let lists = {
   courses: [], // {code, name, cr}
   fms: [],     // {name, rank}
   sections: [], // string[]
-  otherDeptDemand: [], // {course, dept, cr, sections} — standalone list, not linked to lists.courses
   programs: [], // {key, label, prefix} — custom course-category tabs (EE/…)
   removedCourses: [], // string[] of course codes explicitly deleted, so hardcoded
                        // FALL2026_COURSES seed entries never get re-added on sync
@@ -1477,7 +1444,6 @@ let lists = {
 // the programs feature). Safe to call repeatedly — it's a no-op once
 // lists.programs is already populated.
 function ensureProgramsList(){
-  if(!Array.isArray(lists.otherDeptDemand)) lists.otherDeptDemand = [];
   if(!Array.isArray(lists.programs)) lists.programs = [];
   if(lists.programs.length === 0){
     lists.programs = [
@@ -1505,6 +1471,18 @@ function ensureProgramsList(){
   // explicitly removed it via the tab's "×" button.
   if(!lists.programs.some(p=>p.key==='otherDeptFms') && !explicitlyRemovedProgramKeys.has('otherDeptFms')){
     lists.programs.push({key:'otherDeptFms', label:'fms required from other depts', prefix:''});
+  }
+  // "FMs Demand by Other Depts" — a manually-managed tab (no auto code-prefix
+  // detection) for courses/faculty that other departments are asking to
+  // borrow from this one. Lives as a normal course-category tab so it gets
+  // everything course tabs already have for free: the Add/Edit form, search,
+  // bulk-paste, bulk-delete, and — importantly — automatic appearance in the
+  // FM-assignment course picker (courseComboItems/courseOptions both just
+  // read lists.courses). The only thing suppressed for this tab is the
+  // clickable section-mapping badge (see courseItemHtml) — entries here only
+  // ever get a plain section *count*, never a specific section-code mapping.
+  if(!lists.programs.some(p=>p.key==='otherDeptDemand') && !explicitlyRemovedProgramKeys.has('otherDeptDemand')){
+    lists.programs.push({key:'otherDeptDemand', label:'FMs Demand by Other Depts', prefix:''});
   }
 }
 
@@ -3717,31 +3695,16 @@ function renderCourseSubtabs(){
   if(!wrap) return;
   const defs = [
     {key:'all', label:lists.allTabLabel || 'All', removable:false},
-    ...lists.programs.map(p=>({key:p.key, label:p.label, removable:true})),
-    {key:'otherDeptDemand', label:'FMs Demand by Other Depts', removable:false, special:true}
+    ...lists.programs.map(p=>({key:p.key, label:p.label, removable:true}))
   ];
   wrap.innerHTML = defs.map(d=>`
     <button type="button" class="course-subtab${courseSubtab===d.key?' active':''}" data-subtab="${escAttr(d.key)}">
       ${escHtml(d.label)}<span class="cst-count" id="cst-count-${escAttr(d.key)}"></span>
-      ${(isSuperAdmin && !d.special) ? `<span class="tab-edit" data-edit-tab="${escAttr(d.key)}" title="Rename this tab">✎</span>` : ''}
+      ${isSuperAdmin ? `<span class="tab-edit" data-edit-tab="${escAttr(d.key)}" title="Rename this tab">✎</span>` : ''}
       ${(d.removable && isSuperAdmin) ? `<span class="tab-remove" data-remove-tab="${escAttr(d.key)}" title="Remove this tab">×</span>` : ''}
     </button>`).join('') +
     (isSuperAdmin ? `<button type="button" class="course-subtab" id="showAddTabBtn" style="border-style:dashed;">+ Add tab</button>` : '');
   updateCourseSubtabCounts();
-  updateCourseSubtabView();
-}
-
-// Toggles which block is visible inside the Courses tab: the normal
-// course list/add-form, or the standalone "FMs Demand by Other Depts"
-// list/add-form — these are two entirely separate data sets (lists.courses
-// vs lists.otherDeptDemand), only one of which makes sense to show at a time.
-function updateCourseSubtabView(){
-  const normalWrap = document.getElementById('courseNormalWrap');
-  const demandWrap = document.getElementById('courseDemandWrap');
-  if(!normalWrap || !demandWrap) return;
-  const onDemand = courseSubtab === 'otherDeptDemand';
-  normalWrap.style.display = onDemand ? 'none' : '';
-  demandWrap.style.display = onDemand ? '' : 'none';
 }
 
 function updateCourseSubtabCounts(){
@@ -3757,8 +3720,6 @@ function updateCourseSubtabCounts(){
     const el = document.getElementById('cst-count-'+k);
     if(el) el.textContent = ' (' + counts[k] + ')';
   });
-  const demandCountEl = document.getElementById('cst-count-otherDeptDemand');
-  if(demandCountEl) demandCountEl.textContent = ' (' + (lists.otherDeptDemand||[]).length + ')';
 }
 
 function applyCourseSubtabFilter(){
@@ -3829,7 +3790,6 @@ document.getElementById('courseSubtabs').addEventListener('click', (e)=>{
     document.querySelectorAll('#courseSubtabs .course-subtab').forEach(b=>b.classList.remove('active'));
     btn.classList.add('active');
     applyCourseSubtabFilter();
-    updateCourseSubtabView();
     // Keep the "+ Add Course" form's Tab/category dropdown in sync with
     // whichever sub-tab is being viewed, so a course added while looking at
     // a custom tab actually files into that tab instead of silently
@@ -3874,8 +3834,8 @@ document.getElementById('newTabLabel').addEventListener('keydown', e=>{ if(e.key
 
 // ── Modal list search filter ──────────────────────────────────────────────────
 function filterModalList(type){
-  const searchMap = { courses:'searchCourses', fms:'searchFms', sections:'searchSections', otherDeptDemand:'searchDemand' };
-  const listMap   = { courses:'coursesList',   fms:'fmsList',   sections:'sectionsList',   otherDeptDemand:'demandList' };
+  const searchMap = { courses:'searchCourses', fms:'searchFms', sections:'searchSections' };
+  const listMap   = { courses:'coursesList',   fms:'fmsList',   sections:'sectionsList' };
   const q = (document.getElementById(searchMap[type])?.value || '').toLowerCase().trim();
   const container = document.getElementById(listMap[type]);
   if(!container) return;
@@ -3926,12 +3886,12 @@ function filterModalList(type){
 
 // Clear modal search fields when switching tabs or closing
 function clearModalSearches(){
-  ['searchCourses','searchFms','searchSections','searchDemand'].forEach(id=>{
+  ['searchCourses','searchFms','searchSections'].forEach(id=>{
     const el = document.getElementById(id);
     if(el) el.value = '';
   });
-  ['courses','fms','sections','otherDeptDemand'].forEach(type=>{
-    const listMap = { courses:'coursesList', fms:'fmsList', sections:'sectionsList', otherDeptDemand:'demandList' };
+  ['courses','fms','sections'].forEach(type=>{
+    const listMap = { courses:'coursesList', fms:'fmsList', sections:'sectionsList' };
     const container = document.getElementById(listMap[type]);
     if(container) container.querySelectorAll('.list-item').forEach(i=>i.style.display='');
     const noRes = container?.parentElement?.querySelector('.modal-no-results');
@@ -4013,7 +3973,9 @@ function renderModal(){
         — ${escHtml(c.name)}
         ${eDept ? `<span class="cr-badge" style="background:${c.dept?'#5C4A9E':'#9C8FC7'};color:#fff;" title="${c.dept?'Department':'Department (auto-detected from code prefix — edit to override)'}">${escHtml(eDept)}</span>` : ''}
         ${(c.cr!==undefined&&c.cr!=='') ? `<span class="cr-badge">${escHtml(String(c.cr))} cr</span>` : ''}
-        ${(()=>{ const os = getCourseSections(c.code); return `<span class="cr-badge" onclick="openCourseSectionsEditor(${i})" title="Edit which sections belong to this course" style="background:#2A6F62;color:#fff;cursor:pointer;">⚏ ${os ? os.length : 0} Sections</span>`; })()}
+        ${prog === 'otherDeptDemand'
+          ? ((c.totalSections!==undefined && c.totalSections!=='') ? `<span class="cr-badge" style="background:#2A6F62;color:#fff;" title="Section count only — no mapping for this tab">${escHtml(String(c.totalSections))} Sections</span>` : '')
+          : (()=>{ const os = getCourseSections(c.code); return `<span class="cr-badge" onclick="openCourseSectionsEditor(${i})" title="Edit which sections belong to this course" style="background:#2A6F62;color:#fff;cursor:pointer;">⚏ ${os ? os.length : 0} Sections</span>`; })()}
       </div>
       <div class="inline-edit-row" id="ci-edit-${i}" style="display:none;">
         <input class="ci-code" data-idx="${i}" placeholder="Code" value="${escAttr(c.code)}" style="width:90px;flex:none;font-family:'IBM Plex Mono',monospace;font-size:12px;">
@@ -4079,37 +4041,6 @@ function renderModal(){
   renderCourseSubtabs();
   applyCourseSubtabFilter();
 
-  // ── FMs Demand by Other Depts ────────────────────────────────────────────
-  const dl = document.getElementById('demandList');
-  dl.innerHTML = lists.otherDeptDemand.map((d,i)=>`
-    <div class="list-item" id="di-${i}">
-      <input type="checkbox" class="list-item-cb demand-cb" data-idx="${i}" title="Select">
-      <div class="list-item-text" id="di-view-${i}">
-        ${escHtml(d.course)}
-        ${d.dept ? `<span class="cr-badge" style="background:#5C4A9E;color:#fff;">${escHtml(d.dept)}</span>` : ''}
-        ${(d.cr!==undefined&&d.cr!=='') ? `<span class="cr-badge">${escHtml(String(d.cr))} cr</span>` : ''}
-        ${(d.sections!==undefined&&d.sections!=='') ? `<span class="cr-badge" style="background:#2A6F62;color:#fff;">${escHtml(String(d.sections))} Sections</span>` : ''}
-      </div>
-      <div class="inline-edit-row" id="di-edit-${i}" style="display:none;">
-        <input class="di-course" data-idx="${i}" placeholder="Course name" value="${escAttr(d.course)}">
-        <select class="di-dept" data-idx="${i}" title="Department">${deptOptionsHtml(d.dept||'')}</select>
-        <input class="di-cr cr-input" data-idx="${i}" type="number" min="0" max="9" placeholder="Cr" value="${escAttr(d.cr!==undefined?d.cr:'')}">
-        <input class="di-sections cr-input" data-idx="${i}" type="number" min="0" placeholder="Sections" title="Number of sections" value="${escAttr(d.sections!==undefined?d.sections:'')}">
-        <button class="save-btn" onclick="saveDemand(${i})">Save</button>
-        <button class="cancel-btn" onclick="cancelDemandEdit(${i})">✕</button>
-      </div>
-      <button class="list-item-edit" onclick="startDemandEdit(${i})" id="di-editbtn-${i}" title="Edit">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-      </button>
-      <button class="list-item-del" data-type="demand" data-idx="${i}" title="Remove">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
-      </button>
-    </div>`).join('') || '<div style="color:var(--muted);font-size:12px;padding:4px 0;">No demand entries yet.</div>';
-  const newDemandDeptSel = document.getElementById('newDemandDept');
-  if(newDemandDeptSel && !newDemandDeptSel.options.length){
-    newDemandDeptSel.innerHTML = deptOptionsHtml('');
-  }
-
   // ── Faculty ───────────────────────────────────────────────────────────────
   const fl = document.getElementById('fmsList');
   fl.innerHTML = lists.fms.map((f,i)=>{
@@ -4167,7 +4098,6 @@ function renderModal(){
         }
       }
       else if(type==='fm') lists.fms.splice(idx,1);
-      else if(type==='demand') lists.otherDeptDemand.splice(idx,1);
       else if(type==='section'){
         const removedVal = lists.sections[idx];
         lists.sections.splice(idx,1);
@@ -4199,7 +4129,6 @@ function renderModal(){
   document.querySelectorAll('.course-cb').forEach(cb=>cb.addEventListener('change',()=>updateBulkBar('course-cb','bulkDelBarCourse','bulkDelCountCourse')));
   document.querySelectorAll('.fm-cb').forEach(cb=>cb.addEventListener('change',()=>updateBulkBar('fm-cb','bulkDelBarFm','bulkDelCountFm')));
   document.querySelectorAll('.sec-cb').forEach(cb=>cb.addEventListener('change',()=>updateBulkBar('sec-cb','bulkDelBarSec','bulkDelCountSec')));
-  document.querySelectorAll('.demand-cb').forEach(cb=>cb.addEventListener('change',()=>updateBulkBar('demand-cb','bulkDelBarDemand','bulkDelCountDemand')));
 }
 
 // ── Bulk delete & select-all wiring ─────────────────────────────────────────
@@ -4221,7 +4150,6 @@ function wireSelAll(btnId, cbClass, barId, countId){
 wireSelAll('selAllCourses','course-cb','bulkDelBarCourse','bulkDelCountCourse');
 wireSelAll('selAllFms','fm-cb','bulkDelBarFm','bulkDelCountFm');
 wireSelAll('selAllSecs','sec-cb','bulkDelBarSec','bulkDelCountSec');
-wireSelAll('selAllDemand','demand-cb','bulkDelBarDemand','bulkDelCountDemand');
 
 function wireBulkDel(doId, cancelId, cbClass, listKey, barId){
   document.getElementById(doId)?.addEventListener('click', ()=>{
@@ -4250,7 +4178,6 @@ function wireBulkDel(doId, cancelId, cbClass, listKey, barId){
 wireBulkDel('bulkDelDoCourse','bulkDelCancelCourse','course-cb','courses','bulkDelBarCourse');
 wireBulkDel('bulkDelDoFm','bulkDelCancelFm','fm-cb','fms','bulkDelBarFm');
 wireBulkDel('bulkDelDoSec','bulkDelCancelSec','sec-cb','sections','bulkDelBarSec');
-wireBulkDel('bulkDelDoDemand','bulkDelCancelDemand','demand-cb','otherDeptDemand','bulkDelBarDemand');
 
 // ── Inline edit helpers – Courses ────────────────────────────────────────────
 function startCourseEdit(i){
@@ -4327,32 +4254,6 @@ function saveSection(i){
   scheduleSave(true); renderModal(); renderDetail(); renderStatCards();
 }
 
-// ── Inline edit helpers – FMs Demand by Other Depts ──────────────────────────
-function startDemandEdit(i){
-  document.getElementById('di-view-'+i).style.display='none';
-  document.getElementById('di-editbtn-'+i).style.display='none';
-  document.getElementById('di-edit-'+i).style.display='flex';
-  document.querySelector(`#di-edit-${i} .di-course`).focus();
-}
-function cancelDemandEdit(i){
-  document.getElementById('di-view-'+i).style.display='';
-  document.getElementById('di-editbtn-'+i).style.display='';
-  document.getElementById('di-edit-'+i).style.display='none';
-}
-function saveDemand(i){
-  const course = document.querySelector(`#di-edit-${i} .di-course`).value.trim();
-  const dept = document.querySelector(`#di-edit-${i} .di-dept`).value.trim();
-  const crRaw = document.querySelector(`#di-edit-${i} .di-cr`).value.trim();
-  const cr = crRaw !== '' ? Number(crRaw) : '';
-  const secRaw = document.querySelector(`#di-edit-${i} .di-sections`).value.trim();
-  const sections = secRaw !== '' ? Number(secRaw) : undefined;
-  if(!course){ alert('Enter a course name.'); return; }
-  const updated = {course, dept, cr};
-  if(sections !== undefined) updated.sections = sections;
-  lists.otherDeptDemand[i] = updated;
-  scheduleSave(true); renderModal(); renderDetail(); renderStatCards();
-}
-
 // Add course
 document.getElementById('addCourseBtn').addEventListener('click', ()=>{
   const code = document.getElementById('newCourseCode').value.trim();
@@ -4383,6 +4284,12 @@ document.getElementById('addCourseBtn').addEventListener('click', ()=>{
 // Bulk import – Courses
 function bulkImportCourseLines(lines){
   let added=0, skipped=0;
+  // Same as the single "+ Add Course" form: file bulk-imported courses into
+  // whichever tab is currently active, instead of always falling back to
+  // Auto (which silently drops them into the uncategorized bucket for
+  // manually-managed tabs like "FMs Demand by Other Depts" that have no
+  // code-prefix rule to auto-detect them).
+  const category = (courseSubtab && courseSubtab !== 'all') ? courseSubtab : undefined;
   lines.forEach(line=>{
     // split by tab or 2+ spaces or comma
     const parts = line.split(/\t|,\s*|\s{2,}/).map(p=>p.trim()).filter(Boolean);
@@ -4404,7 +4311,9 @@ function bulkImportCourseLines(lines){
       rest = rest.slice(0, -1);
     }
     const finalName = rest.join(' ');
-    lists.courses.push({code, name: finalName, cr: crNum, totalSections});
+    const newCourse = {code, name: finalName, cr: crNum, totalSections};
+    if(category !== undefined) newCourse.category = category;
+    lists.courses.push(newCourse);
     added++;
   });
   if(added){
@@ -4754,49 +4663,6 @@ document.getElementById('bulkSecBtn').addEventListener('click', ()=>{
   const {added, skipped} = bulkImportSectionItems(items);
   if(added) { document.getElementById('bulkSecText').value=''; scheduleSave(true); renderModal(); renderDetail(); renderStatCards(); }
   const res = document.getElementById('bulkSecResult');
-  res.textContent = `+${added} added${skipped ? ', '+skipped+' skipped' : ''}`;
-  res.className = 'bulk-result' + (added===0?' err':'');
-});
-
-// Add demand entry
-document.getElementById('addDemandBtn').addEventListener('click', ()=>{
-  const course = document.getElementById('newDemandCourse').value.trim();
-  const dept = document.getElementById('newDemandDept').value.trim();
-  const crRaw = document.getElementById('newDemandCr').value.trim();
-  const cr = crRaw !== '' ? Number(crRaw) : '';
-  const secRaw = document.getElementById('newDemandSections').value.trim();
-  const sections = secRaw !== '' ? Number(secRaw) : undefined;
-  if(!course){ alert('Please enter a course name.'); return; }
-  const entry = {course, dept, cr};
-  if(sections !== undefined) entry.sections = sections;
-  lists.otherDeptDemand.push(entry);
-  document.getElementById('newDemandCourse').value='';
-  document.getElementById('newDemandDept').value='';
-  document.getElementById('newDemandCr').value='';
-  document.getElementById('newDemandSections').value='';
-  scheduleSave(true); renderModal(); renderDetail(); renderStatCards();
-});
-document.getElementById('newDemandCourse').addEventListener('keydown', e=>{ if(e.key==='Enter') document.getElementById('addDemandBtn').click(); });
-
-// Bulk import – FMs Demand by Other Depts
-document.getElementById('bulkDemandBtn').addEventListener('click', ()=>{
-  const raw = document.getElementById('bulkDemandText').value;
-  const lines = raw.split('\n').map(l=>l.trim()).filter(Boolean);
-  let added=0, skipped=0;
-  lines.forEach(line=>{
-    const parts = line.split(/\t|,\s*|\s{2,}/).map(p=>p.trim()).filter(Boolean);
-    const course = parts[0]||'';
-    const dept = parts[1]||'';
-    const cr = parts[2]!==undefined && parts[2]!=='' ? Number(parts[2]) : '';
-    const sections = parts[3]!==undefined && parts[3]!=='' ? Number(parts[3]) : undefined;
-    if(!course){ skipped++; return; }
-    const entry = {course, dept, cr};
-    if(sections !== undefined) entry.sections = sections;
-    lists.otherDeptDemand.push(entry);
-    added++;
-  });
-  if(added) { document.getElementById('bulkDemandText').value=''; scheduleSave(true); renderModal(); renderDetail(); renderStatCards(); }
-  const res = document.getElementById('bulkDemandResult');
   res.textContent = `+${added} added${skipped ? ', '+skipped+' skipped' : ''}`;
   res.className = 'bulk-result' + (added===0?' err':'');
 });
