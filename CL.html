@@ -647,6 +647,12 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
   .list-section.active{ display:block; }
   .list-items{ margin:0 0 10px; display:grid; grid-template-columns:1fr 1fr; gap:0 16px; }
   .list-item{ display:flex; align-items:center; gap:8px; padding:5px 0; border-bottom:1px solid #F0F2F5; }
+  .list-group-head{
+    grid-column: 1 / -1;
+    font-family:'Source Serif 4',Georgia,serif; font-weight:700; font-size:12.5px;
+    color:var(--teal-deep); padding:10px 6px 4px; margin-top:4px;
+    border-bottom:1px solid var(--line); text-transform:uppercase; letter-spacing:.03em;
+  }
   .course-dept-heading{ font-size:11px; font-weight:700; letter-spacing:.02em; text-transform:uppercase; color:#5C4A9E; background:#F4F1FA; padding:6px 8px; margin-top:8px; border-radius:5px; }
   .list-item:last-child{ border-bottom:none; }
   .list-item-text{ flex:1; font-size:13px; color:var(--ink); }
@@ -1456,15 +1462,15 @@ function ensureProgramsList(){
     explicitlyRemovedProgramKeys.add('CE');
     knownPrograms.delete('CE');
   }
-  // The "FM Demand by Other Dept" tab has been retired — strip it out even
-  // from already-saved data (its courses just fall through to the
-  // uncategorized bucket instead), and mark it as explicitly removed so it
-  // doesn't get resurrected by a stale copy of this page open in another
-  // tab/device.
-  if(lists.programs.some(p=>p.key==='fmDemand')){
-    lists.programs = lists.programs.filter(p=>p.key!=='fmDemand');
-    explicitlyRemovedProgramKeys.add('fmDemand');
-    knownPrograms.delete('fmDemand');
+  // "fms required from other depts" — auto-collects any course whose code
+  // prefix belongs to another department (MT, HU, EM, CE/SW, MA, ME, FQ, PH,
+  // EL — see DEPT_PREFIX_MAP) so those courses show up in their own tab
+  // instead of sitting in the general/uncategorized bucket. Added
+  // unconditionally (not just when lists.programs is empty) so it shows up
+  // for everyone loading already-saved data, but only if the user hasn't
+  // explicitly removed it via the tab's "×" button.
+  if(!lists.programs.some(p=>p.key==='otherDeptFms') && !explicitlyRemovedProgramKeys.has('otherDeptFms')){
+    lists.programs.push({key:'otherDeptFms', label:'fms required from other depts', prefix:''});
   }
 }
 
@@ -3086,6 +3092,12 @@ function courseCodeProgram(code){
   for(const p of sorted){
     if(p.prefix && c.startsWith(String(p.prefix).toUpperCase())) return p.key;
   }
+  // Courses whose code prefix belongs to another department (MT, HU, EM,
+  // CE/SW, MA, ME, FQ, PH, EL — see DEPT_PREFIX_MAP) file into the "fms
+  // required from other depts" tab, as long as that tab hasn't been removed.
+  if(lists.programs.some(p=>p.key==='otherDeptFms') && DEPT_PREFIX_MAP.some(([prefix])=>c.startsWith(prefix))){
+    return 'otherDeptFms';
+  }
   return 'other';
 }
 
@@ -3683,6 +3695,9 @@ function applyCourseSubtabFilter(){
   document.querySelectorAll('#coursesList .list-item[data-prog]').forEach(item=>{
     item.dataset.progHidden = (courseSubtab!=='all' && item.dataset.prog!==courseSubtab) ? '1' : '0';
   });
+  document.querySelectorAll('#coursesList .list-group-head[data-prog]').forEach(head=>{
+    head.dataset.progHidden = (head.dataset.prog !== courseSubtab) ? '1' : '0';
+  });
   // Re-run the text search on top of the sub-tab filter so both stay in sync.
   filterModalList('courses');
 }
@@ -3803,6 +3818,28 @@ function filterModalList(type){
     item.style.display = show ? '' : 'none';
     if(show) visCount++;
   });
+  // Department heading rows (courses tab only): a heading is only shown
+  // when its subtab is active AND at least one course underneath it (up to
+  // the next heading) is still visible after the search filter above.
+  if(type==='courses'){
+    const children = [...container.children];
+    let pendingHeads = [];
+    let sawVisibleSinceHead = false;
+    const resolvePending = ()=>{
+      pendingHeads.forEach(h=>{ h.style.display = (h.dataset.progHidden!=='1' && sawVisibleSinceHead) ? '' : 'none'; });
+      pendingHeads = [];
+      sawVisibleSinceHead = false;
+    };
+    children.forEach(el=>{
+      if(el.classList.contains('list-group-head')){
+        resolvePending();
+        pendingHeads.push(el);
+      } else if(el.classList.contains('list-item')){
+        if(el.style.display !== 'none') sawVisibleSinceHead = true;
+      }
+    });
+    resolvePending();
+  }
   // Show/hide no-results message (skip if the list itself has no items at all —
   // that case is already covered by the "No courses/faculty yet." placeholder)
   let noRes = container.parentElement.querySelector('.modal-no-results');
@@ -3925,7 +3962,39 @@ function renderModal(){
       </button>
     </div>`;
   };
-  let coursesHtml = lists.courses.map((c,i)=>courseItemHtml(c, i)).join('');
+  let displayOrder = lists.courses.map((c,i)=>i);
+  // Within "fms required from other depts", group courses by department so
+  // a heading (e.g. "Computer Engineering Department") appears above every
+  // course that belongs to it. Courses outside that tab keep their
+  // original order untouched (stable sort only reorders otherDeptFms items
+  // relative to each other).
+  displayOrder.sort((ia, ib)=>{
+    const ca = lists.courses[ia], cb = lists.courses[ib];
+    const pa = courseCodeProgram(ca.code), pb = courseCodeProgram(cb.code);
+    const aIsOther = pa === 'otherDeptFms', bIsOther = pb === 'otherDeptFms';
+    if(aIsOther !== bIsOther) return aIsOther ? 1 : -1; // push otherDeptFms courses into one contiguous block
+    if(aIsOther && bIsOther){
+      const da = effectiveDept(ca) || '\uFFFFOther', db = effectiveDept(cb) || '\uFFFFOther';
+      if(da !== db) return da < db ? -1 : 1;
+    }
+    return 0; // keep original relative order within the same department (or among non-otherDeptFms items)
+  });
+  let coursesHtml = '';
+  let lastDeptHeading = null;
+  displayOrder.forEach(i=>{
+    const c = lists.courses[i];
+    const prog = courseCodeProgram(c.code);
+    if(prog === 'otherDeptFms'){
+      const dept = effectiveDept(c) || 'Other Department';
+      if(dept !== lastDeptHeading){
+        coursesHtml += `<div class="list-group-head" data-prog="otherDeptFms">${escHtml(dept)}</div>`;
+        lastDeptHeading = dept;
+      }
+    } else {
+      lastDeptHeading = null;
+    }
+    coursesHtml += courseItemHtml(c, i);
+  });
   cl.innerHTML = coursesHtml || '<div style="color:var(--muted);font-size:12px;padding:4px 0;">No courses yet.</div>';
   const newCatSel = document.getElementById('newCourseCategory');
   if(newCatSel){
