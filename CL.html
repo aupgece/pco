@@ -985,12 +985,12 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
 
 <!-- ── EE / CE Assigned Course Cards ─────────────────────────────────────── -->
 <div class="stat-cards" id="statCardsProgram" style="padding-top:8px;">
-  <div class="stat-card" id="statTotalAssignedCard" style="border-left:4px solid #6C7A8D;">
+  <div class="stat-card" id="statTotalAssignedCard" style="display:none;border-left:4px solid #6C7A8D;">
     <div class="stat-value teal" id="statTotalAssignedVal">0</div>
     <div class="stat-label">Total Assigned Courses</div>
     <div class="stat-hint">unique courses with a faculty row</div>
   </div>
-  <div class="stat-card" id="statEeAssignedCard" style="border-left:4px solid var(--teal-deep);">
+  <div class="stat-card" id="statEeAssignedCard" style="display:none;border-left:4px solid var(--teal-deep);">
     <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:2px;">
       <span style="font-family:&#39;IBM Plex Mono&#39;,monospace;font-size:10px;font-weight:700;background:#1F5349;color:#A8D8C8;border-radius:4px;padding:2px 7px;letter-spacing:.05em;">EE</span>
       <div class="print-split" id="splitEe">
@@ -3246,9 +3246,10 @@ function renderStatCards(){
   if(!unassignedCourses.length){
     body.innerHTML = '<div class="ua-empty">All courses have been assigned. 🎉</div>';
   } else {
-    let html = '<div class="ua-section-title">Courses not yet assigned to any faculty (' + unassignedCount + ')</div>';
-    html += '<div class="ua-chips">' +
-      unassignedCourses.map(c =>
+    const unassignedLabs = unassignedCourses.filter(c => isLabCourse(c));
+    const unassignedLectures = unassignedCourses.filter(c => !isLabCourse(c));
+    const chipsFor = list => '<div class="ua-chips">' +
+      list.map(c =>
         `<div class="ua-chip">
           <span class="ua-code">${escHtml(c.code||'—')}</span>
           <span>${escHtml(c.name)}</span>
@@ -3256,6 +3257,15 @@ function renderStatCards(){
          </div>`
       ).join('') +
     '</div>';
+    let html = '<div class="ua-section-title">Courses not yet assigned to any faculty (' + unassignedCount + ')</div>';
+    if(unassignedLectures.length){
+      html += '<div class="ua-section-title" style="margin-top:8px;">Courses (' + unassignedLectures.length + ')</div>';
+      html += chipsFor(unassignedLectures);
+    }
+    if(unassignedLabs.length){
+      html += '<div class="ua-section-title" style="margin-top:8px;">Labs (' + unassignedLabs.length + ')</div>';
+      html += chipsFor(unassignedLabs);
+    }
     body.innerHTML = html;
   }
 
@@ -3933,15 +3943,27 @@ function renderUnassigned(q){
   </div>`;
 
   if(uaCourses.length){
-    html += `<div class="unassigned-section">
-      <div class="unassigned-section-title">Courses (${uaCourses.length})</div>
-      <div class="ua-chips">` +
-      uaCourses.map(c=>`<div class="ua-chip">
+    const uaLectures = uaCourses.filter(c=>!isLabCourse(c));
+    const uaLabs = uaCourses.filter(c=>isLabCourse(c));
+    const chipsFor = list => `<div class="ua-chips">` +
+      list.map(c=>`<div class="ua-chip">
         <span class="ua-code">${escHtml(c.code||'—')}</span>
         <span>${escHtml(c.name)}</span>
         ${c.cr!==undefined&&c.cr!=='' ? `<span class="ua-cr">${escHtml(String(c.cr))}cr</span>` : ''}
       </div>`).join('') +
-      `</div></div>`;
+      `</div>`;
+    if(uaLectures.length){
+      html += `<div class="unassigned-section">
+        <div class="unassigned-section-title">Courses (${uaLectures.length})</div>
+        ${chipsFor(uaLectures)}
+      </div>`;
+    }
+    if(uaLabs.length){
+      html += `<div class="unassigned-section">
+        <div class="unassigned-section-title">Labs (${uaLabs.length})</div>
+        ${chipsFor(uaLabs)}
+      </div>`;
+    }
   }
 
   if(uaFms.length){
