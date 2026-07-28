@@ -1531,7 +1531,14 @@ function ensureCourseSections(){
 function getCourseSections(code){
   ensureCourseSections();
   const key = (code||'').trim();
-  if(Object.prototype.hasOwnProperty.call(lists.courseSections, key)) return lists.courseSections[key];
+  if(Object.prototype.hasOwnProperty.call(lists.courseSections, key)){
+    const arr = lists.courseSections[key];
+    // An empty checklist counts as "not using named sections for this
+    // course" — falls through to the plain totalSections count instead of
+    // being treated as an official (and therefore always-full) 0-section list.
+    if(arr && arr.length) return arr;
+    return null;
+  }
   return null;
 }
 function setCourseSections(code, arr){
@@ -2199,15 +2206,25 @@ document.addEventListener('keydown', e=>{
 });
 
 function fmOptions(selectedName){
+  const sel = (selectedName||'').trim();
+  // FMs who already have at least one course assigned somewhere in the
+  // table are hidden from the dropdown — once a course is assigned to an
+  // FM, picking up another course for them happens via the "+ course"
+  // button next to their name, not by re-selecting them here. Their
+  // current row still shows their name as the selected value regardless.
+  const takenNames = new Set(
+    data.filter(r=>(r.code||'').trim()).map(r=>(r.name||'').trim()).filter(Boolean)
+  );
   let opts = `<option value="">— select —</option>`;
   let found = false;
   lists.fms.forEach(f=>{
-    const sel = f.name===(selectedName||'').trim() ? ' selected' : '';
-    if(sel) found = true;
-    opts += `<option value="${escAttr(f.name)}"${sel}>${escHtml(f.name)}</option>`;
+    if(takenNames.has(f.name) && f.name!==sel) return;
+    const isSel = f.name===sel ? ' selected' : '';
+    if(isSel) found = true;
+    opts += `<option value="${escAttr(f.name)}"${isSel}>${escHtml(f.name)}</option>`;
   });
-  if(!found && selectedName){
-    opts += `<option value="${escAttr(selectedName)}" selected>${escHtml(selectedName)}</option>`;
+  if(!found && sel){
+    opts += `<option value="${escAttr(sel)}" selected>${escHtml(sel)}</option>`;
   }
   return opts;
 }
@@ -2428,6 +2445,8 @@ function refreshAllCourseAndSectionDropdowns(){
       if(sel) sel.innerHTML = sectionOptions(r[sf], r.code, r.id, sf);
     });
     applySectionBadge(r.id, r.code);
+    const nameSel = document.querySelector(`select[data-id="${r.id}"][data-field="name"]`);
+    if(nameSel && document.activeElement !== nameSel) nameSel.innerHTML = fmOptions(r.name);
   });
 }
 
