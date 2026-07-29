@@ -904,7 +904,7 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
   </div>
   <button class="btn primary" id="addRowBtn">+ Add row</button>
   <button class="btn" id="manageLists">⚙ Manage Lists</button>
-  <button class="btn" id="exportCsvBtn">Export CSV</button>
+  <button class="btn" id="exportCsvBtn">Export Excel</button>
 </div>
 
 
@@ -930,6 +930,10 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
     <button class="btn" id="btnSection">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 10h16M4 14h16M4 18h16"></path></svg>
       By Section
+    </button>
+    <button class="btn" id="btnCourse">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+      Course-wise
     </button>
   </div>
   <div style="flex:1;"></div>
@@ -1210,6 +1214,16 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
         <div class="table-scroll">
           <table class="sum-table" id="sectionTable">
             <tbody id="sectionBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <!-- Course-wise view -->
+    <div id="summaryCourse" style="display:none;">
+      <div class="card" style="margin-bottom:16px;">
+        <div class="table-scroll">
+          <table class="sum-table" id="courseTable">
+            <tbody id="courseBody"></tbody>
           </table>
         </div>
       </div>
@@ -2343,6 +2357,23 @@ function isLabEngineerDesignation(rank){
   if(!r) return false;
   return r.includes('engineer');             // Lab Engineer, Engineer, etc.
 }
+// Seniority order used for rank-wise sorting (e.g. in the Excel export):
+// Professor > Associate Professor > Assistant Professor > Lecturer > Lab
+// Engineer > anything else > blank. Checked in this specific order because
+// "Associate Professor" and "Assistant Professor" both also contain the
+// substring "professor", so those two must be matched before the generic
+// "professor" check below (which is meant to catch a bare "Professor").
+function rankSortOrder(rank){
+  const r = (rank||'').trim().toLowerCase();
+  if(!r) return 99;
+  if(r.includes('associate')) return 2;
+  if(r.includes('assistant')) return 3;
+  if(/\bap\b/.test(r)) return 3;              // bare "AP" == Assistant Professor
+  if(r.includes('professor')) return 1;       // plain "Professor"
+  if(r.includes('lecturer')) return 4;
+  if(r.includes('engineer')) return 5;
+  return 6;                                   // any other designation
+}
 function calcHrs(r){
   const cr = Number(r.cr);
   if(!cr) return 0;
@@ -2569,6 +2600,7 @@ function renderSummary(){
   renderCompact(list);
   renderDetailSummary(list);
   renderSection();
+  renderCourseSummary();
 }
 
 function renderCompact(list){
@@ -2709,6 +2741,56 @@ function renderSection(){
       </tr>`;
     });
     html += `<tr class="section-total-row"><td colspan="3" style="text-align:right;">Section total</td><td></td><td class="num">${totalHrs}</td></tr>`;
+  });
+  tbody.innerHTML = html;
+}
+
+// ─── COURSE-WISE VIEW ────────────────────────────────────────────────────────
+function computeCourseGroups(){
+  // Build: course (by code, falling back to name) -> [{faculty, rank, sections, cr, contact}]
+  const groups = {}; const order = [];
+  data.forEach(r=>{
+    const key = (r.code && String(r.code).trim()) ? String(r.code).trim() : ((r.course||'').trim() || '(No Code)');
+    if(!groups[key]){ groups[key] = { code: r.code||'', course: r.course||'', rows: [] }; order.push(key); }
+    if(!groups[key].course && r.course) groups[key].course = r.course;
+    groups[key].rows.push(r);
+  });
+  const sorted = [...new Set(order)].sort((a,b)=>{
+    const sp = k => k==='(No Code)' ? 1 : 0;
+    if(sp(a)!==sp(b)) return sp(a)-sp(b);
+    return a.localeCompare(b, undefined, {numeric:true, sensitivity:'base'});
+  });
+  return {groups, sorted};
+}
+
+function renderCourseSummary(){
+  const {groups, sorted} = computeCourseGroups();
+  const tbody = document.getElementById('courseBody');
+  let html = '';
+  sorted.forEach(key=>{
+    const g = groups[key];
+    const rows = g.rows;
+    const totalHrs = rows.reduce((a,r)=> a + (Number(r.contact)||0), 0);
+    const codeLabel = g.code && String(g.code).trim() ? g.code : '';
+    const titleLabel = codeLabel
+      ? `<span style="font-family:'IBM Plex Mono',monospace;font-weight:700;margin-right:6px;">${escHtml(codeLabel)}</span>${escHtml(g.course||'')}`
+      : escHtml(g.course || '(No course)');
+    html += `<tr class="section-group-head"><td colspan="5">${titleLabel}<span style="float:right;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;opacity:.7;">${totalHrs} hrs</span></td></tr>
+    <tr class="col-label-row"><td>Faculty</td><td>Designation</td><td>Sections</td><td class="num">Cr</td><td class="num">Hrs</td></tr>`;
+    rows.forEach(r=>{
+      const sections = [r.s1,r.s2,r.s3].filter(v=>v!==undefined&&v!==null&&String(v).trim()!=='').join(' / ');
+      const cr = (r.cr===undefined||r.cr===null||String(r.cr).trim()==='') ? '—' : r.cr;
+      const contact = (r.contact===undefined||r.contact===null||String(r.contact).trim()==='') ? '—' : r.contact;
+      const displayName = displayFmName ? displayFmName(r.name||'') : (r.name||'').replace(/^(CE|EE)\s*-\s*/i,'').trim();
+      html += `<tr class="section-course-row${r.flag?' flagged':''}">
+        <td>${escHtml(displayName||'—')}</td>
+        <td style="font-size:11.5px;color:var(--muted);">${escHtml(r.rank||'')}</td>
+        <td style="font-size:12px;color:var(--ink-soft);">${escHtml(sections || '—')}</td>
+        <td class="num">${cr}</td>
+        <td class="num" style="font-family:'IBM Plex Mono',monospace;font-weight:600;color:var(--teal-deep);">${contact}</td>
+      </tr>`;
+    });
+    html += `<tr class="section-total-row"><td colspan="3" style="text-align:right;">Course total</td><td></td><td class="num">${totalHrs}</td></tr>`;
   });
   tbody.innerHTML = html;
 }
@@ -3720,13 +3802,16 @@ function setSummaryView(v){
   document.getElementById('summaryCompact').style.display  = v==='compact'  ? '' : 'none';
   document.getElementById('summaryDetail').style.display   = v==='detail'   ? '' : 'none';
   document.getElementById('summarySection').style.display  = v==='section'  ? '' : 'none';
+  document.getElementById('summaryCourse').style.display   = v==='course'   ? '' : 'none';
   document.getElementById('btnCompact').className = 'btn' + (v==='compact' ? ' active-toggle':'');
   document.getElementById('btnDetail').className  = 'btn' + (v==='detail'  ? ' active-toggle':'');
   document.getElementById('btnSection').className = 'btn' + (v==='section' ? ' active-toggle':'');
+  document.getElementById('btnCourse').className  = 'btn' + (v==='course'  ? ' active-toggle':'');
 }
 document.getElementById('btnCompact').addEventListener('click', ()=> setSummaryView('compact'));
 document.getElementById('btnDetail').addEventListener('click',  ()=> setSummaryView('detail'));
 document.getElementById('btnSection').addEventListener('click', ()=> setSummaryView('section'));
+document.getElementById('btnCourse').addEventListener('click',  ()=> setSummaryView('course'));
 
 document.getElementById('btnPrintFaculty').addEventListener('click', printFacultySummary);
 document.getElementById('btnPrintSection').addEventListener('click', printSectionSummary);
@@ -3777,14 +3862,99 @@ document.getElementById('addRowBtn2').addEventListener('click', addRow);
 
 document.getElementById('exportCsvBtn').addEventListener('click', ()=>{
   const headers = ['S.No','Faculty Name','Rank','Course Code','Course Name','Cr Hrs','Section 1','Section 2','Section 3','Tutorial','Contact Hours','Notes'];
-  const esc = v => '"' + String(v===undefined||v===null?'':v).replace(/"/g,'""') + '"';
-  const lines = [headers.map(esc).join(',')];
-  data.forEach(r=>{
-    lines.push([r.sno,r.name,r.rank,r.code,r.course,r.cr,r.s1,r.s2,r.s3,r.tut,r.contact,r.notes].map(esc).join(','));
+  // Group the same way the Faculty Summary tab does, then re-order by
+  // designation seniority: Professor, Associate Professor, Assistant
+  // Professor, Lecturer, Lab Engineer, then anything else. Faculty of the
+  // same rank keep their original S.No order.
+  const groups = computeSummary().slice().sort((a,b)=>{
+    const oa = rankSortOrder(a.rank), ob = rankSortOrder(b.rank);
+    if(oa !== ob) return oa - ob;
+    return (Number(a.sno)||0) - (Number(b.sno)||0);
   });
-  const blob = new Blob([lines.join('\n')], {type:'text/csv'});
+
+  // Column pixel widths, in the same order as `headers`.
+  const colWidths = [42, 190, 130, 95, 230, 55, 75, 75, 75, 65, 90, 200];
+  const colgroup = colWidths.map(w=>`<col style="width:${w}px;">`).join('');
+
+  const thStyle  = 'background:#16243B;color:#ffffff;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.03em;padding:7px 8px;border:1px solid #16243B;text-align:center;vertical-align:middle;';
+  const tdBase   = 'padding:6px 8px;border:1px solid #C8CFEA;font-size:12px;vertical-align:middle;';
+  const tdText   = tdBase + 'text-align:left;';
+  const tdNum    = tdBase + 'text-align:center;';
+  const val = v => (v===undefined||v===null) ? '' : String(v);
+
+  const rankCategoryLabel = order => ({1:'Professor',2:'Associate Professor',3:'Assistant Professor',4:'Lecturer',5:'Lab Engineer',6:'Other',99:'Unspecified'}[order] || 'Other');
+  const catStyle = 'background:#EAE3FB;color:#4D2CB5;font-weight:700;font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;padding:6px 8px;border:1px solid #C8CFEA;';
+
+  let bodyRows = '';
+  let prevOrder = null;
+  groups.forEach((g, gi)=>{
+    const order = rankSortOrder(g.rank);
+    if(order !== prevOrder){
+      bodyRows += `<tr><td colspan="12" style="${catStyle}">${escHtml(rankCategoryLabel(order))}</td></tr>`;
+      prevOrder = order;
+    }
+    const band = gi % 2 === 0 ? '#FFFFFF' : '#F4F6F8';
+    const rowspan = g.rows.length;
+    g.rows.forEach((row, idx)=>{
+      bodyRows += '<tr>';
+      if(idx===0){
+        const displayName = displayFmName ? displayFmName(row.name||'') : (row.name||'');
+        bodyRows += `<td style="${tdNum}background:${band};font-weight:700;" rowspan="${rowspan}">${gi+1}</td>`;
+        bodyRows += `<td style="${tdText}background:${band};font-weight:700;" rowspan="${rowspan}">${escHtml(displayName)}</td>`;
+        bodyRows += `<td style="${tdText}background:${band};" rowspan="${rowspan}">${escHtml(val(row.rank))}</td>`;
+      }
+      bodyRows += `<td style="${tdText}background:${band};">${escHtml(val(row.code))}</td>`;
+      bodyRows += `<td style="${tdText}background:${band};">${escHtml(val(row.course))}</td>`;
+      bodyRows += `<td style="${tdNum}background:${band};">${escHtml(val(row.cr))}</td>`;
+      bodyRows += `<td style="${tdNum}background:${band};">${escHtml(val(row.s1))}</td>`;
+      bodyRows += `<td style="${tdNum}background:${band};">${escHtml(val(row.s2))}</td>`;
+      bodyRows += `<td style="${tdNum}background:${band};">${escHtml(val(row.s3))}</td>`;
+      bodyRows += `<td style="${tdNum}background:${band};">${escHtml(val(row.tut))}</td>`;
+      bodyRows += `<td style="${tdNum}background:${band};font-weight:700;color:#4D2CB5;">${escHtml(val(row.contact))}</td>`;
+      bodyRows += `<td style="${tdText}background:${band};">${escHtml(val(row.notes))}</td>`;
+      bodyRows += '</tr>';
+    });
+    // Group total row under each faculty member's block
+    const groupTotal = g.rows.reduce((a,r)=>a+(Number(r.contact)||0),0);
+    bodyRows += `<tr>
+      <td colspan="10" style="${tdText}background:#EDEFF6;font-weight:700;text-align:right;">Total — ${escHtml(displayFmName?displayFmName(g.name||''):(g.name||''))}</td>
+      <td style="${tdNum}background:#EDEFF6;font-weight:700;color:#4D2CB5;">${groupTotal}</td>
+      <td style="${tdText}background:#EDEFF6;"></td>
+    </tr>`;
+  });
+
+  const headHtml = headers.map(h=>`<th style="${thStyle}">${escHtml(h)}</th>`).join('');
+  const grandTotal = groups.reduce((a,g)=>a+g.rows.reduce((s,r)=>s+(Number(r.contact)||0),0),0);
+
+  const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+<head>
+<meta charset="UTF-8">
+<!--[if gte mso 9]><xml>
+<x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet>
+<x:Name>Faculty Load</x:Name>
+<x:WorksheetOptions><x:DisplayGridlines/><x:Panes><x:Pane><x:Number>3</x:Number><x:ActiveRow>1</x:ActiveRow></x:Pane></x:Panes><x:FreezePanes/><x:FrozenNoSplit/></x:WorksheetOptions>
+</x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook>
+</xml><![endif]-->
+<style>
+  table{border-collapse:collapse;font-family:Calibri,Arial,sans-serif;}
+  caption{text-align:left;font-family:Calibri,Arial,sans-serif;font-size:15px;font-weight:700;color:#16243B;padding:0 0 6px 2px;}
+</style>
+</head>
+<body>
+<table>
+  <caption>EE Faculty Workload — Spring 2026 &nbsp;·&nbsp; Generated ${new Date().toLocaleDateString()} &nbsp;·&nbsp; Grand Total: ${grandTotal} hrs</caption>
+  <colgroup>${colgroup}</colgroup>
+  <thead><tr>${headHtml}</tr></thead>
+  <tbody>${bodyRows}</tbody>
+</table>
+</body>
+</html>`;
+
+  const blob = new Blob(['\ufeff'+html], {type:'application/vnd.ms-excel'});
   const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob); a.download='ee-faculty-load-'+new Date().toISOString().slice(0,10)+'.csv'; a.click();
+  a.href = URL.createObjectURL(blob);
+  a.download = 'ee-faculty-load-'+new Date().toISOString().slice(0,10)+'.xls';
+  a.click();
 });
 
 // ─── MANAGE LISTS MODAL ───────────────────────────────────────────────────────
