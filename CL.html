@@ -7,7 +7,7 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
 </style>
 
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-<title>EE Faculty Workload — Spring 2026</title>
+<title>EE Faculty Workload — Fall 2026</title>
 <link rel="preconnect" href="https://fonts.googleapis.com/">
 <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600;8..60,700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -2846,9 +2846,9 @@ function printFacultySummary(){
     return header + courses;
   }).join('');
 
-  const html = `<!doctype html><html><head><meta charset="utf-8"><title>Faculty Summary — EE Spring 2026</title><style>${PRINT_CSS}</style></head><body>
+  const html = `<!doctype html><html><head><meta charset="utf-8"><title>Faculty Summary — EE Fall 2026</title><style>${PRINT_CSS}</style></head><body>
     <h1>Faculty Workload Summary</h1>
-    <div class="sub">Department of Electrical Engineering &nbsp;·&nbsp; Spring 2026 &nbsp;·&nbsp; Generated ${new Date().toLocaleDateString()}</div>
+    <div class="sub">Department of Electrical Engineering &nbsp;·&nbsp; Fall 2026 &nbsp;·&nbsp; Generated ${new Date().toLocaleDateString()}</div>
     <table>
       <tbody>${rows}</tbody>
       <tfoot><tr class="grand"><td colspan="3">GRAND TOTAL</td><td class="num">${calcSum}</td></tr></tfoot>
@@ -2879,9 +2879,9 @@ function printSectionSummary(){
     rows += `<tr class="sec-total"><td colspan="2" style="text-align:right;color:#8A93A3;">Total</td><td></td><td class="num">${totalHrs}</td></tr>`;
   });
 
-  const html = `<!doctype html><html><head><meta charset="utf-8"><title>Section-wise Summary — EE Spring 2026</title><style>${PRINT_CSS}</style></head><body>
+  const html = `<!doctype html><html><head><meta charset="utf-8"><title>Section-wise Summary — EE Fall 2026</title><style>${PRINT_CSS}</style></head><body>
     <h1>Section-wise Workload Summary</h1>
-    <div class="sub">Department of Electrical Engineering &nbsp;·&nbsp; Spring 2026 &nbsp;·&nbsp; Generated ${new Date().toLocaleDateString()}</div>
+    <div class="sub">Department of Electrical Engineering &nbsp;·&nbsp; Fall 2026 &nbsp;·&nbsp; Generated ${new Date().toLocaleDateString()}</div>
     <table>
       <tbody>${rows}</tbody>
     </table>
@@ -3942,7 +3942,7 @@ document.getElementById('exportCsvBtn').addEventListener('click', ()=>{
 </head>
 <body>
 <table>
-  <caption>EE Faculty Workload — Spring 2026 &nbsp;·&nbsp; Generated ${new Date().toLocaleDateString()} &nbsp;·&nbsp; Grand Total: ${grandTotal} hrs</caption>
+  <caption>EE Faculty Workload — Fall 2026 &nbsp;·&nbsp; Generated ${new Date().toLocaleDateString()} &nbsp;·&nbsp; Grand Total: ${grandTotal} hrs</caption>
   <colgroup>${colgroup}</colgroup>
   <thead><tr>${headHtml}</tr></thead>
   <tbody>${bodyRows}</tbody>
