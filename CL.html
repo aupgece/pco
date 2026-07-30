@@ -2595,7 +2595,18 @@ function computeSummary(){
     if(!isNaN(c)) groups[key].total += c;
     groups[key].rows.push(r);
   });
-  return Object.values(groups).sort((a,b)=>(Number(a.sno)||0)-(Number(b.sno)||0));
+  // Rank-wise: Professor > Associate Professor > Assistant Professor >
+  // Lecturer > Lab Engineer > Other > Unspecified. Faculty of the same
+  // rank keep their original relative order.
+  const list = Object.values(groups).sort((a,b)=>{
+    const ra = rankSortOrder(a.rank), rb = rankSortOrder(b.rank);
+    if(ra !== rb) return ra - rb;
+    return (Number(a.sno)||0)-(Number(b.sno)||0);
+  });
+  // Renumber S.No sequentially (1,2,3…) to match the new rank-wise order,
+  // so the displayed/printed numbering always reads in clean sequence.
+  list.forEach((g,i)=>{ g.sno = i+1; });
+  return list;
 }
 
 function renderSummary(){
@@ -2715,6 +2726,11 @@ function computeSectionGroups(){
     if(special(a) !== special(b)) return special(a) - special(b);
     return a.localeCompare(b);
   });
+  // Within each section, list faculty rank-wise (Professor > Associate
+  // Professor > Assistant Professor > Lecturer > Lab Engineer > Other).
+  sorted.forEach(sec=>{
+    groups[sec].sort((a,b)=> rankSortOrder(a.rank) - rankSortOrder(b.rank));
+  });
   return {groups, sorted};
 }
 
@@ -2762,6 +2778,10 @@ function computeCourseGroups(){
     const sp = k => k==='(No Code)' ? 1 : 0;
     if(sp(a)!==sp(b)) return sp(a)-sp(b);
     return a.localeCompare(b, undefined, {numeric:true, sensitivity:'base'});
+  });
+  // Within each course, list the assigned faculty rank-wise.
+  sorted.forEach(key=>{
+    groups[key].rows.sort((a,b)=> rankSortOrder(a.rank) - rankSortOrder(b.rank));
   });
   return {groups, sorted};
 }
@@ -2962,7 +2982,14 @@ function buildFacultyView(prefix){
     const c = Number(r.contact); if(!isNaN(c)) groups[key].total += c;
     groups[key].rows.push(r);
   });
-  const list = Object.values(groups).sort((a,b)=>(Number(a.sno)||0)-(Number(b.sno)||0));
+  // Rank-wise, same-rank faculty keep their original relative order.
+  const list = Object.values(groups).sort((a,b)=>{
+    const ra = rankSortOrder(a.rank), rb = rankSortOrder(b.rank);
+    if(ra !== rb) return ra - rb;
+    return (Number(a.sno)||0)-(Number(b.sno)||0);
+  });
+  // Renumber S.No sequentially to match the new rank-wise order.
+  list.forEach((g,i)=>{ g.sno = i+1; });
   if(!list.length) return { html:'<p style="color:#8A93A3;font-style:italic;">No assignments found.</p>', summary:'' };
   const calcSum = list.reduce((a,g)=>a+g.total,0);
   const uniqueCodes = new Set(filteredData.map(r=>(r.code||'').trim()).filter(Boolean));
@@ -3007,6 +3034,10 @@ function buildSectionView(prefix){
     const sp = s=>s==='(No Section)'?1:0;
     if(sp(a)!==sp(b)) return sp(a)-sp(b);
     return a.localeCompare(b);
+  });
+  // Within each section, list faculty rank-wise.
+  sorted.forEach(sec=>{
+    groups[sec].sort((a,b)=> rankSortOrder(a.rank) - rankSortOrder(b.rank));
   });
   const uniqueCodes = new Set(filteredData.map(r=>(r.code||'').trim()).filter(Boolean));
   const totalHrsAll = filteredData.reduce((a,r)=>a+(Number(r.contact)||0),0);
@@ -3083,7 +3114,7 @@ function buildCategoryAssignedFmView(categoryKey){
       sectionsCell = '—';
     }
     const fmCell = matches.length
-      ? matches.map(r=>{
+      ? matches.slice().sort((a,b)=> rankSortOrder(a.rank) - rankSortOrder(b.rank)).map(r=>{
           return `${escHtml(displayFmName(r.name||''))}` +
             (r.rank ? ` <span style="color:#8A93A3;font-size:8pt;">(${escHtml(r.rank)})</span>` : '');
         }).join('<hr style="border:none;border-top:1px solid #E3E7EC;margin:4px 0;">')
