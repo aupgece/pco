@@ -1269,6 +1269,7 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
           <input type="number" id="newCourseCr" placeholder="Cr" min="0" max="9" step="1" title="Credit hours">
           <input type="number" id="newCourseSections" placeholder="Sections" min="0" step="1" title="Number of sections offered">
           <select id="newCourseCategory" title="Tab / category"></select>
+          <input type="text" id="newCourseSectionNames" placeholder="Section / class names e.g. BCE-F-26-A, BCE-F-26-B" title="Comma-separated section/class names (e.g. BCE-F-26-A) — shown for the FMs Demand by Other Depts tab" style="display:none; grid-column:1 / -1;">
         </div>
         <div style="margin-top:8px; display:flex; gap:8px; align-items:center;">
           <button class="btn primary" id="addCourseBtn">+ Add Course</button>
@@ -1379,8 +1380,11 @@ BEET-F-24-A"></textarea>
       <button class="modal-close" id="courseSectionsModalClose">×</button>
     </div>
     <div class="modal-body" style="padding:16px 22px;overflow:auto;">
-      <p style="color:#6C7A8D;font-size:13px;margin-bottom:12px;">Check every section this course is offered to. This drives the section count and codes shown in reports, and which sections appear first when assigning faculty.</p>
+      <p id="courseSectionsModalDesc" style="color:#6C7A8D;font-size:13px;margin-bottom:12px;">Check every section this course is offered to. This drives the section count and codes shown in reports, and which sections appear first when assigning faculty.</p>
       <div id="courseSectionsCheckboxList" style="display:flex;flex-direction:column;gap:6px;max-height:50vh;overflow:auto;"></div>
+      <div id="courseSectionsFreeTextWrap" style="display:none;">
+        <input type="text" id="courseSectionsFreeTextInput" placeholder="e.g. BCE-F-26-A, BCE-F-26-B" style="width:100%;">
+      </div>
     </div>
     <div class="modal-foot" style="display:flex;justify-content:flex-end;gap:8px;padding:12px 22px;border-top:1px solid #E3E7EC;">
       <button class="btn" id="courseSectionsModalCancel">Cancel</button>
@@ -3282,14 +3286,24 @@ function renderStatCards(){
   const courseListKey = c => (c.code||'').trim() || (c.name||'').trim();
   const dataRowCourseKey = r => (r.code||'').trim() || (r.course||'').trim();
 
-  // Count unique courses in master list
-  const totalCourses = lists.courses.length;
+  // Total/Unassigned cards only count EE-code courses, plus courses living
+  // in the "FMs Demand by Other Depts" tab (those represent teaching demand
+  // placed on EE faculty even though their codes belong to other depts).
+  // Courses filed under "fms required from other depts" or any other
+  // non-EE tab are excluded from these two cards.
+  const isCountedCourse = c => {
+    const prog = courseCodeProgram(c.code);
+    return prog === 'EE' || prog === 'otherDeptDemand';
+  };
+
+  // Count unique courses in master list (EE + other-dept-demand only)
+  const totalCourses = lists.courses.filter(isCountedCourse).length;
 
   // Build a set of keys from data rows (code preferred, name fallback)
   const assignedCodes = new Set(data.map(r => dataRowCourseKey(r)).filter(Boolean));
 
-  // Unassigned = courses IN the master list not matched by any data row
-  const unassignedCourses = lists.courses.filter(c => !assignedCodes.has(courseListKey(c)));
+  // Unassigned = counted courses IN the master list not matched by any data row
+  const unassignedCourses = lists.courses.filter(c => isCountedCourse(c) && !assignedCodes.has(courseListKey(c)));
   const unassignedCount = unassignedCourses.length;
   // Unassigned is derived from the master list, so assigned-from-list is simply:
   const assignedFromListCount = totalCourses - unassignedCount;
@@ -3745,18 +3759,39 @@ document.querySelectorAll('.summary-tab-edit').forEach(el=>{
 // drives the section codes/counts shown in reports and the preferred group
 // in the FM-assignment section dropdown.
 let courseSectionsEditingIdx = null;
+let courseSectionsEditorMode = 'checklist'; // 'checklist' | 'freetext'
 function openCourseSectionsEditor(i){
   const c = lists.courses[i];
   if(!c) return;
   courseSectionsEditingIdx = i;
   document.getElementById('courseSectionsModalTitle').textContent = 'Sections — ' + (c.code || c.name || '');
-  const current = new Set(getCourseSections(c.code) || []);
-  const box = document.getElementById('courseSectionsCheckboxList');
-  box.innerHTML = (lists.sections||[]).map(s=>`
-    <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;">
-      <input type="checkbox" class="cs-check" value="${escAttr(s)}" ${current.has(s)?'checked':''}>
-      <span style="font-family:'IBM Plex Mono',monospace;">${escHtml(s)}</span>
-    </label>`).join('') || '<p style="color:#8A93A3;font-size:13px;">No sections defined yet — add some under Manage Lists → Sections first.</p>';
+  const prog = courseCodeProgram(c.code);
+  const desc = document.getElementById('courseSectionsModalDesc');
+  const checkWrap = document.getElementById('courseSectionsCheckboxList');
+  const freeWrap = document.getElementById('courseSectionsFreeTextWrap');
+  const freeInput = document.getElementById('courseSectionsFreeTextInput');
+  if(prog === 'otherDeptDemand'){
+    // Courses in "FMs Demand by Other Depts" belong to other departments,
+    // so there's no official pool in lists.sections to check against —
+    // type the class/section names directly instead (e.g. BCE-F-26-A).
+    courseSectionsEditorMode = 'freetext';
+    desc.textContent = 'Type the section/class names this course is offered to (comma-separated), e.g. BCE-F-26-A, BCE-F-26-B.';
+    checkWrap.style.display = 'none';
+    freeWrap.style.display = '';
+    freeInput.value = (c.sectionNames || []).join(', ');
+    setTimeout(()=>freeInput.focus(), 0);
+  } else {
+    courseSectionsEditorMode = 'checklist';
+    desc.textContent = 'Check every section this course is offered to. This drives the section count and codes shown in reports, and which sections appear first when assigning faculty.';
+    freeWrap.style.display = 'none';
+    checkWrap.style.display = '';
+    const current = new Set(getCourseSections(c.code) || []);
+    checkWrap.innerHTML = (lists.sections||[]).map(s=>`
+      <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;">
+        <input type="checkbox" class="cs-check" value="${escAttr(s)}" ${current.has(s)?'checked':''}>
+        <span style="font-family:'IBM Plex Mono',monospace;">${escHtml(s)}</span>
+      </label>`).join('') || '<p style="color:#8A93A3;font-size:13px;">No sections defined yet — add some under Manage Lists → Sections first.</p>';
+  }
   document.getElementById('courseSectionsModalOverlay').classList.add('open');
 }
 // Applies whatever is currently checked in the Sections editor to the
@@ -3777,12 +3812,38 @@ function applyCourseSectionsFromCheckboxes(){
   scheduleSave(true);
   renderModal(); renderDetail(); renderStatCards();
 }
+// Same idea as applyCourseSectionsFromCheckboxes(), but for the free-text
+// mode used by "FMs Demand by Other Depts" courses — stores the typed
+// names on c.sectionNames and keeps totalSections in sync.
+function applyOtherDeptSectionNamesFromInput(){
+  if(courseSectionsEditingIdx===null) return;
+  const c = lists.courses[courseSectionsEditingIdx];
+  if(!c) return;
+  const raw = document.getElementById('courseSectionsFreeTextInput').value;
+  const names = raw.split(',').map(s=>s.trim()).filter(Boolean);
+  if(names.length){
+    c.sectionNames = names;
+    c.totalSections = names.length;
+  } else {
+    delete c.sectionNames;
+    c.totalSections = undefined;
+  }
+  // getCourseSections()/the FM-assignment section dropdown read from
+  // lists.courseSections, not c.sectionNames — sync it here too, or the
+  // dropdown keeps falling back to showing every section in lists.sections
+  // (since it finds no official mapping) even after names are typed above.
+  setCourseSections(c.code, names);
+  scheduleSave(true);
+  renderModal(); renderDetail(); renderStatCards();
+}
 document.getElementById('courseSectionsCheckboxList').addEventListener('change', (e)=>{
   if(e.target.classList && e.target.classList.contains('cs-check')) applyCourseSectionsFromCheckboxes();
 });
+document.getElementById('courseSectionsFreeTextInput').addEventListener('input', applyOtherDeptSectionNamesFromInput);
 document.getElementById('courseSectionsModalSave').addEventListener('click', ()=>{
   if(courseSectionsEditingIdx===null) return;
-  applyCourseSectionsFromCheckboxes();
+  if(courseSectionsEditorMode === 'freetext') applyOtherDeptSectionNamesFromInput();
+  else applyCourseSectionsFromCheckboxes();
   document.getElementById('courseSectionsModalOverlay').classList.remove('open');
   courseSectionsEditingIdx = null;
 });
@@ -4100,8 +4161,22 @@ document.getElementById('courseSubtabs').addEventListener('click', (e)=>{
       const validValue = [...newCatSel.options].some(o=>o.value===courseSubtab);
       newCatSel.value = validValue ? courseSubtab : 'auto';
     }
+    updateNewCourseSectionNamesVisibility();
   }
 });
+
+// Shows the free-text "Section / class names" field on the Add Course form
+// only when adding into the "FMs Demand by Other Depts" tab — courses there
+// belong to other departments, so there's no official section list to pick
+// from (see the "otherDeptDemand" branch in courseItemHtml), and admins
+// instead type the class names directly, e.g. BCE-F-26-A.
+function updateNewCourseSectionNamesVisibility(){
+  const catSel = document.getElementById('newCourseCategory');
+  const field = document.getElementById('newCourseSectionNames');
+  if(!catSel || !field) return;
+  field.style.display = (catSel.value === 'otherDeptDemand') ? '' : 'none';
+}
+document.getElementById('newCourseCategory')?.addEventListener('change', updateNewCourseSectionNamesVisibility);
 
 // Tabs no longer use a code prefix — courses are filed into a tab by an
 // explicit "category" chosen when the course is added/edited (see
@@ -4286,7 +4361,9 @@ function renderModal(){
         ${eDept ? `<span class="cr-badge" style="background:${c.dept?'#5C4A9E':'#9C8FC7'};color:#fff;" title="${c.dept?'Department':'Department (auto-detected from code prefix — edit to override)'}">${escHtml(eDept)}</span>` : ''}
         ${(c.cr!==undefined&&c.cr!=='') ? `<span class="cr-badge">${escHtml(String(c.cr))} cr</span>` : ''}
         ${prog === 'otherDeptDemand'
-          ? ((c.totalSections!==undefined && c.totalSections!=='') ? `<span class="cr-badge" style="background:#2A6F62;color:#fff;" title="Section count only — no mapping for this tab">${escHtml(String(c.totalSections))} Sections</span>` : '')
+          ? ((c.sectionNames && c.sectionNames.length)
+              ? `<span class="cr-badge" onclick="openCourseSectionsEditor(${i})" title="Edit section/class names" style="background:#2A6F62;color:#fff;cursor:pointer;">⚏ ${c.sectionNames.length} Sections: ${escHtml(c.sectionNames.join(', '))}</span>`
+              : `<span class="cr-badge" onclick="openCourseSectionsEditor(${i})" title="Add section/class names" style="background:#2A6F62;color:#fff;cursor:pointer;">⚏ ${(c.totalSections!==undefined && c.totalSections!=='') ? escHtml(String(c.totalSections)) : 0} Sections</span>`)
           : (()=>{ const os = getCourseSections(c.code); return `<span class="cr-badge" onclick="openCourseSectionsEditor(${i})" title="Edit which sections belong to this course" style="background:#2A6F62;color:#fff;cursor:pointer;">⚏ ${os ? os.length : 0} Sections</span>`; })()}
       </div>
       <div class="inline-edit-row" id="ci-edit-${i}" style="display:none;">
@@ -4295,6 +4372,7 @@ function renderModal(){
         <select class="ci-dept" data-idx="${i}" title="Department that owns this course" style="max-width:150px;">${deptOptionsHtml(c.dept||'')}</select>
         <input class="ci-cr cr-input" data-idx="${i}" type="number" min="0" max="9" placeholder="Cr" value="${escAttr(c.cr!==undefined?c.cr:'')}">
         <input class="ci-sections cr-input" data-idx="${i}" type="number" min="0" placeholder="Sec" title="Number of sections" value="${escAttr(c.totalSections!==undefined?c.totalSections:'')}">
+        ${prog === 'otherDeptDemand' ? `<input class="ci-sectionnames" data-idx="${i}" type="text" placeholder="Section/class names e.g. BCE-F-26-A, BCE-F-26-B" title="Comma-separated section/class names" style="min-width:220px;flex:1;" value="${escAttr((c.sectionNames||[]).join(', '))}">` : ''}
         <select class="ci-category" data-idx="${i}" title="Tab / category">${categoryOptionsHtml(c.category)}</select>
         <button class="save-btn" data-idx="${i}" onclick="saveCourse(${i})">Save</button>
         <button class="cancel-btn" onclick="cancelCourseEdit(${i})">✕</button>
@@ -4346,6 +4424,7 @@ function renderModal(){
     const keep = newCatSel.value || 'auto';
     newCatSel.innerHTML = categoryOptionsHtml(keep);
   }
+  updateNewCourseSectionNamesVisibility();
   const newDeptSel = document.getElementById('newCourseDept');
   if(newDeptSel && !newDeptSel.options.length){
     newDeptSel.innerHTML = deptOptionsHtml('');
@@ -4510,17 +4589,28 @@ function saveCourse(i){
   const crRaw = document.querySelector(`#ci-edit-${i} .ci-cr`).value.trim();
   const cr = crRaw !== '' ? Number(crRaw) : '';
   const secRaw = document.querySelector(`#ci-edit-${i} .ci-sections`).value.trim();
-  const totalSections = secRaw !== '' ? Number(secRaw) : undefined;
+  let totalSections = secRaw !== '' ? Number(secRaw) : undefined;
   const catRaw = document.querySelector(`#ci-edit-${i} .ci-category`)?.value || 'auto';
   const category = catRaw !== 'auto' ? catRaw : undefined;
+  const secNamesEl = document.querySelector(`#ci-edit-${i} .ci-sectionnames`);
+  const sectionNames = secNamesEl ? secNamesEl.value.split(',').map(s=>s.trim()).filter(Boolean) : undefined;
   if(!code && !name){ alert('Enter a code or name.'); return; }
   // Check duplicate excluding self
   if(lists.courses.some((c,j)=>j!==i && c.code===code && c.name===name)){ alert('Already exists.'); return; }
   const updatedCourse = {code, name, dept, cr};
+  if(sectionNames !== undefined){
+    if(sectionNames.length){
+      updatedCourse.sectionNames = sectionNames;
+      if(totalSections === undefined) totalSections = sectionNames.length;
+    }
+  }
   if(totalSections !== undefined) updatedCourse.totalSections = totalSections;
   if(category !== undefined) updatedCourse.category = category;
   lists.courses[i] = updatedCourse;
   lists.courses.sort((a,b)=>a.code.localeCompare(b.code));
+  // Keep lists.courseSections (what the FM-assignment dropdown actually
+  // reads) in sync with sectionNames typed here.
+  if(sectionNames !== undefined) setCourseSections(code, sectionNames);
   scheduleSave(true); renderModal(); renderDetail(); renderStatCards();
 }
 
@@ -4574,22 +4664,33 @@ document.getElementById('addCourseBtn').addEventListener('click', ()=>{
   const crRaw = document.getElementById('newCourseCr').value.trim();
   const cr = crRaw !== '' ? Number(crRaw) : '';
   const secRaw = document.getElementById('newCourseSections').value.trim();
-  const totalSections = secRaw !== '' ? Number(secRaw) : undefined;
+  let totalSections = secRaw !== '' ? Number(secRaw) : undefined;
   const catRaw = document.getElementById('newCourseCategory')?.value || 'auto';
   const category = catRaw !== 'auto' ? catRaw : undefined;
+  // Free-text class/section names (e.g. "BCE-F-26-A, BCE-F-26-B") — only
+  // meaningful for the "FMs Demand by Other Depts" tab, where there's no
+  // official section list to pick from (see updateNewCourseSectionNamesVisibility).
+  const secNamesRaw = document.getElementById('newCourseSectionNames')?.value.trim() || '';
+  const sectionNames = secNamesRaw ? secNamesRaw.split(',').map(s=>s.trim()).filter(Boolean) : undefined;
   if(!code && !name){ alert('Please enter at least a course code or name.'); return; }
   if(lists.courses.some(c=>c.code===code && c.name===name)){ alert('Already exists.'); return; }
   const newCourse = {code, name, dept, cr};
+  if(sectionNames && sectionNames.length){
+    newCourse.sectionNames = sectionNames;
+    if(totalSections === undefined) totalSections = sectionNames.length;
+  }
   if(totalSections !== undefined) newCourse.totalSections = totalSections;
   if(category !== undefined) newCourse.category = category;
   lists.courses.push(newCourse);
   lists.courses.sort((a,b)=>a.code.localeCompare(b.code));
+  if(sectionNames && sectionNames.length) setCourseSections(code, sectionNames);
   document.getElementById('newCourseCode').value='';
   document.getElementById('newCourseName').value='';
   document.getElementById('newCourseDept').value='';
   document.getElementById('newCourseDept').dataset.userEdited='';
   document.getElementById('newCourseCr').value='';
   document.getElementById('newCourseSections').value='';
+  document.getElementById('newCourseSectionNames').value='';
   scheduleSave(true); renderModal(); renderDetail(); renderStatCards();
 });
 
