@@ -3342,7 +3342,16 @@ function renderStatCards(){
   // FMs assigned / not assigned — only counts teaching faculty (AP / Professor /
   // Lecturer). Lab Engineers and any other designation are excluded here and
   // counted separately below.
-  const assignedFmNames = new Set(data.map(r=>(r.name||'').trim()).filter(Boolean));
+  // A row only counts toward "assigned" if it actually has a course/code OR
+  // at least one section filled in — a bare row with an FM name but no
+  // course and no sections (e.g. a freshly added, still-empty row) must not
+  // make that FM count as assigned.
+  const rowHasCourseOrSection = r => {
+    const courseFilled = (r.code||'').trim() || (r.course||'').trim();
+    const sectionFilled = [r.s1,r.s2,r.s3].some(v=>v!==undefined && v!==null && String(v).trim()!=='');
+    return !!(courseFilled || sectionFilled);
+  };
+  const assignedFmNames = new Set(data.filter(rowHasCourseOrSection).map(r=>(r.name||'').trim()).filter(Boolean));
   const teachingFms = lists.fms.filter(f=>isTeachingDesignation(f.rank));
   const fmAssignedCount = teachingFms.filter(f=>assignedFmNames.has((f.name||'').trim())).length;
   const fmNotAssignedList = teachingFms.filter(f=>!assignedFmNames.has((f.name||'').trim()));
@@ -4526,6 +4535,7 @@ function renderModal(){
         if(removedVal){
           lists.removedSections = lists.removedSections || [];
           if(!lists.removedSections.includes(removedVal)) lists.removedSections.push(removedVal);
+          clearSectionFromData(removedVal);
         }
       }
       scheduleSave(true);
@@ -4551,6 +4561,20 @@ function renderModal(){
   document.querySelectorAll('.course-cb').forEach(cb=>cb.addEventListener('change',()=>updateBulkBar('course-cb','bulkDelBarCourse','bulkDelCountCourse')));
   document.querySelectorAll('.fm-cb').forEach(cb=>cb.addEventListener('change',()=>updateBulkBar('fm-cb','bulkDelBarFm','bulkDelCountFm')));
   document.querySelectorAll('.sec-cb').forEach(cb=>cb.addEventListener('change',()=>updateBulkBar('sec-cb','bulkDelBarSec','bulkDelCountSec')));
+}
+
+// Remove a deleted section value from every data row's s1/s2/s3 fields, so
+// FMs who had that section assigned no longer show it once it's removed
+// from the master Sections list.
+function clearSectionFromData(val){
+  if(!val) return;
+  const v = String(val).trim();
+  if(!v) return;
+  data.forEach(r=>{
+    ['s1','s2','s3'].forEach(f=>{
+      if(r[f] && String(r[f]).trim() === v) r[f] = '';
+    });
+  });
 }
 
 // ── Bulk delete & select-all wiring ─────────────────────────────────────────
@@ -4584,6 +4608,7 @@ function wireBulkDel(doId, cancelId, cbClass, listKey, barId){
       if(listKey === 'sections' && removedVal){
         lists.removedSections = lists.removedSections || [];
         if(!lists.removedSections.includes(removedVal)) lists.removedSections.push(removedVal);
+        clearSectionFromData(removedVal);
       }
       if(listKey === 'courses' && removedVal && removedVal.code){
         lists.removedCourses = lists.removedCourses || [];
