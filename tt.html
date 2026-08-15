@@ -1052,8 +1052,7 @@ function renderRooms(){
 
 // ---------- ADMIN ACCESS ----------
 const ADMIN_PASSWORD = 'tt2026';
-let isAdmin = false;
-try{ isAdmin = (localStorage.getItem('tt_isAdmin') === '1'); }catch(e){ console.warn('Admin login storage unavailable:', e); }
+let isAdmin = false; // resets every page load/refresh — must log in again each time
 function updateAdminUI(){
   document.getElementById('updateTabBtn').style.display = isAdmin ? '' : 'none';
   document.getElementById('adminLoginBtn').textContent = isAdmin ? 'Admin ✓' : 'Admin';
@@ -1064,7 +1063,6 @@ function requireAdmin(){
   if(pw === null) return false;
   if(pw === ADMIN_PASSWORD){
     isAdmin = true;
-    try{ localStorage.setItem('tt_isAdmin', '1'); }catch(e){ console.warn('Could not save admin login:', e); }
     updateAdminUI();
     return true;
   }
