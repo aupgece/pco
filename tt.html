@@ -1,0 +1,1374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Air University — CS/SE Timetable</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<style>
+:root{
+  --navy:#0f2a3f;
+  --navy-2:#173c57;
+  --paper:#f3f1ea;
+  --card:#ffffff;
+  --line:#dcd7c8;
+  --ink:#1b2430;
+  --muted:#6b7280;
+  --lecture:#1f6f5c;
+  --lecture-bg:#e4f1ec;
+  --lab:#b5651d;
+  --lab-bg:#faeee0;
+  --free:#e7f4e9;
+  --free-ink:#2e7d32;
+  --busy-bg:#fdeeee;
+  --busy-ink:#a33;
+  --amber:#c47f2c;
+  --mono:"IBM Plex Mono",Menlo,Consolas,monospace;
+  --sans:"IBM Plex Sans","Segoe UI",system-ui,sans-serif;
+}
+*{box-sizing:border-box;}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);padding-bottom:60px;}
+header{
+  background:var(--navy);
+  color:#fff;
+  padding:20px 20px 16px;
+}
+header .top{
+  max-width:1100px;margin:0 auto;
+  display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:8px;
+}
+header h1{margin:0;font-size:1.3rem;letter-spacing:-0.01em;}
+header .sub{font-family:var(--mono);font-size:0.72rem;color:#a9c4d6;text-transform:uppercase;letter-spacing:.06em;}
+nav{max-width:1100px;margin:14px auto 0;display:flex;gap:6px;flex-wrap:wrap;}
+nav button{
+  background:transparent;border:1px solid rgba(255,255,255,0.25);color:#dfe8ee;
+  padding:8px 14px;border-radius:7px;font-family:var(--sans);font-size:0.83rem;font-weight:600;cursor:pointer;
+}
+nav button.active{background:#fff;color:var(--navy);border-color:#fff;}
+main{max-width:1100px;margin:0 auto;padding:20px;}
+.view{display:none;}
+.view.active{display:block;}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:20px;margin-bottom:16px;}
+h2{margin-top:0;font-size:1.05rem;}
+.controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:16px;}
+select, input[type=text]{
+  font-family:var(--sans);font-size:0.85rem;padding:8px 10px;border:1px solid var(--line);border-radius:6px;background:#fff;color:var(--ink);
+}
+label.field{font-size:0.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:4px;}
+.field-wrap{display:flex;flex-direction:column;gap:4px;}
+button.btn{
+  font-family:var(--sans);font-weight:600;font-size:0.83rem;border:1px solid var(--navy);background:var(--navy);color:#fff;
+  padding:9px 16px;border-radius:6px;cursor:pointer;
+}
+button.btn.secondary{background:transparent;color:var(--navy);}
+button.btn:hover{opacity:.88;}
+button.btn.small{padding:5px 10px;font-size:0.75rem;}
+
+table.grid{border-collapse:collapse;width:100%;font-size:0.78rem;table-layout:fixed;}
+table.grid th, table.grid td{border:1px solid var(--line);padding:6px;vertical-align:top;}
+table.grid th{background:var(--navy);color:#fff;font-weight:600;font-size:0.72rem;text-align:center;}
+table.grid td.daycell{background:var(--navy-2);color:#fff;font-weight:700;text-align:center;font-size:0.95rem;width:44px;}
+table.grid td.slotcell{height:64px;position:relative;}
+.entry{border-radius:6px;padding:5px 6px;height:100%;display:flex;flex-direction:column;justify-content:center;gap:2px;}
+.entry.lecture{background:var(--lecture-bg);border:1px solid var(--lecture);}
+.entry.lab{background:var(--lab-bg);border:1px solid var(--lab);}
+.entry .su{font-weight:700;font-size:0.76rem;line-height:1.15;}
+.entry .te{font-size:0.65rem;color:var(--muted);}
+.entry .rm{font-size:0.65rem;color:var(--muted);text-align:right;}
+.entry.lecture .su{color:var(--lecture);}
+.entry.lab .su{color:var(--lab);}
+
+table.list{border-collapse:collapse;width:100%;font-size:0.82rem;}
+table.list th, table.list td{border:1px solid var(--line);padding:7px 9px;text-align:left;}
+table.list th{background:#efece2;font-size:0.72rem;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);}
+table.list tr:nth-child(even) td{background:#fafaf6;}
+.badge{display:inline-block;font-size:0.68rem;font-weight:700;padding:2px 7px;border-radius:10px;}
+.badge.lecture{background:var(--lecture-bg);color:var(--lecture);}
+.badge.lab{background:var(--lab-bg);color:var(--lab);}
+
+.room-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;}
+.room-card{border-radius:8px;padding:12px;font-size:0.85rem;border:1px solid var(--line);}
+.room-card.free{background:var(--free);border-color:#bfe3c3;}
+.room-card.busy{background:var(--busy-bg);border-color:#f0c9c9;}
+.room-card .name{font-weight:700;margin-bottom:4px;}
+.room-card .free-tag{color:var(--free-ink);font-size:0.72rem;font-weight:700;}
+.room-card .busy-tag{color:var(--busy-ink);font-size:0.72rem;}
+
+#dropzone{
+  border:2px dashed #b9c4bd;border-radius:10px;padding:34px 18px;text-align:center;cursor:pointer;margin-bottom:14px;
+}
+#dropzone:hover, #dropzone.drag{border-color:var(--navy);background:#eef2ee;}
+#dropzone .big{font-weight:700;margin-bottom:4px;}
+#dropzone .small{font-size:0.82rem;color:var(--muted);}
+#fileInput{display:none;}
+.status{font-family:var(--mono);font-size:0.8rem;color:var(--lecture);margin-top:8px;min-height:1.1em;}
+.status.err{color:var(--busy-ink);}
+
+.hint{font-size:0.82rem;color:var(--muted);line-height:1.5;margin:0 0 14px;}
+.hint code{background:#efece2;padding:1px 5px;border-radius:3px;font-family:var(--mono);}
+
+.edit-table input, .edit-table select{width:100%;font-size:0.78rem;padding:4px 6px;}
+.edit-table td{padding:4px;}
+footer{text-align:center;font-size:0.75rem;color:#9a9fa5;margin-top:30px;}
+.legend{display:flex;gap:16px;font-size:0.78rem;color:var(--muted);margin-bottom:10px;flex-wrap:wrap;}
+.legend span{display:inline-flex;align-items:center;gap:5px;}
+.dot{width:10px;height:10px;border-radius:3px;display:inline-block;}
+
+.pager{
+  display:flex;align-items:center;gap:10px;
+  background:linear-gradient(180deg,#ffffff,#f6f5f1);
+  border:1px solid var(--line);
+  border-radius:999px;
+  padding:4px 6px;
+  box-shadow:0 1px 2px rgba(15,42,63,0.06);
+}
+.pager-btn{
+  width:34px;height:34px;
+  border-radius:50%;
+  border:none;
+  background:var(--navy);
+  color:#fff;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;
+  transition:transform .12s ease, background .12s ease, box-shadow .12s ease;
+  box-shadow:0 1px 3px rgba(15,42,63,0.25);
+}
+.pager-btn:hover{background:var(--amber); transform:translateY(-1px); box-shadow:0 3px 8px rgba(15,42,63,0.28);}
+.pager-btn:active{transform:translateY(0) scale(0.94);}
+.pager-btn svg{display:block;}
+.pager-label{
+  font-family:var(--mono);font-size:0.78rem;color:var(--navy);font-weight:600;
+  white-space:nowrap;min-width:96px;text-align:center;
+}
+.print-only{display:none;}
+
+.modal-overlay{
+  position:fixed; inset:0; background:rgba(15,42,63,0.55);
+  display:flex; align-items:center; justify-content:center;
+  z-index:1000; padding:16px;
+}
+.modal-overlay.hidden{display:none;}
+.modal-box{
+  background:#fff; border-radius:14px; padding:26px 26px 22px;
+  max-width:460px; width:100%;
+  box-shadow:0 20px 50px rgba(0,0,0,0.3);
+  animation:modalIn .18s ease-out;
+}
+.modal-eyebrow{
+  font-family:var(--mono); font-size:0.68rem; text-transform:uppercase; letter-spacing:.08em;
+  color:var(--lecture); font-weight:700;
+}
+.modal-notices{
+  margin:12px 0 0; padding-left:18px; font-size:0.83rem; color:var(--ink); line-height:1.55;
+}
+.modal-notices li{margin-bottom:6px;}
+.modal-notices strong{color:var(--navy);}
+.modal-divider{border:none; border-top:1px solid var(--line); margin:16px 0 14px;}
+@keyframes modalIn{ from{opacity:0; transform:translateY(8px) scale(.98);} to{opacity:1; transform:none;} }
+.modal-box input[type=text], .modal-box input:not([type]){
+  width:100%; font-size:0.95rem; padding:11px 12px; border:1px solid var(--line);
+  border-radius:8px; margin:6px 0 4px; font-family:var(--sans);
+}
+.modal-actions{display:flex; justify-content:space-between; align-items:center; margin-top:16px; gap:10px; flex-wrap:wrap;}
+.modal-actions .btn.secondary{border-color:transparent; color:var(--muted); font-weight:500;}
+
+@media print{
+  header, nav, footer, .no-print, #tabs { display:none !important; }
+  body{padding:0;background:#fff;}
+  main{padding:0;max-width:none;}
+  .panel{border:none;box-shadow:none;padding:0;margin:0;}
+  table.grid{font-size:11pt;}
+  table.grid th{background:#e8e8e8 !important;color:#000 !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  table.grid td.daycell{background:#ddd !important;color:#000 !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  .entry.lecture, .entry.lab{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  table.list{font-size:10pt;}
+  table.list th{background:#e8e8e8 !important;color:#000 !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  #gridSectionTitle{font-size:16pt;margin-bottom:10pt;}
+  .print-only{display:block !important;}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="top">
+    <div>
+      <h1>Computer &amp; Software Engineering — Timetable</h1>
+      <div class="sub">Air University · Fall 2026</div>
+    </div>
+    <div class="sub" id="lastUpdated"></div>
+  </div>
+  <nav id="tabs">
+    <button data-view="grid" class="active">All Timetable</button>
+    <button data-view="teacher">Teacher</button>
+    <button data-view="rooms">Free Rooms</button>
+    <button data-view="search">Search</button>
+    <button data-view="update" id="updateTabBtn" style="display:none;">Update Data</button>
+    <button class="secondary small" id="adminLoginBtn" style="margin-left:auto;">Admin</button>
+  </nav>
+</header>
+
+<main>
+
+  <!-- GRID VIEW -->
+  <section class="view active" id="view-grid">
+    <div class="panel" id="gridPanel">
+      <div class="controls">
+        <div class="field-wrap">
+          <label class="field">Section</label>
+          <select id="sectionSelect"></select>
+        </div>
+        <div class="field-wrap no-print">
+          <label class="field">Browse</label>
+          <div class="pager">
+            <button class="pager-btn" id="prevSectionBtn" title="Previous section" aria-label="Previous section">
+              <svg viewBox="0 0 24 24" width="18" height="18"><path d="M15 5 8 12l7 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+            <span id="sectionPageLabel" class="pager-label"></span>
+            <button class="pager-btn" id="nextSectionBtn" title="Next section" aria-label="Next section">
+              <svg viewBox="0 0 24 24" width="18" height="18"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+          </div>
+        </div>
+        <div class="field-wrap no-print">
+          <label class="field">&nbsp;</label>
+          <button class="btn secondary small" id="printSectionBtn">🖨 Print this section</button>
+        </div>
+      </div>
+      <div class="legend no-print">
+        <span><span class="dot" style="background:var(--lecture)"></span> Lecture</span>
+        <span><span class="dot" style="background:var(--lab)"></span> Lab</span>
+      </div>
+      <h2 id="gridSectionTitle" style="margin:6px 0 12px;color:var(--navy);"></h2>
+      <div id="gridContainer"></div>
+    </div>
+  </section>
+
+  <!-- TEACHER VIEW -->
+  <section class="view" id="view-teacher">
+    <div class="panel" id="teacherPanel">
+      <h2>Teacher schedule</h2>
+      <p class="hint no-print">Pick a teacher to see their full week — classes they teach, and when they're free.</p>
+      <div class="controls">
+        <div class="field-wrap"><label class="field">Teacher</label><select id="teacher-select"></select></div>
+        <div class="field-wrap no-print">
+          <label class="field">&nbsp;</label>
+          <button class="btn secondary small" id="printTeacherBtn">🖨 Print this schedule</button>
+        </div>
+      </div>
+      <div class="legend no-print">
+        <span><span class="dot" style="background:var(--lecture)"></span> Lecture</span>
+        <span><span class="dot" style="background:var(--lab)"></span> Lab</span>
+        <span><span class="dot" style="background:#8fcf95"></span> Free</span>
+      </div>
+      <h2 id="teacherPrintTitle" class="print-only" style="margin:6px 0 12px;color:var(--navy);"></h2>
+      <div id="teacherResults"></div>
+    </div>
+  </section>
+
+  <!-- SEARCH VIEW -->
+  <section class="view" id="view-search">
+    <div class="panel">
+      <h2>Search &amp; filter classes</h2>
+      <p class="hint">For a teacher's full schedule use the <strong>Teacher</strong> tab, and for open rooms use <strong>Free Rooms</strong>. This tab is for combined/text search across everything.</p>
+      <div class="controls">
+        <div class="field-wrap"><label class="field">Section</label><select id="f-section"><option value="">All</option></select></div>
+        <div class="field-wrap"><label class="field">Day</label><select id="f-day"><option value="">All</option></select></div>
+        <div class="field-wrap"><label class="field">Teacher</label><select id="f-teacher"><option value="">All</option></select></div>
+        <div class="field-wrap"><label class="field">Room</label><select id="f-room"><option value="">All</option></select></div>
+        <div class="field-wrap"><label class="field">Type</label><select id="f-type"><option value="">All</option><option value="lecture">Lecture</option><option value="lab">Lab</option></select></div>
+        <div class="field-wrap"><label class="field">Text search</label><input type="text" id="f-text" placeholder="subject, teacher, room…"></div>
+      </div>
+      <div id="teacherPrompt"></div>
+      <div id="searchResults"></div>
+    </div>
+  </section>
+
+  <!-- FREE ROOMS VIEW -->
+  <section class="view" id="view-rooms">
+    <div class="panel">
+      <h2>Find &amp; book a free room</h2>
+      <p class="hint">Pick a day (or leave it on "All days"). Click any green free room to book it instantly.</p>
+      <div class="controls" id="room-day-tabs"></div>
+      <div id="roomResults"></div>
+    </div>
+
+    <div class="panel">
+      <h2>Current bookings</h2>
+      <div id="bookingsList"></div>
+    </div>
+  </section>
+
+  <!-- FREE TIME VIEW (kept out of front nav, view removed) -->
+
+  <!-- UPDATE VIEW -->
+  <section class="view" id="view-update">
+    <div class="panel">
+      <h2>Replace with a new timetable PDF</h2>
+      <p class="hint">Upload a new PDF whenever the timetable changes (admin password required). It's parsed automatically (best effort) — check the rows below and fix anything that looks off, then apply. Changes save automatically and will be there for everyone on refresh — downloading a copy is optional, just for your own backup.</p>
+      <div id="dropzone">
+        <div class="big">Drop a timetable PDF here, or click to choose one</div>
+        <div class="small">Processed entirely in your browser — nothing is uploaded anywhere.</div>
+        <input type="file" id="fileInput" accept="application/pdf">
+      </div>
+      <div class="status" id="uploadStatus"></div>
+    </div>
+
+    <div class="panel">
+      <h2>Edit class entries</h2>
+      <div class="controls">
+        <button class="btn secondary small" id="addRowBtn">+ Add entry</button>
+        <button class="btn small" id="applyBtn">Apply changes</button>
+        <button class="btn secondary small" id="deleteAllBtn" style="color:#b32020;border-color:#e3a8a8;">Delete all sections</button>
+        <button class="btn secondary small" id="downloadBtn">Download updated timetable.html</button>
+      </div>
+      <div style="overflow-x:auto;">
+        <table class="list edit-table" id="editTable">
+          <thead>
+            <tr><th>Section</th><th>Day</th><th>Start</th><th>Span</th><th>Type</th><th>Subject</th><th>Teacher</th><th>Room</th><th></th></tr>
+          </thead>
+          <tbody id="editBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+</main>
+<footer>All processing happens locally in your browser. Re-upload a PDF any time to refresh this file.</footer>
+
+<div id="teacherModalOverlay" class="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-eyebrow">Air University · CS/SE Department</div>
+    <h2 style="margin-top:2px;">Timetable — Fall 2026</h2>
+    <ul class="modal-notices">
+      <li>Search any <strong>teacher</strong> by name to see their full weekly schedule and free periods.</li>
+      <li>Check <strong>Free Rooms</strong> and click a free slot to <strong>book a room</strong> — handy for makeup classes.</li>
+      <li>Browse <strong>All Timetable</strong> section-by-section with the ‹ › page controls, and print any page.</li>
+    </ul>
+    <hr class="modal-divider">
+    <p class="hint" style="margin:0 0 4px;font-weight:600;color:var(--ink);">Search by teacher</p>
+    <input list="teacherDatalist" id="modalTeacherInput" placeholder="Start typing a teacher's name…" autocomplete="off">
+    <datalist id="teacherDatalist"></datalist>
+    <div id="modalError" class="status err" style="display:none;"></div>
+    <div class="modal-actions">
+      <button class="btn secondary" id="modalSkipBtn">Skip, show me the timetable</button>
+      <button class="btn" id="modalSearchBtn">Search</button>
+    </div>
+  </div>
+</div>
+
+<!-- Firebase SDK (Realtime Database) — shared booking storage -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+
+<script>
+const DAYS = ['Mo','Tu','We','Th','Fr'];
+const DAY_FULL = {Mo:'Monday',Tu:'Tuesday',We:'Wednesday',Th:'Thursday',Fr:'Friday'};
+const SLOTS = ['08:00-09:20','09:20-10:40','10:40-12:00','12:00-13:20','13:20-14:40','14:40-16:00'];
+
+// entries: s=section, d=day, t=start slot idx, n=span, su=subject, te=teacher, r=room, ty=type
+let DATA = [
+{s:'BCE-F-23-A',d:'Mo',t:1,n:1,su:'Cloud and Distributed Computing',te:'CE-Engr. Muhammad Naveed Khurshed',r:'B-001',ty:'lecture'},
+{s:'BCE-F-23-A',d:'Mo',t:3,n:1,su:'Machine Learning',te:'CE-Engr. Ayesha Sadiq',r:'B-001',ty:'lecture'},
+{s:'BCE-F-23-A',d:'Mo',t:5,n:1,su:'Digital System Design',te:'CE-Engr Usman Hameed',r:'B-004',ty:'lecture'},
+{s:'BCE-F-23-A',d:'Tu',t:0,n:2,su:'Cloud and Distributed Computing Laboratory',te:'CE-Engr. Muhammad Naveed Khurshed',r:'Signal & Image Processing Lab',ty:'lab'},
+{s:'BCE-F-23-A',d:'Tu',t:3,n:1,su:'Digital System Design',te:'CE-Engr Usman Hameed',r:'B-004',ty:'lecture'},
+{s:'BCE-F-23-A',d:'Tu',t:4,n:1,su:'Machine Learning',te:'CE-Engr. Ayesha Sadiq',r:'B-001',ty:'lecture'},
+{s:'BCE-F-23-A',d:'We',t:0,n:1,su:'Cloud and Distributed Computing',te:'CE-Engr. Muhammad Naveed Khurshed',r:'B-001',ty:'lecture'},
+{s:'BCE-F-23-A',d:'We',t:2,n:2,su:'Digital System Design Laboratory',te:'CE-Engr Usman Hameed',r:'Computer Systems Design Lab',ty:'lab'},
+{s:'BCE-F-23-A',d:'We',t:5,n:1,su:'Machine Learning',te:'CE-Engr. Ayesha Sadiq',r:'B-001',ty:'lecture'},
+{s:'BCE-F-23-A',d:'Th',t:3,n:1,su:'Cloud and Distributed Computing',te:'CE-Engr. Muhammad Naveed Khurshed',r:'B-001',ty:'lecture'},
+{s:'BCE-F-23-A',d:'Th',t:5,n:1,su:'Digital System Design',te:'CE-Engr Usman Hameed',r:'B-001',ty:'lecture'},
+{s:'BCE-F-23-A',d:'Fr',t:0,n:2,su:'Machine Learning Laboratory',te:'CE-Engr. Ayesha Sadiq',r:'Electrical Machines & Power Electronics Lab',ty:'lab'},
+
+{s:'BCE-F-23-B',d:'Mo',t:0,n:1,su:'Cloud and Distributed Computing',te:'CE-Dr. Fawad Khan',r:'B-005',ty:'lecture'},
+{s:'BCE-F-23-B',d:'Mo',t:2,n:1,su:'Digital System Design',te:'CE-Engr Usman Hameed',r:'B-001',ty:'lecture'},
+{s:'BCE-F-23-B',d:'Mo',t:3,n:2,su:'Cloud and Distributed Computing Laboratory',te:'CE-Engr. Maryam Sheikh',r:'Signal & Image Processing Lab',ty:'lab'},
+{s:'BCE-F-23-B',d:'Tu',t:1,n:1,su:'Cloud and Distributed Computing',te:'CE-Dr. Fawad Khan',r:'B-005',ty:'lecture'},
+{s:'BCE-F-23-B',d:'Tu',t:4,n:2,su:'Machine Learning Laboratory',te:'C',r:'Electrical Machines & Power Electronics Lab',ty:'lab'},
+{s:'BCE-F-23-B',d:'We',t:0,n:1,su:'Cloud and Distributed Computing',te:'CE-Dr. Fawad Khan',r:'B-004',ty:'lecture'},
+{s:'BCE-F-23-B',d:'We',t:2,n:1,su:'Machine Learning',te:'C',r:'B-001',ty:'lecture'},
+{s:'BCE-F-23-B',d:'We',t:4,n:1,su:'Digital System Design',te:'CE-Engr Usman Hameed',r:'B-001',ty:'lecture'},
+{s:'BCE-F-23-B',d:'Th',t:0,n:1,su:'Machine Learning',te:'C',r:'B-004',ty:'lecture'},
+{s:'BCE-F-23-B',d:'Th',t:2,n:1,su:'Digital System Design',te:'CE-Engr Usman Hameed',r:'B-001',ty:'lecture'},
+{s:'BCE-F-23-B',d:'Fr',t:1,n:1,su:'Machine Learning',te:'C',r:'B-001',ty:'lecture'},
+{s:'BCE-F-23-B',d:'Fr',t:4,n:2,su:'Digital System Design Laboratory',te:'CE-Engr Usman Hameed',r:'Computer Systems Design Lab',ty:'lab'},
+
+{s:'BCE-F-24-A',d:'Mo',t:1,n:1,su:'Computer Communication and Networks',te:'CE-Engr. Basharat',r:'B-004',ty:'lecture'},
+{s:'BCE-F-24-A',d:'Mo',t:3,n:1,su:'Operating Systems',te:'CE-Dr. Hadi Abdullah',r:'B-004',ty:'lecture'},
+{s:'BCE-F-24-A',d:'Mo',t:4,n:1,su:'Probability methods in Engineering',te:'CE-Engr Dr. Jehanzeb Khan',r:'B-004',ty:'lecture'},
+{s:'BCE-F-24-A',d:'Tu',t:1,n:1,su:'Operating Systems',te:'CE-Dr. Hadi Abdullah',r:'B-001',ty:'lecture'},
+{s:'BCE-F-24-A',d:'Tu',t:2,n:1,su:'Signals & Systems',te:'CE-Engr. Dr. Ayesha Salman',r:'B-001',ty:'lecture'},
+{s:'BCE-F-24-A',d:'Tu',t:4,n:1,su:'Computer Communication and Networks',te:'CE-Engr. Basharat',r:'B-004',ty:'lecture'},
+{s:'BCE-F-24-A',d:'We',t:1,n:1,su:'Signals & Systems',te:'CE-Engr. Dr. Ayesha Salman',r:'B-004',ty:'lecture'},
+{s:'BCE-F-24-A',d:'We',t:2,n:1,su:'Operating Systems',te:'CE-Dr. Hadi Abdullah',r:'B-004',ty:'lecture'},
+{s:'BCE-F-24-A',d:'We',t:4,n:2,su:'Computer Communication and Networks Laboratory',te:'CE-Engr. Basharat',r:'Telecom Networks Lab',ty:'lab'},
+{s:'BCE-F-24-A',d:'Th',t:1,n:1,su:'Computer Communication and Networks',te:'CE-Engr. Basharat',r:'B-004',ty:'lecture'},
+{s:'BCE-F-24-A',d:'Th',t:2,n:1,su:'Probability methods in Engineering',te:'CE-Engr Dr. Jehanzeb Khan',r:'B-004',ty:'lecture'},
+{s:'BCE-F-24-A',d:'Th',t:4,n:2,su:'Operating Systems Laboratory',te:'CE-Engr. Javeria Razzaq',r:'Signal & Image Processing Lab',ty:'lab'},
+{s:'BCE-F-24-A',d:'Fr',t:1,n:1,su:'Probability methods in Engineering',te:'CE-Engr Dr. Jehanzeb Khan',r:'B-203',ty:'lecture'},
+{s:'BCE-F-24-A',d:'Fr',t:2,n:1,su:'Signals & Systems',te:'CE-Engr. Dr. Ayesha Salman',r:'B-001',ty:'lecture'},
+{s:'BCE-F-24-A',d:'Fr',t:4,n:2,su:'Signals & Systems Laboratory',te:'CE-Engr. Maryam Sheikh',r:'Telecom Networks Lab',ty:'lab'},
+
+{s:'BCE-F-24-B',d:'Mo',t:0,n:1,su:'Computer Communication and Networks',te:'CE-Engr. Aneeq Ahmad',r:'B-004',ty:'lecture'},
+{s:'BCE-F-24-B',d:'Mo',t:2,n:1,su:'Operating Systems',te:'CE-Dr. Hadi Abdullah',r:'B-004',ty:'lecture'},
+{s:'BCE-F-24-B',d:'Tu',t:0,n:1,su:'Signals & Systems',te:'CE-Engr. Dr. Ayesha Salman',r:'B-006',ty:'lecture'},
+{s:'BCE-F-24-B',d:'Tu',t:2,n:1,su:'Operating Systems',te:'CE-Dr. Hadi Abdullah',r:'B-004',ty:'lecture'},
+{s:'BCE-F-24-B',d:'Tu',t:4,n:2,su:'Computer Communication and Networks Laboratory',te:'CE-Engr. Aneeq Ahmad',r:'Telecom Networks Lab',ty:'lab'},
+{s:'BCE-F-24-B',d:'We',t:0,n:1,su:'Probability methods in Engineering',te:'CE-Engr Dr. Jehanzeb Khan',r:'B-006',ty:'lecture'},
+{s:'BCE-F-24-B',d:'We',t:1,n:1,su:'Operating Systems',te:'CE-Dr. Hadi Abdullah',r:'B-006',ty:'lecture'},
+{s:'BCE-F-24-B',d:'We',t:3,n:1,su:'Signals & Systems',te:'CE-Engr. Dr. Ayesha Salman',r:'B-006',ty:'lecture'},
+{s:'BCE-F-24-B',d:'We',t:4,n:1,su:'Operating Systems Laboratory',te:'CE-Engr. Javeria Razzaq',r:'Signal & Image Processing Lab',ty:'lab'},
+{s:'BCE-F-24-B',d:'Th',t:0,n:1,su:'Computer Communication and Networks',te:'CE-Engr. Aneeq Ahmad',r:'B-001',ty:'lecture'},
+{s:'BCE-F-24-B',d:'Th',t:2,n:1,su:'Signals & Systems',te:'CE-Engr. Dr. Ayesha Salman',r:'B-006',ty:'lecture'},
+{s:'BCE-F-24-B',d:'Th',t:3,n:1,su:'Probability methods in Engineering',te:'CE-Engr Dr. Jehanzeb Khan',r:'B-006',ty:'lecture'},
+{s:'BCE-F-24-B',d:'Fr',t:0,n:2,su:'Signals & Systems Laboratory',te:'CE-Engr. Maryam Sheikh',r:'Signal & Image Processing Lab',ty:'lab'},
+{s:'BCE-F-24-B',d:'Fr',t:4,n:1,su:'Probability methods in Engineering',te:'CE-Engr Dr. Jehanzeb Khan',r:'B-004',ty:'lecture'},
+{s:'BCE-F-24-B',d:'Fr',t:5,n:1,su:'Computer Communication and Networks',te:'CE-Engr. Aneeq Ahmad',r:'B-004',ty:'lecture'},
+
+{s:'BCE-F-25-A',d:'Mo',t:3,n:1,su:'Data Structures and Algorithms',te:'CE-Engr. Zo Afshan',r:'B-005',ty:'lecture'},
+{s:'BCE-F-25-A',d:'Tu',t:4,n:2,su:'Data Structures and Algorithms Laboratory',te:'CE-Engr. Zo Afshan',r:'Computer Systems Design Lab',ty:'lab'},
+{s:'BCE-F-25-A',d:'We',t:1,n:1,su:'Data Structures and Algorithms',te:'CE-Engr. Zo Afshan',r:'B-005',ty:'lecture'},
+{s:'BCE-F-25-A',d:'Fr',t:3,n:1,su:'Data Structures and Algorithms',te:'CE-Engr. Zo Afshan',r:'B-005',ty:'lecture'},
+
+{s:'BCE-F-25-B',d:'Mo',t:4,n:1,su:'Digital Logic Design',te:'CE-Engr. Zo Afshan',r:'B-005',ty:'lecture'},
+{s:'BCE-F-25-B',d:'Tu',t:1,n:1,su:'Digital Logic Design',te:'CE-Engr. Zo Afshan',r:'B-004',ty:'lecture'},
+{s:'BCE-F-25-B',d:'Tu',t:2,n:1,su:'Data Structures and Algorithms Laboratory',te:'CE-Engr. Ayesha Sadiq',r:'Computer Lab-9 (B Block Ground Floor)',ty:'lab'},
+{s:'BCE-F-25-B',d:'We',t:0,n:1,su:'Data Structures and Algorithms',te:'CE-Engr. Ayesha Sadiq',r:'B-005',ty:'lecture'},
+{s:'BCE-F-25-B',d:'We',t:2,n:1,su:'Digital Logic Design Laboratory',te:'CE-Engr. Zo Afshan',r:'Digital Electronics Lab',ty:'lab'},
+{s:'BCE-F-25-B',d:'Th',t:0,n:1,su:'Digital Logic Design',te:'CE-Engr. Zo Afshan',r:'B-005',ty:'lecture'},
+
+{s:'BCE-F26-A',d:'Mo',t:1,n:1,su:'Computer Programming',te:'CE-Engr Dr. Mumajjed Ul Mudassir',r:'B-005',ty:'lecture'},
+{s:'BCE-F26-A',d:'Tu',t:1,n:1,su:'Information and Communication Technologies (ICT)',te:'CE-Engr. Basharat',r:'B-006',ty:'lecture'},
+{s:'BCE-F26-A',d:'Tu',t:2,n:1,su:'Computer Programming',te:'CE-Engr Dr. Mumajjed Ul Mudassir',r:'B-005',ty:'lecture'},
+{s:'BCE-F26-A',d:'We',t:1,n:1,su:'Computer Programming',te:'CE-Engr Dr. Mumajjed Ul Mudassir',r:'B-203',ty:'lecture'},
+{s:'BCE-F26-A',d:'We',t:2,n:1,su:'Information and Communication Technologies (ICT) Laboratory',te:'CE-Engr. Basharat',r:'Signal & Image Processing Lab',ty:'lab'},
+{s:'BCE-F26-A',d:'Th',t:0,n:1,su:'Information and Communication Technologies (ICT)',te:'CE-Engr. Basharat',r:'B-006',ty:'lecture'},
+{s:'BCE-F26-A',d:'Fr',t:1,n:1,su:'Information and Communication Technologies (ICT)',te:'CE-Engr. Basharat',r:'B-006',ty:'lecture'},
+{s:'BCE-F26-A',d:'Fr',t:2,n:1,su:'Computer Engineering Workshop',te:'CE-Engr. Muhammad Atif Bajwa',r:'Computer Systems Design Lab',ty:'lab'},
+
+{s:'BCE-F-26-B',d:'Mo',t:2,n:1,su:'Computer Programming',te:'C',r:'B-005',ty:'lecture'},
+{s:'BCE-F-26-B',d:'Mo',t:3,n:1,su:'Information and Communication Technologies (ICT)',te:'CE-Engr. Aneeq Ahmad',r:'B-006',ty:'lecture'},
+{s:'BCE-F-26-B',d:'We',t:2,n:1,su:'Computer Programming Laboratory',te:'C',r:'Computer Lab-9 (B Block Ground Floor)',ty:'lab'},
+{s:'BCE-F-26-B',d:'We',t:3,n:1,su:'Information and Communication Technologies (ICT)',te:'CE-Engr. Aneeq Ahmad',r:'B-006',ty:'lecture'},
+{s:'BCE-F-26-B',d:'We',t:4,n:1,su:'Computer Engineering Workshop',te:'CE-Engr. Muhammad Atif Bajwa',r:'Computer Systems Design Lab',ty:'lab'},
+{s:'BCE-F-26-B',d:'Th',t:1,n:2,su:'Information and Communication Technologies (ICT) Laboratory',te:'CE-Engr. Aneeq Ahmad',r:'Computer Systems Design Lab',ty:'lab'},
+{s:'BCE-F-26-B',d:'Th',t:3,n:1,su:'Computer Programming',te:'C',r:'B-005',ty:'lecture'},
+{s:'BCE-F-26-B',d:'Fr',t:2,n:1,su:'Computer Programming',te:'C',r:'B-005',ty:'lecture'},
+{s:'BCE-F-26-B',d:'Fr',t:4,n:1,su:'Information and Communication Technologies (ICT)',te:'CE-Engr. Aneeq Ahmad',r:'B-006',ty:'lecture'},
+
+{s:'BSE-F-26-A',d:'Mo',t:0,n:1,su:'Information and Communication Technologies (ICT) Laboratory',te:'CE-Engr. Alina Maryum',r:'Signal & Image Processing Lab',ty:'lab'},
+{s:'BSE-F-26-A',d:'Mo',t:3,n:1,su:'Computer Programming',te:'CE-Engr Dr. Mumajjed Ul Mudassir',r:'B-203',ty:'lecture'},
+{s:'BSE-F-26-A',d:'Tu',t:0,n:1,su:'Computer Programming Laboratory',te:'CE-Engr. Sidrish Ehsan',r:'Computer Lab-9 (B Block Ground Floor)',ty:'lab'},
+{s:'BSE-F-26-A',d:'Tu',t:3,n:1,su:'Information and Communication Technologies (ICT)',te:'CE-Engr. Alina Maryum',r:'B-006',ty:'lecture'},
+{s:'BSE-F-26-A',d:'Tu',t:4,n:1,su:'Computer Programming',te:'CE-Engr Dr. Mumajjed Ul Mudassir',r:'B-203',ty:'lecture'},
+{s:'BSE-F-26-A',d:'We',t:2,n:1,su:'Computer Programming',te:'CE-Engr Dr. Mumajjed Ul Mudassir',r:'B-203',ty:'lecture'},
+{s:'BSE-F-26-A',d:'Th',t:1,n:1,su:'Information and Communication Technologies (ICT)',te:'CE-Engr. Alina Maryum',r:'B-006',ty:'lecture'},
+{s:'BSE-F-26-A',d:'Fr',t:1,n:1,su:'Information and Communication Technologies (ICT)',te:'CE-Engr. Alina Maryum',r:'B-005',ty:'lecture'},
+
+{s:'BSE-F-25-A',d:'Mo',t:0,n:1,su:'Software Engineering',te:'CE-Engr. Muhammad Atif Bajwa',r:'B-203',ty:'lecture'},
+{s:'BSE-F-25-A',d:'Mo',t:1,n:2,su:'Data Structures and Algorithms Laboratory',te:'CE-Engr. Sidrish Ehsan',r:'Computer Systems Design Lab',ty:'lab'},
+{s:'BSE-F-25-A',d:'Mo',t:4,n:1,su:'Digital Logic Design',te:'CE-Engr. Alina Maryum',r:'B-001',ty:'lecture'},
+{s:'BSE-F-25-A',d:'Mo',t:5,n:1,su:'Database Management Systems',te:'CE-Engr. Muhammad Naveed Khurshed',r:'B-001',ty:'lecture'},
+{s:'BSE-F-25-A',d:'Tu',t:1,n:1,su:'Software Engineering',te:'CE-Engr. Muhammad Atif Bajwa',r:'B-203',ty:'lecture'},
+{s:'BSE-F-25-A',d:'Tu',t:3,n:1,su:'Database Management Systems',te:'CE-Engr. Muhammad Naveed Khurshed',r:'B-001',ty:'lecture'},
+{s:'BSE-F-25-A',d:'Tu',t:4,n:2,su:'Computer Programming Laboratory',te:'CE-Engr. Alina Maryum',r:'Digital Signal Processing Lab',ty:'lab'},
+{s:'BSE-F-25-A',d:'We',t:0,n:1,su:'Software Engineering',te:'CE-Engr. Muhammad Atif Bajwa',r:'B-203',ty:'lecture'},
+{s:'BSE-F-25-A',d:'We',t:1,n:1,su:'Database Management Systems',te:'CE-Engr. Muhammad Naveed Khurshed',r:'B-001',ty:'lecture'},
+{s:'BSE-F-25-A',d:'We',t:3,n:1,su:'Digital Logic Design',te:'CE-Engr. Alina Maryum',r:'B-001',ty:'lecture'},
+{s:'BSE-F-25-A',d:'Fr',t:0,n:2,su:'Database Management Systems Laboratory',te:'CE-Engr. Muhammad Naveed Khurshed',r:'Digital Electronics Lab',ty:'lab'},
+{s:'BSE-F-25-A',d:'Fr',t:3,n:1,su:'Digital Logic Design',te:'CE-Engr. Alina Maryum',r:'B-001',ty:'lecture'},
+];
+
+// ad-hoc room bookings: {id, r, d, t, n, by, purpose}
+let BOOKINGS = [];
+
+// ---------- helpers ----------
+function uniq(arr){ return [...new Set(arr.filter(Boolean))].sort((a,b)=>a.localeCompare(b)); }
+function sections(){ return uniq(DATA.map(e=>e.s)); }
+function looksLikeRoomName(text){
+  const t = (text||'').trim();
+  if(!t) return false;
+  if(/lab|block|hall|auditorium/i.test(t)) return true;
+  if(/^[A-Za-z]{0,4}[\s-]?\d{2,4}[A-Za-z]?$/.test(t)) return true; // e.g. "B-105", "B105", "204"
+  return false;
+}
+function teachers(){
+  // Exclude bad/leftover values (room names, or stray 1-2 char fragments) so they
+  // never show up in teacher dropdowns, even if such a value exists in the data.
+  return uniq(DATA.map(e=>e.te).filter(t=> t && t.trim().length > 2 && !looksLikeRoomName(t)));
+}
+function rooms(){ return uniq(DATA.map(e=>e.r)); }
+
+function occupiedSlots(entry){
+  const out=[];
+  for(let i=0;i<entry.n;i++) out.push(entry.t+i);
+  return out;
+}
+
+function setLastUpdated(){
+  document.getElementById('lastUpdated').textContent = 'Loaded ' + new Date().toLocaleDateString(undefined,{year:'numeric',month:'short',day:'numeric'});
+}
+
+// ---------- tabs ----------
+document.querySelectorAll('#tabs button[data-view]').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('#tabs button[data-view]').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+    document.getElementById('view-'+btn.dataset.view).classList.add('active');
+    if(btn.dataset.view==='teacher') renderTeacher();
+    if(btn.dataset.view==='search') renderSearch();
+    if(btn.dataset.view==='rooms') renderRooms();
+    if(btn.dataset.view==='update') renderEditTable();
+  });
+});
+
+// ---------- GRID VIEW ----------
+function populateFrontTeacherSelect(){
+  // keeps the teacher datalist used by the startup search modal in sync
+  const dl = document.getElementById('teacherDatalist');
+  if(dl) dl.innerHTML = teachers().map(t=>`<option value="${t}"></option>`).join('');
+}
+
+function populateSectionSelect(){
+  const sel = document.getElementById('sectionSelect');
+  sel.innerHTML = sections().map(s=>`<option value="${s}">${s}</option>`).join('');
+  sel.addEventListener('change', renderGrid);
+}
+function buildSectionTable(entries){
+  const cell = {}; // key day-slot -> entry, and mark consumed slots
+  const consumed = new Set();
+  entries.forEach(e=>{
+    cell[e.d+'-'+e.t] = e;
+    occupiedSlots(e).slice(1).forEach(i=>consumed.add(e.d+'-'+i));
+  });
+
+  let html = '<table class="grid"><thead><tr><th></th>';
+  SLOTS.forEach(s=>html+=`<th>${s}</th>`);
+  html += '</tr></thead><tbody>';
+  DAYS.forEach(d=>{
+    html += `<tr><td class="daycell">${d}</td>`;
+    for(let i=0;i<SLOTS.length;i++){
+      if(consumed.has(d+'-'+i)) continue; // skip, covered by colspan
+      const e = cell[d+'-'+i];
+      if(e){
+        html += `<td class="slotcell"${e.n>1?` colspan="${e.n}"`:''}>
+          <div class="entry ${e.ty}">
+            <div class="su">${escapeHtml(e.su)}</div>
+            <div class="te">${escapeHtml(e.te)}</div>
+            <div class="rm">${escapeHtml(e.r)}</div>
+          </div></td>`;
+      } else {
+        html += `<td class="slotcell"></td>`;
+      }
+    }
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+  return html;
+}
+function renderGrid(){
+  const list = sections();
+  const sel = document.getElementById('sectionSelect');
+  if(!sel.value && list.length) sel.value = list[0];
+  const sec = sel.value;
+  const idx = list.indexOf(sec);
+
+  document.getElementById('gridSectionTitle').textContent = sec;
+  document.getElementById('sectionPageLabel').textContent = list.length ? `Section ${idx+1} of ${list.length}` : '';
+
+  const entries = DATA.filter(e=>e.s===sec);
+  document.getElementById('gridContainer').innerHTML = buildSectionTable(entries);
+}
+function stepSection(delta){
+  const list = sections();
+  if(!list.length) return;
+  const sel = document.getElementById('sectionSelect');
+  let idx = list.indexOf(sel.value);
+  idx = (idx + delta + list.length) % list.length;
+  sel.value = list[idx];
+  renderGrid();
+}
+document.getElementById('prevSectionBtn').addEventListener('click', ()=>stepSection(-1));
+document.getElementById('nextSectionBtn').addEventListener('click', ()=>stepSection(1));
+document.getElementById('printSectionBtn').addEventListener('click', ()=>window.print());
+function escapeHtml(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// ---------- TEACHER VIEW ----------
+function populateTeacherSelect(){
+  const sel = document.getElementById('teacher-select');
+  sel.innerHTML = '<option value="">All teachers</option>' + teachers().map(t=>`<option value="${t}">${t}</option>`).join('');
+  sel.addEventListener('change', renderTeacher);
+}
+function renderTeacher(){
+  const sel = document.getElementById('teacher-select');
+  if(!sel.value){
+    document.getElementById('teacherPrintTitle').textContent = 'All Teachers — Full Schedule';
+    renderAllTeachers();
+    return;
+  }
+  const val = sel.value;
+  document.getElementById('teacherPrintTitle').textContent = val;
+  const entries = DATA.filter(e=>e.te===val);
+
+  const cell = {}; const consumed = new Set();
+  entries.forEach(e=>{
+    cell[e.d+'-'+e.t]=e;
+    occupiedSlots(e).slice(1).forEach(i=>consumed.add(e.d+'-'+i));
+  });
+
+  let html = '<table class="grid"><thead><tr><th></th>';
+  SLOTS.forEach(s=>html+=`<th>${s}</th>`);
+  html += '</tr></thead><tbody>';
+  DAYS.forEach(d=>{
+    html += `<tr><td class="daycell">${d}</td>`;
+    for(let i=0;i<SLOTS.length;i++){
+      if(consumed.has(d+'-'+i)) continue;
+      const e = cell[d+'-'+i];
+      if(e){
+        html += `<td class="slotcell"${e.n>1?` colspan="${e.n}"`:''}>
+          <div class="entry ${e.ty}">
+            <div class="su">${escapeHtml(e.su)}</div>
+            <div class="te">${escapeHtml(e.s)}</div>
+            <div class="rm">${escapeHtml(e.r)}</div>
+          </div></td>`;
+      } else {
+        html += `<td class="slotcell" style="background:var(--free);"><div style="text-align:center;color:var(--free-ink);font-size:0.72rem;font-weight:700;padding-top:20px;">Free</div></td>`;
+      }
+    }
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+  document.getElementById('teacherResults').innerHTML = html;
+}
+function renderAllTeachers(){
+  const list = teachers();
+  let html = `<p class="hint no-print">Showing all ${list.length} teachers. Pick one above to see just their week, or scroll through everyone below.</p>`;
+  html += '<table class="list"><thead><tr><th>Teacher</th><th>Day</th><th>Time</th><th>Subject</th><th>Section</th><th>Room</th><th>Type</th></tr></thead><tbody>';
+  const rows = DATA.slice().sort((a,b)=> a.te.localeCompare(b.te) || DAYS.indexOf(a.d)-DAYS.indexOf(b.d) || a.t-b.t);
+  rows.forEach(e=>{
+    const time = SLOTS[e.t].split('-')[0] + '–' + SLOTS[e.t+e.n-1].split('-')[1];
+    html += `<tr><td>${escapeHtml(e.te)}</td><td>${DAY_FULL[e.d]}</td><td>${time}</td><td>${escapeHtml(e.su)}</td><td>${e.s}</td><td>${escapeHtml(e.r)}</td><td><span class="badge ${e.ty}">${e.ty}</span></td></tr>`;
+  });
+  html += '</tbody></table>';
+  document.getElementById('teacherResults').innerHTML = html;
+}
+document.getElementById('printTeacherBtn').addEventListener('click', ()=>window.print());
+
+// ---------- SEARCH VIEW ----------
+function goToTeacherPage(teacherName){
+  const teacherTabBtn = document.querySelector('#tabs button[data-view="teacher"]');
+  document.querySelectorAll('#tabs button[data-view]').forEach(b=>b.classList.remove('active'));
+  teacherTabBtn.classList.add('active');
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-teacher').classList.add('active');
+  document.getElementById('teacher-select').value = teacherName;
+  renderTeacher();
+}
+
+// ---------- STARTUP TEACHER SEARCH MODAL ----------
+function hideTeacherModal(){
+  document.getElementById('teacherModalOverlay').classList.add('hidden');
+}
+function showTeacherModal(){
+  document.getElementById('teacherModalOverlay').classList.remove('hidden');
+  document.getElementById('modalTeacherInput').focus();
+}
+function attemptModalSearch(){
+  const input = document.getElementById('modalTeacherInput');
+  const errEl = document.getElementById('modalError');
+  const typed = input.value.trim();
+  if(!typed){ errEl.style.display='block'; errEl.textContent = 'Type or pick a teacher name first.'; return; }
+  const match = teachers().find(t=>t.toLowerCase()===typed.toLowerCase())
+             || teachers().find(t=>t.toLowerCase().includes(typed.toLowerCase()));
+  if(!match){
+    errEl.style.display='block';
+    errEl.textContent = `No teacher matching "${typed}" found. Pick one from the suggestions.`;
+    return;
+  }
+  errEl.style.display='none';
+  hideTeacherModal();
+  goToTeacherPage(match);
+}
+document.getElementById('modalSearchBtn').addEventListener('click', attemptModalSearch);
+document.getElementById('modalSkipBtn').addEventListener('click', hideTeacherModal);
+document.getElementById('modalTeacherInput').addEventListener('keydown', e=>{
+  if(e.key==='Enter') attemptModalSearch();
+});
+document.getElementById('teacherModalOverlay').addEventListener('click', e=>{
+  if(e.target.id==='teacherModalOverlay') hideTeacherModal();
+});
+
+function populateSearchFilters(){
+  document.getElementById('f-section').innerHTML += sections().map(s=>`<option value="${s}">${s}</option>`).join('');
+  document.getElementById('f-day').innerHTML += DAYS.map(d=>`<option value="${d}">${DAY_FULL[d]}</option>`).join('');
+  document.getElementById('f-teacher').innerHTML += teachers().map(t=>`<option value="${t}">${t}</option>`).join('');
+  document.getElementById('f-room').innerHTML += rooms().map(r=>`<option value="${r}">${r}</option>`).join('');
+  ['f-section','f-day','f-teacher','f-room','f-type'].forEach(id=>document.getElementById(id).addEventListener('change', renderSearch));
+  document.getElementById('f-text').addEventListener('input', renderSearch);
+}
+function renderSearch(){
+  const fs = document.getElementById('f-section').value;
+  const fd = document.getElementById('f-day').value;
+  const ft = document.getElementById('f-teacher').value;
+  const fr = document.getElementById('f-room').value;
+  const fty = document.getElementById('f-type').value;
+  const txt = document.getElementById('f-text').value.toLowerCase().trim();
+
+  const promptEl = document.getElementById('teacherPrompt');
+  if(ft){
+    promptEl.innerHTML = `<div class="panel" style="background:var(--accent-soft,var(--free));border-color:#bfe3c3;padding:12px 16px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+      <span style="font-size:0.85rem;">Want <strong>${escapeHtml(ft)}</strong>'s full weekly schedule, free periods, and a print option?</span>
+      <button class="btn small" id="goTeacherPageBtn">Open full Teacher page →</button>
+    </div>`;
+    document.getElementById('goTeacherPageBtn').addEventListener('click', ()=>goToTeacherPage(ft));
+  } else {
+    promptEl.innerHTML = '';
+  }
+
+  const rows = DATA.filter(e=>{
+    if(fs && e.s!==fs) return false;
+    if(fd && e.d!==fd) return false;
+    if(ft && e.te!==ft) return false;
+    if(fr && e.r!==fr) return false;
+    if(fty && e.ty!==fty) return false;
+    if(txt && !(e.su+e.te+e.r+e.s).toLowerCase().includes(txt)) return false;
+    return true;
+  }).sort((a,b)=> DAYS.indexOf(a.d)-DAYS.indexOf(b.d) || a.t-b.t || a.s.localeCompare(b.s));
+
+  let html = `<p class="hint">${rows.length} class${rows.length===1?'':'es'} found.</p>`;
+  html += '<table class="list"><thead><tr><th>Section</th><th>Day</th><th>Time</th><th>Subject</th><th>Teacher</th><th>Room</th><th>Type</th></tr></thead><tbody>';
+  rows.forEach(e=>{
+    const time = SLOTS[e.t].split('-')[0] + '–' + SLOTS[e.t+e.n-1].split('-')[1];
+    html += `<tr><td>${e.s}</td><td>${DAY_FULL[e.d]}</td><td>${time}</td><td>${escapeHtml(e.su)}</td><td>${escapeHtml(e.te)}</td><td>${escapeHtml(e.r)}</td><td><span class="badge ${e.ty}">${e.ty}</span></td></tr>`;
+  });
+  html += '</tbody></table>';
+  document.getElementById('searchResults').innerHTML = html;
+}
+
+// ---------- FREE ROOMS & BOOKING ----------
+let roomDayFilter = 'ALL';
+const DAY_NUM = {Mo:1,Tu:2,We:3,Th:4,Fr:5};
+
+function nextDateForWeekday(dayAbbrev, fromDate){
+  const target = DAY_NUM[dayAbbrev];
+  const d = new Date(fromDate || Date.now());
+  d.setHours(0,0,0,0);
+  const diff = (target - d.getDay() + 7) % 7;
+  d.setDate(d.getDate() + diff);
+  return d;
+}
+function toISODate(d){
+  const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), day=String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
+function bookingEndDateTime(b){
+  const endStr = SLOTS[b.t + b.n - 1].split('-')[1];
+  const [hh,mm] = endStr.split(':').map(Number);
+  const [y,mo,da] = (b.date || toISODate(nextDateForWeekday(b.d))).split('-').map(Number);
+  return new Date(y, mo-1, da, hh, mm, 0);
+}
+function isExpired(b){
+  return bookingEndDateTime(b).getTime() < Date.now();
+}
+function purgeExpiredBookings(){
+  const before = BOOKINGS.length;
+  BOOKINGS = BOOKINGS.filter(b=>!isExpired(b));
+  return BOOKINGS.length !== before;
+}
+
+function isSlotOccupied(room, day, slot){
+  const inClass = DATA.some(e=> e.r===room && e.d===day && occupiedSlots(e).includes(slot));
+  if(inClass) return true;
+  const inBooking = BOOKINGS.some(b=> b.r===room && b.d===day && occupiedSlots(b).includes(slot) && !isExpired(b));
+  return inBooking;
+}
+function whoOccupies(room, day, slot){
+  const cls = DATA.find(e=> e.r===room && e.d===day && occupiedSlots(e).includes(slot));
+  if(cls) return {type:'class', entry:cls};
+  const bk = BOOKINGS.find(b=> b.r===room && b.d===day && occupiedSlots(b).includes(slot) && !isExpired(b));
+  if(bk) return {type:'booking', entry:bk};
+  return null;
+}
+
+function populateBookingForm(){
+  // no-op: standalone booking form was removed in favor of click-to-book pills
+}
+function setBookStatus(msg, err){
+  if(err) window.alert(msg);
+}
+
+// ---------- BOOKING PERSISTENCE (Firebase Realtime Database) ----------
+// Same Firebase project as aupgece.github.io/pco, under its own path so it
+// doesn't collide with that site's own data. Every booking is its own child
+// key, and every client listens live via .on('value'), so a booking made on
+// one device shows up on everyone else's screen within a second — genuinely
+// global, not per-browser. Falls back to localStorage (this browser only) if
+// the Firebase SDK can't load (e.g. opened as a local file:// without internet).
+var firebaseConfig = {
+  apiKey:            "AIzaSyAW6Z6c1N5QVpB7iCWXhyjxHQImeCYRgxs",
+  authDomain:        "auecepco.firebaseapp.com",
+  databaseURL:       "https://auecepco-default-rtdb.firebaseio.com",
+  projectId:         "auecepco",
+  storageBucket:     "auecepco.firebasestorage.app",
+  messagingSenderId: "314187695897",
+  appId:             "1:314187695897:web:2718ba7cbe8bdf10bea788",
+  measurementId:     "G-C4MJY4WNVD"
+};
+var fbDb = null;
+var usingFirebase = false;
+const BOOKINGS_PATH = 'pco_timetable_bookings';
+const BOOKINGS_LOCAL_KEY = 'timetable_bookings_v1';
+
+function initFirebaseBookings(){
+  if(typeof firebase === 'undefined'){
+    console.warn('Firebase SDK not loaded — bookings will save to this browser only.');
+    return false;
+  }
+  try{
+    if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+    fbDb = firebase.database();
+    return true;
+  }catch(e){
+    console.error('Firebase init failed:', e);
+    return false;
+  }
+}
+function saveBookingsLocalFallback(){
+  try{ localStorage.setItem(BOOKINGS_LOCAL_KEY, JSON.stringify(BOOKINGS)); }catch(e){ console.warn('localStorage save failed', e); }
+}
+function loadBookingsLocalFallback(){
+  try{
+    const raw = localStorage.getItem(BOOKINGS_LOCAL_KEY);
+    if(raw) BOOKINGS = JSON.parse(raw);
+  }catch(e){ console.warn('localStorage load failed', e); }
+  purgeExpiredBookings();
+}
+function attachBookingsListener(){
+  fbDb.ref(BOOKINGS_PATH).on('value', function(snap){
+    const val = snap.val() || {};
+    const all = Object.keys(val).map(function(k){ return Object.assign({id:k}, val[k]); });
+    const expired = all.filter(isExpired);
+    BOOKINGS = all.filter(function(b){ return !isExpired(b); });
+    expired.forEach(function(b){ fbDb.ref(BOOKINGS_PATH + '/' + b.id).remove(); });
+    renderRooms();
+    renderBookingsList();
+  }, function(err){
+    console.error('Firebase bookings listener error:', err);
+    setBookStatus('Lost connection to the shared booking database — showing this browser\'s last known bookings.', true);
+  });
+}
+async function initBookingsSystem(){
+  usingFirebase = initFirebaseBookings();
+  if(usingFirebase){
+    attachBookingsListener();
+  } else {
+    loadBookingsLocalFallback();
+    renderRooms();
+    renderBookingsList();
+  }
+}
+
+// ---------- CLASS DATA PERSISTENCE (same Firebase project, own path) ----------
+// So deletes/uploads survive a refresh without manually downloading the file.
+const DATA_PATH = 'pco_timetable_data';
+const DATA_LOCAL_KEY = 'timetable_data_v1';
+let dataLoadedFromRemote = false;
+
+function saveData(){
+  if(usingFirebase){
+    fbDb.ref(DATA_PATH).set({items: DATA, savedAt: Date.now()}).catch(e=>{
+      console.error(e);
+      window.alert('Could not save this change to the shared database: ' + e.message);
+    });
+  } else {
+    try{ localStorage.setItem(DATA_LOCAL_KEY, JSON.stringify(DATA)); }catch(e){ console.warn('localStorage save failed', e); }
+  }
+}
+function attachDataListener(){
+  fbDb.ref(DATA_PATH).on('value', function(snap){
+    const val = snap.val();
+    if(val === null){
+      // Truly nothing saved here yet (first time this file/path has ever been used) —
+      // seed it with whatever is currently baked into this file so it isn't lost.
+      fbDb.ref(DATA_PATH).set({items: DATA, savedAt: Date.now()});
+      return;
+    }
+    // val.items may be missing if the list was saved empty (Firebase drops empty arrays) —
+    // that means "intentionally emptied", not "never saved", so treat it as [].
+    DATA = val.items || [];
+    dataLoadedFromRemote = true;
+    renderEditTable();
+    refreshAllViews();
+  }, function(err){
+    console.error('Firebase data listener error:', err);
+  });
+}
+function loadDataLocalFallback(){
+  try{
+    const raw = localStorage.getItem(DATA_LOCAL_KEY);
+    if(raw){ DATA = JSON.parse(raw); dataLoadedFromRemote = true; }
+  }catch(e){ console.warn('localStorage load failed', e); }
+  renderEditTable();
+  refreshAllViews();
+}
+function initDataSystem(){
+  if(usingFirebase){
+    attachDataListener();
+  } else {
+    loadDataLocalFallback();
+  }
+}
+
+function tryBook(room, day, startSlot, span, date, by, purpose){
+  span = Math.min(span, SLOTS.length - startSlot);
+  for(let i=0;i<span;i++){
+    if(isSlotOccupied(room, day, startSlot+i)){
+      const occ = whoOccupies(room, day, startSlot+i);
+      const what = occ.type==='class' ? `${occ.entry.su} (${occ.entry.s})` : `a booking (${occ.entry.purpose||'no purpose given'})`;
+      setBookStatus(`${room} is already taken on ${DAY_FULL[day]} at ${SLOTS[startSlot+i]} — ${what}.`, true);
+      return false;
+    }
+  }
+  const id = 'bk-' + Date.now() + '-' + Math.floor(Math.random()*1000);
+  const booking = { r: room, d: day, date: date, t: startSlot, n: span, by: by || 'Unnamed', purpose: purpose || '' };
+  if(usingFirebase){
+    fbDb.ref(BOOKINGS_PATH + '/' + id).set(booking).catch(e=>{
+      console.error(e);
+      window.alert('Could not save this booking to the shared database: ' + e.message);
+    });
+    // the .on('value') listener will update the UI once Firebase confirms the write
+  } else {
+    BOOKINGS.push(Object.assign({id}, booking));
+    saveBookingsLocalFallback();
+    renderRooms();
+    renderBookingsList();
+  }
+  return true;
+}
+
+function cancelBooking(id){
+  if(usingFirebase){
+    fbDb.ref(BOOKINGS_PATH + '/' + id).remove().catch(e=>console.error(e));
+  } else {
+    const i = BOOKINGS.findIndex(b=>b.id===id);
+    if(i>-1) BOOKINGS.splice(i,1);
+    saveBookingsLocalFallback();
+    renderRooms();
+    renderBookingsList();
+  }
+}
+
+function renderBookingsList(){
+  const el = document.getElementById('bookingsList');
+  if(!usingFirebase && purgeExpiredBookings()) saveBookingsLocalFallback();
+  if(!BOOKINGS.length){ el.innerHTML = '<p class="hint">No bookings yet.</p>'; return; }
+  const rows = BOOKINGS.slice().sort((a,b)=> (a.date||'').localeCompare(b.date||'') || a.t-b.t);
+  let html = `<p class="hint">${usingFirebase ? 'Shared live via Firebase — everyone viewing this page sees the same list.' : 'Firebase unavailable — saved to this browser only.'} Past bookings are removed automatically.</p>`;
+  html += '<table class="list"><thead><tr><th>Room</th><th>Date</th><th>Day</th><th>Time</th><th>Booked by</th><th>Purpose</th><th></th></tr></thead><tbody>';
+  rows.forEach(b=>{
+    const time = SLOTS[b.t].split('-')[0] + '–' + SLOTS[b.t+b.n-1].split('-')[1];
+    html += `<tr><td>${escapeHtml(b.r)}</td><td>${b.date||'—'}</td><td>${DAY_FULL[b.d]}</td><td>${time}</td><td>${escapeHtml(b.by)}</td><td>${escapeHtml(b.purpose)}</td><td><button class="btn secondary small" data-cancel="${b.id}">Cancel</button></td></tr>`;
+  });
+  html += '</tbody></table>';
+  el.innerHTML = html;
+  el.querySelectorAll('[data-cancel]').forEach(btn=>{
+    btn.addEventListener('click', ()=>cancelBooking(btn.dataset.cancel));
+  });
+}
+
+function populateRoomDayTabs(){
+  const el = document.getElementById('room-day-tabs');
+  const opts = [{v:'ALL',l:'All days'}, ...DAYS.map(d=>({v:d,l:DAY_FULL[d]}))];
+  el.innerHTML = opts.map(o=>`<button class="btn ${o.v===roomDayFilter?'':'secondary'} small" data-day="${o.v}">${o.l}</button>`).join('');
+  el.querySelectorAll('button').forEach(b=>{
+    b.addEventListener('click', ()=>{ roomDayFilter = b.dataset.day; populateRoomDayTabs(); renderRooms(); });
+  });
+}
+function renderRooms(){
+  if(purgeExpiredBookings()) saveBookings();
+  const allRooms = rooms();
+  const daysToShow = roomDayFilter==='ALL' ? DAYS : [roomDayFilter];
+
+  let html = '';
+  daysToShow.forEach(d=>{
+    html += `<h3 style="margin:18px 0 8px;color:var(--navy);">${DAY_FULL[d]}</h3>`;
+    for(let i=0;i<SLOTS.length;i++){
+      const freeRooms = allRooms.filter(r=>!isSlotOccupied(r,d,i));
+      const takenRooms = allRooms.filter(r=>isSlotOccupied(r,d,i));
+
+      html += `<div class="panel" style="padding:14px 16px;margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
+          <strong style="font-size:0.9rem;">${SLOTS[i]}</strong>
+          <span style="font-size:0.75rem;color:var(--muted);">${freeRooms.length} of ${allRooms.length} rooms free</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;">`;
+      freeRooms.forEach(r=>{
+        html += `<button class="btn-pill-free" data-book-room="${escapeAttr(r)}" data-book-day="${d}" data-book-slot="${i}"
+          style="cursor:pointer;background:var(--free);color:var(--free-ink);border:1px solid #bfe3c3;padding:4px 10px;border-radius:20px;font-size:0.78rem;font-weight:600;">${r}</button>`;
+      });
+      takenRooms.forEach(r=>{
+        const occ = whoOccupies(r, d, i);
+        if(occ.type==='class'){
+          const e = occ.entry;
+          html += `<span title="${escapeAttr(e.su)} — ${e.s}" style="background:var(--busy-bg);color:var(--busy-ink);border:1px solid #f0c9c9;padding:4px 10px;border-radius:20px;font-size:0.78rem;">${r} <span style="opacity:.75;">· ${escapeHtml(e.s)}</span></span>`;
+        } else {
+          const b = occ.entry;
+          html += `<button data-view-booking="${escapeAttr(b.id)}" title="Booked by ${escapeAttr(b.by)} — ${escapeAttr(b.purpose)} (${b.date})" style="cursor:pointer;background:#f1e6f7;color:#7a3ea1;border:1px solid #ddc2ea;padding:4px 10px;border-radius:20px;font-size:0.78rem;">${r} <span style="opacity:.75;">· booked</span></button>`;
+        }
+      });
+      html += `</div></div>`;
+    }
+  });
+
+  document.getElementById('roomResults').innerHTML = html;
+  document.getElementById('roomResults').querySelectorAll('[data-book-room]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const room = btn.dataset.bookRoom;
+      const day = btn.dataset.bookDay;
+      const slot = parseInt(btn.dataset.bookSlot,10);
+      const defaultDate = toISODate(nextDateForWeekday(day));
+      const dateInput = window.prompt(`Book ${room} on ${DAY_FULL[day]} at ${SLOTS[slot]}\n\nDate for this booking (YYYY-MM-DD):`, defaultDate);
+      if(dateInput === null) return; // cancelled
+      const date = dateInput.trim() || defaultDate;
+      if(!/^\d{4}-\d{2}-\d{2}$/.test(date)){ window.alert('Please enter the date as YYYY-MM-DD.'); return; }
+      const by = window.prompt('Booked by (optional):', '');
+      if(by === null) return; // cancelled
+      const purpose = window.prompt('Purpose (optional):', '');
+      if(purpose === null) return; // cancelled
+      tryBook(room, day, slot, 1, date, by.trim(), purpose.trim());
+    });
+  });
+  document.getElementById('roomResults').querySelectorAll('[data-view-booking]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const b = BOOKINGS.find(x=>x.id===btn.dataset.viewBooking);
+      if(!b) return;
+      const time = SLOTS[b.t].split('-')[0] + '–' + SLOTS[b.t+b.n-1].split('-')[1];
+      window.alert(`${b.r} — ${DAY_FULL[b.d]} ${time} (${b.date})\n\nBooked by: ${b.by}\nPurpose: ${b.purpose || '—'}`);
+    });
+  });
+}
+
+// ---------- ADMIN ACCESS ----------
+const ADMIN_PASSWORD = 'tt2026';
+let isAdmin = false;
+try{ isAdmin = (localStorage.getItem('tt_isAdmin') === '1'); }catch(e){ console.warn('Admin login storage unavailable:', e); }
+function updateAdminUI(){
+  document.getElementById('updateTabBtn').style.display = isAdmin ? '' : 'none';
+  document.getElementById('adminLoginBtn').textContent = isAdmin ? 'Admin ✓' : 'Admin';
+}
+function requireAdmin(){
+  if(isAdmin) return true;
+  const pw = window.prompt('Admin password required to make this change:');
+  if(pw === null) return false;
+  if(pw === ADMIN_PASSWORD){
+    isAdmin = true;
+    try{ localStorage.setItem('tt_isAdmin', '1'); }catch(e){ console.warn('Could not save admin login:', e); }
+    updateAdminUI();
+    return true;
+  }
+  window.alert('Incorrect password.');
+  return false;
+}
+document.getElementById('adminLoginBtn').addEventListener('click', ()=>{ requireAdmin(); });
+updateAdminUI();
+
+// ---------- EDIT TABLE ----------
+function renderEditTable(){
+  const body = document.getElementById('editBody');
+  body.innerHTML = '';
+  DATA.forEach((e,idx)=> body.appendChild(makeEditRow(e,idx)));
+}
+function makeEditRow(e, idx){
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td><input type="text" value="${escapeAttr(e.s)}" data-f="s"></td>
+    <td><select data-f="d">${DAYS.map(d=>`<option value="${d}" ${d===e.d?'selected':''}>${d}</option>`).join('')}</select></td>
+    <td><select data-f="t">${SLOTS.map((s,i)=>`<option value="${i}" ${i===e.t?'selected':''}>${s}</option>`).join('')}</select></td>
+    <td><select data-f="n"><option value="1" ${e.n===1?'selected':''}>1</option><option value="2" ${e.n===2?'selected':''}>2</option></select></td>
+    <td><select data-f="ty"><option value="lecture" ${e.ty==='lecture'?'selected':''}>Lecture</option><option value="lab" ${e.ty==='lab'?'selected':''}>Lab</option></select></td>
+    <td><input type="text" value="${escapeAttr(e.su)}" data-f="su"></td>
+    <td><input type="text" value="${escapeAttr(e.te)}" data-f="te"></td>
+    <td><input type="text" value="${escapeAttr(e.r)}" data-f="r"></td>
+    <td><button class="btn secondary small" data-del="${idx}">✕</button></td>
+  `;
+  tr.querySelectorAll('[data-f]').forEach(inp=>{
+    inp.addEventListener('change', ()=>{
+      const f = inp.dataset.f;
+      e[f] = (f==='t'||f==='n') ? parseInt(inp.value,10) : inp.value;
+      saveData();
+    });
+  });
+  tr.querySelector('[data-del]').addEventListener('click', ()=>{
+    if(!requireAdmin()) return;
+    const i = DATA.indexOf(e);
+    if(i>-1) DATA.splice(i,1);
+    renderEditTable();
+    saveData();
+  });
+  return tr;
+}
+function escapeAttr(s){ return (s||'').replace(/"/g,'&quot;'); }
+
+document.getElementById('addRowBtn').addEventListener('click', ()=>{
+  if(!requireAdmin()) return;
+  DATA.push({s:sections()[0]||'NEW-SECTION',d:'Mo',t:0,n:1,su:'New subject',te:'Teacher',r:'Room',ty:'lecture'});
+  renderEditTable();
+  saveData();
+});
+document.getElementById('applyBtn').addEventListener('click', ()=>{
+  refreshAllViews();
+  saveData();
+  document.getElementById('uploadStatus').textContent = 'Changes applied.';
+  document.getElementById('uploadStatus').className='status';
+});
+document.getElementById('deleteAllBtn').addEventListener('click', ()=>{
+  if(!requireAdmin()) return;
+  if(!window.confirm('Delete ALL sections/class entries? This cannot be undone.')) return;
+  DATA = [];
+  renderEditTable();
+  refreshAllViews();
+  saveData();
+  setUploadStatus('All sections deleted.');
+});
+document.getElementById('downloadBtn').addEventListener('click', ()=>{
+  let html = document.documentElement.outerHTML.replace(
+    /let DATA = \[[\s\S]*?\];\n\n\/\/ ad-hoc room bookings/,
+    'let DATA = ' + JSON.stringify(DATA, null, 0) + ';\n\n// ad-hoc room bookings'
+  );
+  html = html.replace(
+    /let BOOKINGS = \[[\s\S]*?\];\n\n\/\/ ---------- helpers/,
+    'let BOOKINGS = ' + JSON.stringify(BOOKINGS, null, 0) + ';\n\n// ---------- helpers'
+  );
+  const blob = new Blob(['<!DOCTYPE html>\n'+html], {type:'text/html'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'timetable.html';
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+});
+
+function refreshAllViews(){
+  populateSectionSelect_refresh();
+  renderGrid();
+  populateFrontTeacherSelect();
+  refreshTeacherSelect();
+  renderTeacher();
+  refreshSearchFilters();
+  renderSearch();
+  populateBookingForm();
+  renderRooms();
+  renderBookingsList();
+}
+function refreshTeacherSelect(){
+  const sel = document.getElementById('teacher-select');
+  const prev = sel.value;
+  sel.innerHTML = '<option value="">All teachers</option>' + teachers().map(t=>`<option value="${t}">${t}</option>`).join('');
+  if(prev==='' || teachers().includes(prev)) sel.value = prev;
+}
+function populateSectionSelect_refresh(){
+  const sel = document.getElementById('sectionSelect');
+  const prev = sel.value;
+  sel.innerHTML = sections().map(s=>`<option value="${s}">${s}</option>`).join('');
+  if(sections().includes(prev)) sel.value = prev;
+}
+function refreshSearchFilters(){
+  const fs=document.getElementById('f-section'), ft=document.getElementById('f-teacher'), fr=document.getElementById('f-room');
+  fs.innerHTML = '<option value="">All</option>'+sections().map(s=>`<option value="${s}">${s}</option>`).join('');
+  ft.innerHTML = '<option value="">All</option>'+teachers().map(t=>`<option value="${t}">${t}</option>`).join('');
+  fr.innerHTML = '<option value="">All</option>'+rooms().map(r=>`<option value="${r}">${r}</option>`).join('');
+}
+
+// ---------- PDF UPLOAD & PARSE ----------
+const dropzone = document.getElementById('dropzone');
+const fileInput = document.getElementById('fileInput');
+const uploadStatus = document.getElementById('uploadStatus');
+
+dropzone.addEventListener('click', ()=>{ if(requireAdmin()) fileInput.click(); });
+dropzone.addEventListener('dragover', e=>{e.preventDefault(); dropzone.classList.add('drag');});
+dropzone.addEventListener('dragleave', ()=>dropzone.classList.remove('drag'));
+dropzone.addEventListener('drop', e=>{
+  e.preventDefault(); dropzone.classList.remove('drag');
+  if(!requireAdmin()) return;
+  if(e.dataTransfer.files.length) handlePdf(e.dataTransfer.files[0]);
+});
+fileInput.addEventListener('change', e=>{ if(e.target.files.length && requireAdmin()) handlePdf(e.target.files[0]); });
+
+function setUploadStatus(msg, err){
+  uploadStatus.textContent = msg;
+  uploadStatus.className = 'status' + (err?' err':'');
+}
+
+async function handlePdf(file){
+  setUploadStatus('Reading PDF…');
+  try{
+    const buf = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({data:buf}).promise;
+    let newEntries = [];
+    for(let p=1;p<=pdf.numPages;p++){
+      const page = await pdf.getPage(p);
+      const content = await page.getTextContent();
+      const items = content.items.filter(it=>it.str && it.str.trim().length).map(it=>({
+        text: it.str.trim(), x: it.transform[4], y: it.transform[5], h: Math.abs(it.transform[3]), w: it.width
+      }));
+      const parsed = parsePage(items);
+      if(parsed) newEntries = newEntries.concat(parsed);
+    }
+    if(newEntries.length===0){
+      setUploadStatus('Could not detect a timetable grid in this PDF. You can still add entries manually below.', true);
+    } else {
+      DATA = newEntries;
+      setUploadStatus(`Extracted ${newEntries.length} class entries from ${pdf.numPages} page(s). Review the table below, fix anything that looks wrong, then click "Apply changes".`);
+      saveData();
+    }
+    renderEditTable();
+    refreshAllViews();
+  }catch(err){
+    console.error(err);
+    setUploadStatus('Could not read that PDF: '+err.message, true);
+  }
+}
+
+// Parse one page (assumed to be one section's weekly grid) into entries.
+function parsePage(items){
+  // find day labels
+  const dayItems = items.filter(it=>DAYS.includes(it.text));
+  if(dayItems.length < 3) return null; // not a recognizable grid page
+
+  // find time-slot headers
+  const timeRe = /^\d{2}:\d{2}-\d{2}:\d{2}$/;
+  const timeItems = items.filter(it=>timeRe.test(it.text)).sort((a,b)=>a.x-b.x);
+  if(timeItems.length < 3) return null;
+
+  // section title: largest font item that's not a day/time/footer
+  const footerWords = ['air university','timetable generated','asc timetables'];
+  const candidates = items.filter(it=>{
+    const low = it.text.toLowerCase();
+    return !DAYS.includes(it.text) && !timeRe.test(it.text) && !footerWords.some(f=>low.includes(f));
+  });
+  let sectionTitle = 'SECTION';
+  let maxH = 0;
+  candidates.forEach(it=>{ if(it.h>maxH){ maxH=it.h; sectionTitle=it.text; } });
+
+  // row bands from day label y positions
+  const rows = dayItems.map(it=>({day:it.text, y:it.y})).sort((a,b)=>b.y-a.y);
+  // column boundaries from time header x positions (midpoints)
+  const colX = timeItems.map(it=>it.x);
+  const colBoundaries = [];
+  for(let i=0;i<colX.length-1;i++) colBoundaries.push((colX[i]+colX[i+1])/2);
+
+  function colIndex(x){
+    let idx = 0;
+    for(let i=0;i<colBoundaries.length;i++){ if(x >= colBoundaries[i]) idx = i+1; }
+    return Math.min(idx, colX.length-1);
+  }
+  function rowIndex(y){
+    let best=0, bestDist=Infinity;
+    rows.forEach((r,i)=>{ const d=Math.abs(r.y-y); if(d<bestDist){bestDist=d; best=i;} });
+    return best;
+  }
+
+  // exclude structural items
+  const excludeSet = new Set([...dayItems, ...timeItems]);
+  const bodyItems = items.filter(it=>{
+    if(excludeSet.has(it)) return false;
+    const low = it.text.toLowerCase();
+    if(footerWords.some(f=>low.includes(f))) return false;
+    if(it.text === sectionTitle) return false;
+    // must be roughly within the grid's y range
+    const minY = Math.min(...rows.map(r=>r.y)) - 90;
+    const maxY = Math.max(...rows.map(r=>r.y)) + 20;
+    if(it.y < minY || it.y > maxY) return false;
+    return true;
+  });
+
+  // bucket into cells
+  const cellMap = {}; // "row-col" -> {items:[]}
+  bodyItems.forEach(it=>{
+    const ri = rowIndex(it.y);
+    const ci = colIndex(it.x);
+    const key = ri+'-'+ci;
+    if(!cellMap[key]) cellMap[key] = {items:[], row:ri, col:ci};
+    cellMap[key].items.push(it);
+  });
+
+  function looksLikeRoom(text){
+    const t = (text||'').trim();
+    if(!t) return false;
+    if(/lab|block|hall|auditorium/i.test(t)) return true;
+    if(/^[A-Za-z]{0,4}[\s-]?\d{2,4}[A-Za-z]?$/.test(t)) return true; // e.g. "B-105", "B105", "204"
+    return false;
+  }
+  const entries = [];
+  Object.values(cellMap).forEach(cellObj=>{
+    if(!cellObj.items.length) return;
+    const its = cellObj.items.slice().sort((a,b)=> b.y-a.y || a.x-b.x);
+    const heights = its.map(i=>i.h);
+    const maxHeight = Math.max(...heights);
+    // subject = items with the largest font (merge multi-line, top-to-bottom)
+    const subjItems = its.filter(i=>i.h >= maxHeight*0.85).sort((a,b)=>b.y-a.y);
+    const others = its.filter(i=>i.h < maxHeight*0.85);
+    // teacher = topmost small item, room = bottommost small item (often right-aligned)
+    others.sort((a,b)=>b.y-a.y);
+    // Group the small-font fragments into visual lines (by y-proximity), then join
+    // fragments on the same line — a name or room can be split into several text
+    // runs by the PDF (different font weights, kerning, etc).
+    const lineGroups = [];
+    others.forEach(it=>{
+      let grp = lineGroups.find(g=> Math.abs(g.y - it.y) < Math.max(maxHeight*0.6, 2));
+      if(!grp){ grp = {y: it.y, items: []}; lineGroups.push(grp); }
+      grp.items.push(it);
+    });
+    lineGroups.forEach(g=> g.items.sort((a,b)=>a.x-b.x));
+    lineGroups.sort((a,b)=> b.y - a.y); // topmost line first
+    const lineText = g => g.items.map(i=>i.text).join(' ').replace(/\s+/g,' ').trim();
+
+    let teacher = '', roomFinal = '';
+    if(lineGroups.length >= 2){
+      teacher = lineText(lineGroups[0]);
+      roomFinal = lineText(lineGroups[lineGroups.length-1]);
+    } else if(lineGroups.length === 1){
+      // Only one line of small-font text in this cell — it's ambiguous whether it's a
+      // teacher name or a room with no teacher listed, so check which it looks like.
+      const text = lineText(lineGroups[0]);
+      if(looksLikeRoom(text)) roomFinal = text;
+      else teacher = text;
+    }
+    const subject = subjItems.map(i=>i.text).join(' ').replace(/\s+/g,' ').trim();
+    if(!subject) return;
+
+    // span detection: does any subject item's right edge cross into the next column?
+    let span = 1;
+    const rightEdge = Math.max(...subjItems.map(i=>i.x+i.w));
+    for(let b=cellObj.col;b<colBoundaries.length;b++){
+      if(rightEdge > colBoundaries[b] + 15) span++;
+      else break;
+    }
+    span = Math.min(span, colX.length - cellObj.col);
+
+    const type = /laborator|\blab\b/i.test(subject) ? 'lab' : 'lecture';
+    entries.push({
+      s: sectionTitle, d: rows[cellObj.row].day, t: cellObj.col, n: span,
+      su: subject, te: teacher || '', r: roomFinal || '', ty: type
+    });
+  });
+
+  return entries;
+}
+
+// ---------- init ----------
+setLastUpdated();
+populateSectionSelect();
+renderGrid();
+populateFrontTeacherSelect();
+populateTeacherSelect();
+populateSearchFilters();
+populateRoomDayTabs();
+populateBookingForm();
+initBookingsSystem();
+initDataSystem();
+showTeacherModal();
+</script>
+</body>
+</html>
