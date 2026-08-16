@@ -842,9 +842,11 @@ function populateTeacherSelect(){
   sel.innerHTML = '<option value="">All teachers</option>' + teachers().map(t=>`<option value="${t}">${t}</option>`).join('');
   sel.addEventListener('change', ()=>{
     document.getElementById('teacherSearchInput').value = sel.value;
+    teacherSearchQuery = '';
     renderTeacher();
   });
 }
+let teacherSearchQuery = ''; // substring search with 2+ matches — used only when no single teacher is selected
 function setupTeacherSearchInput(){
   const input = document.getElementById('teacherSearchInput');
   const sel = document.getElementById('teacher-select');
@@ -853,17 +855,25 @@ function setupTeacherSearchInput(){
     const typed = input.value.trim();
     if(!typed){
       sel.value = '';
+      teacherSearchQuery = '';
       if(errEl){ errEl.style.display='none'; }
       renderTeacher();
       return;
     }
-    const match = teachers().find(t=>t.toLowerCase()===typed.toLowerCase())
-               || teachers().find(t=>t.toLowerCase().startsWith(typed.toLowerCase()));
-    if(match){
-      sel.value = match;
+    const typedLower = typed.toLowerCase();
+    const exact = teachers().find(t=>t.toLowerCase()===typedLower);
+    const matches = exact ? [exact] : teachers().filter(t=>t.toLowerCase().includes(typedLower));
+    if(matches.length===1){
+      sel.value = matches[0];
+      teacherSearchQuery = '';
+      if(errEl){ errEl.style.display='none'; }
+    } else if(matches.length>1){
+      sel.value = '';
+      teacherSearchQuery = typed;
       if(errEl){ errEl.style.display='none'; }
     } else {
       sel.value = '';
+      teacherSearchQuery = '';
       if(errEl){ errEl.style.display='block'; errEl.textContent = `No teacher matching "${typed}".`; }
     }
     renderTeacher();
@@ -871,9 +881,28 @@ function setupTeacherSearchInput(){
   input.addEventListener('input', applyFromInput);
   input.addEventListener('keydown', e=>{ if(e.key==='Enter') applyFromInput(); });
 }
+function renderTeacherSearchResults(query){
+  const q = query.toLowerCase();
+  const matchedTeachers = teachers().filter(t=>t.toLowerCase().includes(q));
+  document.getElementById('teacherPrintTitle').textContent = `Teachers matching "${query}"`;
+  let html = `<p class="hint no-print">${matchedTeachers.length} teachers match "${escapeHtml(query)}": ${matchedTeachers.map(escapeHtml).join(', ')}. Keep typing to narrow it down, or pick one from the list above.</p>`;
+  html += '<table class="list"><thead><tr><th>Teacher</th><th>Day</th><th>Time</th><th>Subject</th><th>Section</th><th>Room</th><th>Type</th></tr></thead><tbody>';
+  const rows = DATA.filter(e=>e.te && e.te.toLowerCase().includes(q))
+    .sort((a,b)=> a.te.localeCompare(b.te) || DAYS.indexOf(a.d)-DAYS.indexOf(b.d) || a.t-b.t);
+  rows.forEach(e=>{
+    const time = SLOTS[e.t].split('-')[0] + '–' + SLOTS[e.t+e.n-1].split('-')[1];
+    html += `<tr><td>${escapeHtml(e.te)}</td><td>${DAY_FULL[e.d]}</td><td>${time}</td><td>${escapeHtml(e.su)}</td><td>${e.s}</td><td>${escapeHtml(e.r)}</td><td><span class="badge ${e.ty}">${e.ty}</span></td></tr>`;
+  });
+  html += '</tbody></table>';
+  document.getElementById('teacherResults').innerHTML = html;
+}
 function renderTeacher(){
   const sel = document.getElementById('teacher-select');
   if(!sel.value){
+    if(teacherSearchQuery){
+      renderTeacherSearchResults(teacherSearchQuery);
+      return;
+    }
     document.getElementById('teacherPrintTitle').textContent = 'All Teachers — Full Schedule';
     renderAllTeachers();
     return;
@@ -935,6 +964,7 @@ function goToTeacherPage(teacherName){
   document.getElementById('view-teacher').classList.add('active');
   document.getElementById('teacher-select').value = teacherName;
   document.getElementById('teacherSearchInput').value = teacherName;
+  teacherSearchQuery = '';
   renderTeacher();
 }
 
