@@ -1,6 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
+<html lang="en"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Air University — CS/SE Timetable</title>
@@ -216,22 +215,22 @@ footer{text-align:center;font-size:0.75rem;color:#9a9fa5;margin-top:30px;}
       <h1>Computer &amp; Software Engineering — Timetable</h1>
       <div class="sub">Air University · Fall 2026</div>
     </div>
-    <div class="sub" id="lastUpdated"></div>
+    <div class="sub" id="lastUpdated">Loaded 16 Aug 2026</div>
   </div>
   <nav id="tabs">
-    <button data-view="grid" class="active">All Timetable</button>
+    <button data-view="grid" class="">All Timetable</button>
     <button data-view="teacher">Teacher</button>
     <button data-view="rooms">Free Rooms</button>
     <button data-view="search">Search</button>
-    <button data-view="update" id="updateTabBtn" style="display:none;">Update Data</button>
-    <button class="secondary small" id="adminLoginBtn" style="margin-left:auto;">Admin</button>
+    <button data-view="update" id="updateTabBtn" style="" class="active">Update Data</button>
+    <button class="secondary small" id="adminLoginBtn" style="margin-left:auto;">Admin ✓</button>
   </nav>
 </header>
 
 <main>
 
   <!-- GRID VIEW -->
-  <section class="view active" id="view-grid">
+  <section class="view" id="view-grid">
     <div class="panel" id="gridPanel">
       <div class="controls">
         <div class="field-wrap">
@@ -242,11 +241,11 @@ footer{text-align:center;font-size:0.75rem;color:#9a9fa5;margin-top:30px;}
           <label class="field">Browse</label>
           <div class="pager">
             <button class="pager-btn" id="prevSectionBtn" title="Previous section" aria-label="Previous section">
-              <svg viewBox="0 0 24 24" width="18" height="18"><path d="M15 5 8 12l7 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              <svg viewBox="0 0 24 24" width="18" height="18"><path d="M15 5 8 12l7 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg>
             </button>
             <span id="sectionPageLabel" class="pager-label"></span>
             <button class="pager-btn" id="nextSectionBtn" title="Next section" aria-label="Next section">
-              <svg viewBox="0 0 24 24" width="18" height="18"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              <svg viewBox="0 0 24 24" width="18" height="18"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg>
             </button>
           </div>
         </div>
@@ -260,7 +259,7 @@ footer{text-align:center;font-size:0.75rem;color:#9a9fa5;margin-top:30px;}
         <span><span class="dot" style="background:var(--lab)"></span> Lab</span>
       </div>
       <h2 id="gridSectionTitle" style="margin:6px 0 12px;color:var(--navy);"></h2>
-      <div id="gridContainer"></div>
+      <div id="gridContainer"><table class="grid"><thead><tr><th></th><th>08:00-09:20</th><th>09:20-10:40</th><th>10:40-12:00</th><th>12:00-13:20</th><th>13:20-14:40</th><th>14:40-16:00</th></tr></thead><tbody><tr><td class="daycell">Mo</td><td class="slotcell"></td><td class="slotcell"></td><td class="slotcell"></td><td class="slotcell"></td><td class="slotcell"></td><td class="slotcell"></td></tr><tr><td class="daycell">Tu</td><td class="slotcell"></td><td class="slotcell"></td><td class="slotcell"></td><td class="slotcell"></td><td class="slotcell"></td><td class="slotcell"></td></tr><tr><td class="daycell">We</td><td class="slotcell"></td><td class="slotcell"></td><td class="slotcell"></td><td class="slotcell"></td><td class="slotcell"></td><td class="slotcell"></td></tr><tr><td class="daycell">Th</td><td class="slotcell"></td><td class="slotcell"></td><td class="slotcell"></td><td class="slotcell"></td><td class="slotcell"></td><td class="slotcell"></td></tr><tr><td class="daycell">Fr</td><td class="slotcell"></td><td class="slotcell"></td><td class="slotcell"></td><td class="slotcell"></td><td class="slotcell"></td><td class="slotcell"></td></tr></tbody></table></div>
     </div>
   </section>
 
@@ -270,7 +269,7 @@ footer{text-align:center;font-size:0.75rem;color:#9a9fa5;margin-top:30px;}
       <h2>Teacher schedule</h2>
       <p class="hint no-print">Pick a teacher to see their full week — classes they teach, and when they're free.</p>
       <div class="controls">
-        <div class="field-wrap"><label class="field">Teacher</label><select id="teacher-select"></select></div>
+        <div class="field-wrap"><label class="field">Teacher</label><select id="teacher-select"><option value="">All teachers</option></select></div>
         <div class="field-wrap no-print">
           <label class="field">&nbsp;</label>
           <button class="btn secondary small" id="printTeacherBtn">🖨 Print this schedule</button>
@@ -281,8 +280,8 @@ footer{text-align:center;font-size:0.75rem;color:#9a9fa5;margin-top:30px;}
         <span><span class="dot" style="background:var(--lab)"></span> Lab</span>
         <span><span class="dot" style="background:#8fcf95"></span> Free</span>
       </div>
-      <h2 id="teacherPrintTitle" class="print-only" style="margin:6px 0 12px;color:var(--navy);"></h2>
-      <div id="teacherResults"></div>
+      <h2 id="teacherPrintTitle" class="print-only" style="margin:6px 0 12px;color:var(--navy);">All Teachers — Full Schedule</h2>
+      <div id="teacherResults"><p class="hint no-print">Showing all 0 teachers. Pick one above to see just their week, or scroll through everyone below.</p><table class="list"><thead><tr><th>Teacher</th><th>Day</th><th>Time</th><th>Subject</th><th>Section</th><th>Room</th><th>Type</th></tr></thead><tbody></tbody></table></div>
     </div>
   </section>
 
@@ -293,14 +292,14 @@ footer{text-align:center;font-size:0.75rem;color:#9a9fa5;margin-top:30px;}
       <p class="hint">For a teacher's full schedule use the <strong>Teacher</strong> tab, and for open rooms use <strong>Free Rooms</strong>. This tab is for combined/text search across everything.</p>
       <div class="controls">
         <div class="field-wrap"><label class="field">Section</label><select id="f-section"><option value="">All</option></select></div>
-        <div class="field-wrap"><label class="field">Day</label><select id="f-day"><option value="">All</option></select></div>
+        <div class="field-wrap"><label class="field">Day</label><select id="f-day"><option value="">All</option><option value="Mo">Monday</option><option value="Tu">Tuesday</option><option value="We">Wednesday</option><option value="Th">Thursday</option><option value="Fr">Friday</option></select></div>
         <div class="field-wrap"><label class="field">Teacher</label><select id="f-teacher"><option value="">All</option></select></div>
         <div class="field-wrap"><label class="field">Room</label><select id="f-room"><option value="">All</option></select></div>
         <div class="field-wrap"><label class="field">Type</label><select id="f-type"><option value="">All</option><option value="lecture">Lecture</option><option value="lab">Lab</option></select></div>
         <div class="field-wrap"><label class="field">Text search</label><input type="text" id="f-text" placeholder="subject, teacher, room…"></div>
       </div>
       <div id="teacherPrompt"></div>
-      <div id="searchResults"></div>
+      <div id="searchResults"><p class="hint">0 classes found.</p><table class="list"><thead><tr><th>Section</th><th>Day</th><th>Time</th><th>Subject</th><th>Teacher</th><th>Room</th><th>Type</th></tr></thead><tbody></tbody></table></div>
     </div>
   </section>
 
@@ -309,20 +308,170 @@ footer{text-align:center;font-size:0.75rem;color:#9a9fa5;margin-top:30px;}
     <div class="panel">
       <h2>Find &amp; book a free room</h2>
       <p class="hint">Pick a day (or leave it on "All days"). Click any green free room to book it instantly.</p>
-      <div class="controls" id="room-day-tabs"></div>
-      <div id="roomResults"></div>
+      <div class="controls" id="room-day-tabs"><button class="btn  small" data-day="ALL">All days</button><button class="btn secondary small" data-day="Mo">Monday</button><button class="btn secondary small" data-day="Tu">Tuesday</button><button class="btn secondary small" data-day="We">Wednesday</button><button class="btn secondary small" data-day="Th">Thursday</button><button class="btn secondary small" data-day="Fr">Friday</button></div>
+      <div id="roomResults"><h3 style="margin:18px 0 8px;color:var(--navy);">Monday</h3><div class="panel" style="padding:14px 16px;margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
+          <strong style="font-size:0.9rem;">08:00-09:20</strong>
+          <span style="font-size:0.75rem;color:var(--muted);">0 of 0 rooms free</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;"></div></div><div class="panel" style="padding:14px 16px;margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
+          <strong style="font-size:0.9rem;">09:20-10:40</strong>
+          <span style="font-size:0.75rem;color:var(--muted);">0 of 0 rooms free</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;"></div></div><div class="panel" style="padding:14px 16px;margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
+          <strong style="font-size:0.9rem;">10:40-12:00</strong>
+          <span style="font-size:0.75rem;color:var(--muted);">0 of 0 rooms free</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;"></div></div><div class="panel" style="padding:14px 16px;margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
+          <strong style="font-size:0.9rem;">12:00-13:20</strong>
+          <span style="font-size:0.75rem;color:var(--muted);">0 of 0 rooms free</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;"></div></div><div class="panel" style="padding:14px 16px;margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
+          <strong style="font-size:0.9rem;">13:20-14:40</strong>
+          <span style="font-size:0.75rem;color:var(--muted);">0 of 0 rooms free</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;"></div></div><div class="panel" style="padding:14px 16px;margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
+          <strong style="font-size:0.9rem;">14:40-16:00</strong>
+          <span style="font-size:0.75rem;color:var(--muted);">0 of 0 rooms free</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;"></div></div><h3 style="margin:18px 0 8px;color:var(--navy);">Tuesday</h3><div class="panel" style="padding:14px 16px;margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
+          <strong style="font-size:0.9rem;">08:00-09:20</strong>
+          <span style="font-size:0.75rem;color:var(--muted);">0 of 0 rooms free</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;"></div></div><div class="panel" style="padding:14px 16px;margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
+          <strong style="font-size:0.9rem;">09:20-10:40</strong>
+          <span style="font-size:0.75rem;color:var(--muted);">0 of 0 rooms free</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;"></div></div><div class="panel" style="padding:14px 16px;margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
+          <strong style="font-size:0.9rem;">10:40-12:00</strong>
+          <span style="font-size:0.75rem;color:var(--muted);">0 of 0 rooms free</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;"></div></div><div class="panel" style="padding:14px 16px;margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
+          <strong style="font-size:0.9rem;">12:00-13:20</strong>
+          <span style="font-size:0.75rem;color:var(--muted);">0 of 0 rooms free</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;"></div></div><div class="panel" style="padding:14px 16px;margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
+          <strong style="font-size:0.9rem;">13:20-14:40</strong>
+          <span style="font-size:0.75rem;color:var(--muted);">0 of 0 rooms free</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;"></div></div><div class="panel" style="padding:14px 16px;margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
+          <strong style="font-size:0.9rem;">14:40-16:00</strong>
+          <span style="font-size:0.75rem;color:var(--muted);">0 of 0 rooms free</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;"></div></div><h3 style="margin:18px 0 8px;color:var(--navy);">Wednesday</h3><div class="panel" style="padding:14px 16px;margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
+          <strong style="font-size:0.9rem;">08:00-09:20</strong>
+          <span style="font-size:0.75rem;color:var(--muted);">0 of 0 rooms free</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;"></div></div><div class="panel" style="padding:14px 16px;margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
+          <strong style="font-size:0.9rem;">09:20-10:40</strong>
+          <span style="font-size:0.75rem;color:var(--muted);">0 of 0 rooms free</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;"></div></div><div class="panel" style="padding:14px 16px;margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
+          <strong style="font-size:0.9rem;">10:40-12:00</strong>
+          <span style="font-size:0.75rem;color:var(--muted);">0 of 0 rooms free</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;"></div></div><div class="panel" style="padding:14px 16px;margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
+          <strong style="font-size:0.9rem;">12:00-13:20</strong>
+          <span style="font-size:0.75rem;color:var(--muted);">0 of 0 rooms free</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;"></div></div><div class="panel" style="padding:14px 16px;margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
+          <strong style="font-size:0.9rem;">13:20-14:40</strong>
+          <span style="font-size:0.75rem;color:var(--muted);">0 of 0 rooms free</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;"></div></div><div class="panel" style="padding:14px 16px;margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
+          <strong style="font-size:0.9rem;">14:40-16:00</strong>
+          <span style="font-size:0.75rem;color:var(--muted);">0 of 0 rooms free</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;"></div></div><h3 style="margin:18px 0 8px;color:var(--navy);">Thursday</h3><div class="panel" style="padding:14px 16px;margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
+          <strong style="font-size:0.9rem;">08:00-09:20</strong>
+          <span style="font-size:0.75rem;color:var(--muted);">0 of 0 rooms free</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;"></div></div><div class="panel" style="padding:14px 16px;margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
+          <strong style="font-size:0.9rem;">09:20-10:40</strong>
+          <span style="font-size:0.75rem;color:var(--muted);">0 of 0 rooms free</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;"></div></div><div class="panel" style="padding:14px 16px;margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
+          <strong style="font-size:0.9rem;">10:40-12:00</strong>
+          <span style="font-size:0.75rem;color:var(--muted);">0 of 0 rooms free</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;"></div></div><div class="panel" style="padding:14px 16px;margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
+          <strong style="font-size:0.9rem;">12:00-13:20</strong>
+          <span style="font-size:0.75rem;color:var(--muted);">0 of 0 rooms free</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;"></div></div><div class="panel" style="padding:14px 16px;margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
+          <strong style="font-size:0.9rem;">13:20-14:40</strong>
+          <span style="font-size:0.75rem;color:var(--muted);">0 of 0 rooms free</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;"></div></div><div class="panel" style="padding:14px 16px;margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
+          <strong style="font-size:0.9rem;">14:40-16:00</strong>
+          <span style="font-size:0.75rem;color:var(--muted);">0 of 0 rooms free</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;"></div></div><h3 style="margin:18px 0 8px;color:var(--navy);">Friday</h3><div class="panel" style="padding:14px 16px;margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
+          <strong style="font-size:0.9rem;">08:00-09:20</strong>
+          <span style="font-size:0.75rem;color:var(--muted);">0 of 0 rooms free</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;"></div></div><div class="panel" style="padding:14px 16px;margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
+          <strong style="font-size:0.9rem;">09:20-10:40</strong>
+          <span style="font-size:0.75rem;color:var(--muted);">0 of 0 rooms free</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;"></div></div><div class="panel" style="padding:14px 16px;margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
+          <strong style="font-size:0.9rem;">10:40-12:00</strong>
+          <span style="font-size:0.75rem;color:var(--muted);">0 of 0 rooms free</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;"></div></div><div class="panel" style="padding:14px 16px;margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
+          <strong style="font-size:0.9rem;">12:00-13:20</strong>
+          <span style="font-size:0.75rem;color:var(--muted);">0 of 0 rooms free</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;"></div></div><div class="panel" style="padding:14px 16px;margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
+          <strong style="font-size:0.9rem;">13:20-14:40</strong>
+          <span style="font-size:0.75rem;color:var(--muted);">0 of 0 rooms free</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;"></div></div><div class="panel" style="padding:14px 16px;margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
+          <strong style="font-size:0.9rem;">14:40-16:00</strong>
+          <span style="font-size:0.75rem;color:var(--muted);">0 of 0 rooms free</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;"></div></div></div>
     </div>
 
     <div class="panel">
       <h2>Current bookings</h2>
-      <div id="bookingsList"></div>
+      <div id="bookingsList"><p class="hint">No bookings yet.</p></div>
     </div>
   </section>
 
   <!-- FREE TIME VIEW (kept out of front nav, view removed) -->
 
   <!-- UPDATE VIEW -->
-  <section class="view" id="view-update">
+  <section class="view active" id="view-update">
     <div class="panel">
       <h2>Replace with a new timetable PDF</h2>
       <p class="hint">Upload a new PDF whenever the timetable changes (admin password required). It's parsed automatically (best effort) — check the rows below and fix anything that looks off, then apply. Changes save automatically and will be there for everyone on refresh — downloading a copy is optional, just for your own backup.</p>
@@ -331,7 +480,7 @@ footer{text-align:center;font-size:0.75rem;color:#9a9fa5;margin-top:30px;}
         <div class="small">Processed entirely in your browser — nothing is uploaded anywhere.</div>
         <input type="file" id="fileInput" accept="application/pdf">
       </div>
-      <div class="status" id="uploadStatus"></div>
+      <div class="status" id="uploadStatus">All sections deleted.</div>
     </div>
 
     <div class="panel">
@@ -355,7 +504,7 @@ footer{text-align:center;font-size:0.75rem;color:#9a9fa5;margin-top:30px;}
 
 </main>
 
-<div id="teacherModalOverlay" class="modal-overlay">
+<div id="teacherModalOverlay" class="modal-overlay hidden">
   <div class="modal-box">
     <div class="modal-eyebrow">Air University · CS/SE Department</div>
     <h2 style="margin-top:2px;">Timetable — Fall 2026</h2>
@@ -420,118 +569,7 @@ const DAY_FULL = {Mo:'Monday',Tu:'Tuesday',We:'Wednesday',Th:'Thursday',Fr:'Frid
 const SLOTS = ['08:00-09:20','09:20-10:40','10:40-12:00','12:00-13:20','13:20-14:40','14:40-16:00'];
 
 // entries: s=section, d=day, t=start slot idx, n=span, su=subject, te=teacher, r=room, ty=type
-let DATA = [
-{s:'BCE-F-23-A',d:'Mo',t:1,n:1,su:'Cloud and Distributed Computing',te:'CE-Engr. Muhammad Naveed Khurshed',r:'B-001',ty:'lecture'},
-{s:'BCE-F-23-A',d:'Mo',t:3,n:1,su:'Machine Learning',te:'CE-Engr. Ayesha Sadiq',r:'B-001',ty:'lecture'},
-{s:'BCE-F-23-A',d:'Mo',t:5,n:1,su:'Digital System Design',te:'CE-Engr Usman Hameed',r:'B-004',ty:'lecture'},
-{s:'BCE-F-23-A',d:'Tu',t:0,n:2,su:'Cloud and Distributed Computing Laboratory',te:'CE-Engr. Muhammad Naveed Khurshed',r:'Signal & Image Processing Lab',ty:'lab'},
-{s:'BCE-F-23-A',d:'Tu',t:3,n:1,su:'Digital System Design',te:'CE-Engr Usman Hameed',r:'B-004',ty:'lecture'},
-{s:'BCE-F-23-A',d:'Tu',t:4,n:1,su:'Machine Learning',te:'CE-Engr. Ayesha Sadiq',r:'B-001',ty:'lecture'},
-{s:'BCE-F-23-A',d:'We',t:0,n:1,su:'Cloud and Distributed Computing',te:'CE-Engr. Muhammad Naveed Khurshed',r:'B-001',ty:'lecture'},
-{s:'BCE-F-23-A',d:'We',t:2,n:2,su:'Digital System Design Laboratory',te:'CE-Engr Usman Hameed',r:'Computer Systems Design Lab',ty:'lab'},
-{s:'BCE-F-23-A',d:'We',t:5,n:1,su:'Machine Learning',te:'CE-Engr. Ayesha Sadiq',r:'B-001',ty:'lecture'},
-{s:'BCE-F-23-A',d:'Th',t:3,n:1,su:'Cloud and Distributed Computing',te:'CE-Engr. Muhammad Naveed Khurshed',r:'B-001',ty:'lecture'},
-{s:'BCE-F-23-A',d:'Th',t:5,n:1,su:'Digital System Design',te:'CE-Engr Usman Hameed',r:'B-001',ty:'lecture'},
-{s:'BCE-F-23-A',d:'Fr',t:0,n:2,su:'Machine Learning Laboratory',te:'CE-Engr. Ayesha Sadiq',r:'Electrical Machines & Power Electronics Lab',ty:'lab'},
-
-{s:'BCE-F-23-B',d:'Mo',t:0,n:1,su:'Cloud and Distributed Computing',te:'CE-Dr. Fawad Khan',r:'B-005',ty:'lecture'},
-{s:'BCE-F-23-B',d:'Mo',t:2,n:1,su:'Digital System Design',te:'CE-Engr Usman Hameed',r:'B-001',ty:'lecture'},
-{s:'BCE-F-23-B',d:'Mo',t:3,n:2,su:'Cloud and Distributed Computing Laboratory',te:'CE-Engr. Maryam Sheikh',r:'Signal & Image Processing Lab',ty:'lab'},
-{s:'BCE-F-23-B',d:'Tu',t:1,n:1,su:'Cloud and Distributed Computing',te:'CE-Dr. Fawad Khan',r:'B-005',ty:'lecture'},
-{s:'BCE-F-23-B',d:'Tu',t:4,n:2,su:'Machine Learning Laboratory',te:'C',r:'Electrical Machines & Power Electronics Lab',ty:'lab'},
-{s:'BCE-F-23-B',d:'We',t:0,n:1,su:'Cloud and Distributed Computing',te:'CE-Dr. Fawad Khan',r:'B-004',ty:'lecture'},
-{s:'BCE-F-23-B',d:'We',t:2,n:1,su:'Machine Learning',te:'C',r:'B-001',ty:'lecture'},
-{s:'BCE-F-23-B',d:'We',t:4,n:1,su:'Digital System Design',te:'CE-Engr Usman Hameed',r:'B-001',ty:'lecture'},
-{s:'BCE-F-23-B',d:'Th',t:0,n:1,su:'Machine Learning',te:'C',r:'B-004',ty:'lecture'},
-{s:'BCE-F-23-B',d:'Th',t:2,n:1,su:'Digital System Design',te:'CE-Engr Usman Hameed',r:'B-001',ty:'lecture'},
-{s:'BCE-F-23-B',d:'Fr',t:1,n:1,su:'Machine Learning',te:'C',r:'B-001',ty:'lecture'},
-{s:'BCE-F-23-B',d:'Fr',t:4,n:2,su:'Digital System Design Laboratory',te:'CE-Engr Usman Hameed',r:'Computer Systems Design Lab',ty:'lab'},
-
-{s:'BCE-F-24-A',d:'Mo',t:1,n:1,su:'Computer Communication and Networks',te:'CE-Engr. Basharat',r:'B-004',ty:'lecture'},
-{s:'BCE-F-24-A',d:'Mo',t:3,n:1,su:'Operating Systems',te:'CE-Dr. Hadi Abdullah',r:'B-004',ty:'lecture'},
-{s:'BCE-F-24-A',d:'Mo',t:4,n:1,su:'Probability methods in Engineering',te:'CE-Engr Dr. Jehanzeb Khan',r:'B-004',ty:'lecture'},
-{s:'BCE-F-24-A',d:'Tu',t:1,n:1,su:'Operating Systems',te:'CE-Dr. Hadi Abdullah',r:'B-001',ty:'lecture'},
-{s:'BCE-F-24-A',d:'Tu',t:2,n:1,su:'Signals & Systems',te:'CE-Engr. Dr. Ayesha Salman',r:'B-001',ty:'lecture'},
-{s:'BCE-F-24-A',d:'Tu',t:4,n:1,su:'Computer Communication and Networks',te:'CE-Engr. Basharat',r:'B-004',ty:'lecture'},
-{s:'BCE-F-24-A',d:'We',t:1,n:1,su:'Signals & Systems',te:'CE-Engr. Dr. Ayesha Salman',r:'B-004',ty:'lecture'},
-{s:'BCE-F-24-A',d:'We',t:2,n:1,su:'Operating Systems',te:'CE-Dr. Hadi Abdullah',r:'B-004',ty:'lecture'},
-{s:'BCE-F-24-A',d:'We',t:4,n:2,su:'Computer Communication and Networks Laboratory',te:'CE-Engr. Basharat',r:'Telecom Networks Lab',ty:'lab'},
-{s:'BCE-F-24-A',d:'Th',t:1,n:1,su:'Computer Communication and Networks',te:'CE-Engr. Basharat',r:'B-004',ty:'lecture'},
-{s:'BCE-F-24-A',d:'Th',t:2,n:1,su:'Probability methods in Engineering',te:'CE-Engr Dr. Jehanzeb Khan',r:'B-004',ty:'lecture'},
-{s:'BCE-F-24-A',d:'Th',t:4,n:2,su:'Operating Systems Laboratory',te:'CE-Engr. Javeria Razzaq',r:'Signal & Image Processing Lab',ty:'lab'},
-{s:'BCE-F-24-A',d:'Fr',t:1,n:1,su:'Probability methods in Engineering',te:'CE-Engr Dr. Jehanzeb Khan',r:'B-203',ty:'lecture'},
-{s:'BCE-F-24-A',d:'Fr',t:2,n:1,su:'Signals & Systems',te:'CE-Engr. Dr. Ayesha Salman',r:'B-001',ty:'lecture'},
-{s:'BCE-F-24-A',d:'Fr',t:4,n:2,su:'Signals & Systems Laboratory',te:'CE-Engr. Maryam Sheikh',r:'Telecom Networks Lab',ty:'lab'},
-
-{s:'BCE-F-24-B',d:'Mo',t:0,n:1,su:'Computer Communication and Networks',te:'CE-Engr. Aneeq Ahmad',r:'B-004',ty:'lecture'},
-{s:'BCE-F-24-B',d:'Mo',t:2,n:1,su:'Operating Systems',te:'CE-Dr. Hadi Abdullah',r:'B-004',ty:'lecture'},
-{s:'BCE-F-24-B',d:'Tu',t:0,n:1,su:'Signals & Systems',te:'CE-Engr. Dr. Ayesha Salman',r:'B-006',ty:'lecture'},
-{s:'BCE-F-24-B',d:'Tu',t:2,n:1,su:'Operating Systems',te:'CE-Dr. Hadi Abdullah',r:'B-004',ty:'lecture'},
-{s:'BCE-F-24-B',d:'Tu',t:4,n:2,su:'Computer Communication and Networks Laboratory',te:'CE-Engr. Aneeq Ahmad',r:'Telecom Networks Lab',ty:'lab'},
-{s:'BCE-F-24-B',d:'We',t:0,n:1,su:'Probability methods in Engineering',te:'CE-Engr Dr. Jehanzeb Khan',r:'B-006',ty:'lecture'},
-{s:'BCE-F-24-B',d:'We',t:1,n:1,su:'Operating Systems',te:'CE-Dr. Hadi Abdullah',r:'B-006',ty:'lecture'},
-{s:'BCE-F-24-B',d:'We',t:3,n:1,su:'Signals & Systems',te:'CE-Engr. Dr. Ayesha Salman',r:'B-006',ty:'lecture'},
-{s:'BCE-F-24-B',d:'We',t:4,n:1,su:'Operating Systems Laboratory',te:'CE-Engr. Javeria Razzaq',r:'Signal & Image Processing Lab',ty:'lab'},
-{s:'BCE-F-24-B',d:'Th',t:0,n:1,su:'Computer Communication and Networks',te:'CE-Engr. Aneeq Ahmad',r:'B-001',ty:'lecture'},
-{s:'BCE-F-24-B',d:'Th',t:2,n:1,su:'Signals & Systems',te:'CE-Engr. Dr. Ayesha Salman',r:'B-006',ty:'lecture'},
-{s:'BCE-F-24-B',d:'Th',t:3,n:1,su:'Probability methods in Engineering',te:'CE-Engr Dr. Jehanzeb Khan',r:'B-006',ty:'lecture'},
-{s:'BCE-F-24-B',d:'Fr',t:0,n:2,su:'Signals & Systems Laboratory',te:'CE-Engr. Maryam Sheikh',r:'Signal & Image Processing Lab',ty:'lab'},
-{s:'BCE-F-24-B',d:'Fr',t:4,n:1,su:'Probability methods in Engineering',te:'CE-Engr Dr. Jehanzeb Khan',r:'B-004',ty:'lecture'},
-{s:'BCE-F-24-B',d:'Fr',t:5,n:1,su:'Computer Communication and Networks',te:'CE-Engr. Aneeq Ahmad',r:'B-004',ty:'lecture'},
-
-{s:'BCE-F-25-A',d:'Mo',t:3,n:1,su:'Data Structures and Algorithms',te:'CE-Engr. Zo Afshan',r:'B-005',ty:'lecture'},
-{s:'BCE-F-25-A',d:'Tu',t:4,n:2,su:'Data Structures and Algorithms Laboratory',te:'CE-Engr. Zo Afshan',r:'Computer Systems Design Lab',ty:'lab'},
-{s:'BCE-F-25-A',d:'We',t:1,n:1,su:'Data Structures and Algorithms',te:'CE-Engr. Zo Afshan',r:'B-005',ty:'lecture'},
-{s:'BCE-F-25-A',d:'Fr',t:3,n:1,su:'Data Structures and Algorithms',te:'CE-Engr. Zo Afshan',r:'B-005',ty:'lecture'},
-
-{s:'BCE-F-25-B',d:'Mo',t:4,n:1,su:'Digital Logic Design',te:'CE-Engr. Zo Afshan',r:'B-005',ty:'lecture'},
-{s:'BCE-F-25-B',d:'Tu',t:1,n:1,su:'Digital Logic Design',te:'CE-Engr. Zo Afshan',r:'B-004',ty:'lecture'},
-{s:'BCE-F-25-B',d:'Tu',t:2,n:1,su:'Data Structures and Algorithms Laboratory',te:'CE-Engr. Ayesha Sadiq',r:'Computer Lab-9 (B Block Ground Floor)',ty:'lab'},
-{s:'BCE-F-25-B',d:'We',t:0,n:1,su:'Data Structures and Algorithms',te:'CE-Engr. Ayesha Sadiq',r:'B-005',ty:'lecture'},
-{s:'BCE-F-25-B',d:'We',t:2,n:1,su:'Digital Logic Design Laboratory',te:'CE-Engr. Zo Afshan',r:'Digital Electronics Lab',ty:'lab'},
-{s:'BCE-F-25-B',d:'Th',t:0,n:1,su:'Digital Logic Design',te:'CE-Engr. Zo Afshan',r:'B-005',ty:'lecture'},
-
-{s:'BCE-F26-A',d:'Mo',t:1,n:1,su:'Computer Programming',te:'CE-Engr Dr. Mumajjed Ul Mudassir',r:'B-005',ty:'lecture'},
-{s:'BCE-F26-A',d:'Tu',t:1,n:1,su:'Information and Communication Technologies (ICT)',te:'CE-Engr. Basharat',r:'B-006',ty:'lecture'},
-{s:'BCE-F26-A',d:'Tu',t:2,n:1,su:'Computer Programming',te:'CE-Engr Dr. Mumajjed Ul Mudassir',r:'B-005',ty:'lecture'},
-{s:'BCE-F26-A',d:'We',t:1,n:1,su:'Computer Programming',te:'CE-Engr Dr. Mumajjed Ul Mudassir',r:'B-203',ty:'lecture'},
-{s:'BCE-F26-A',d:'We',t:2,n:1,su:'Information and Communication Technologies (ICT) Laboratory',te:'CE-Engr. Basharat',r:'Signal & Image Processing Lab',ty:'lab'},
-{s:'BCE-F26-A',d:'Th',t:0,n:1,su:'Information and Communication Technologies (ICT)',te:'CE-Engr. Basharat',r:'B-006',ty:'lecture'},
-{s:'BCE-F26-A',d:'Fr',t:1,n:1,su:'Information and Communication Technologies (ICT)',te:'CE-Engr. Basharat',r:'B-006',ty:'lecture'},
-{s:'BCE-F26-A',d:'Fr',t:2,n:1,su:'Computer Engineering Workshop',te:'CE-Engr. Muhammad Atif Bajwa',r:'Computer Systems Design Lab',ty:'lab'},
-
-{s:'BCE-F-26-B',d:'Mo',t:2,n:1,su:'Computer Programming',te:'C',r:'B-005',ty:'lecture'},
-{s:'BCE-F-26-B',d:'Mo',t:3,n:1,su:'Information and Communication Technologies (ICT)',te:'CE-Engr. Aneeq Ahmad',r:'B-006',ty:'lecture'},
-{s:'BCE-F-26-B',d:'We',t:2,n:1,su:'Computer Programming Laboratory',te:'C',r:'Computer Lab-9 (B Block Ground Floor)',ty:'lab'},
-{s:'BCE-F-26-B',d:'We',t:3,n:1,su:'Information and Communication Technologies (ICT)',te:'CE-Engr. Aneeq Ahmad',r:'B-006',ty:'lecture'},
-{s:'BCE-F-26-B',d:'We',t:4,n:1,su:'Computer Engineering Workshop',te:'CE-Engr. Muhammad Atif Bajwa',r:'Computer Systems Design Lab',ty:'lab'},
-{s:'BCE-F-26-B',d:'Th',t:1,n:2,su:'Information and Communication Technologies (ICT) Laboratory',te:'CE-Engr. Aneeq Ahmad',r:'Computer Systems Design Lab',ty:'lab'},
-{s:'BCE-F-26-B',d:'Th',t:3,n:1,su:'Computer Programming',te:'C',r:'B-005',ty:'lecture'},
-{s:'BCE-F-26-B',d:'Fr',t:2,n:1,su:'Computer Programming',te:'C',r:'B-005',ty:'lecture'},
-{s:'BCE-F-26-B',d:'Fr',t:4,n:1,su:'Information and Communication Technologies (ICT)',te:'CE-Engr. Aneeq Ahmad',r:'B-006',ty:'lecture'},
-
-{s:'BSE-F-26-A',d:'Mo',t:0,n:1,su:'Information and Communication Technologies (ICT) Laboratory',te:'CE-Engr. Alina Maryum',r:'Signal & Image Processing Lab',ty:'lab'},
-{s:'BSE-F-26-A',d:'Mo',t:3,n:1,su:'Computer Programming',te:'CE-Engr Dr. Mumajjed Ul Mudassir',r:'B-203',ty:'lecture'},
-{s:'BSE-F-26-A',d:'Tu',t:0,n:1,su:'Computer Programming Laboratory',te:'CE-Engr. Sidrish Ehsan',r:'Computer Lab-9 (B Block Ground Floor)',ty:'lab'},
-{s:'BSE-F-26-A',d:'Tu',t:3,n:1,su:'Information and Communication Technologies (ICT)',te:'CE-Engr. Alina Maryum',r:'B-006',ty:'lecture'},
-{s:'BSE-F-26-A',d:'Tu',t:4,n:1,su:'Computer Programming',te:'CE-Engr Dr. Mumajjed Ul Mudassir',r:'B-203',ty:'lecture'},
-{s:'BSE-F-26-A',d:'We',t:2,n:1,su:'Computer Programming',te:'CE-Engr Dr. Mumajjed Ul Mudassir',r:'B-203',ty:'lecture'},
-{s:'BSE-F-26-A',d:'Th',t:1,n:1,su:'Information and Communication Technologies (ICT)',te:'CE-Engr. Alina Maryum',r:'B-006',ty:'lecture'},
-{s:'BSE-F-26-A',d:'Fr',t:1,n:1,su:'Information and Communication Technologies (ICT)',te:'CE-Engr. Alina Maryum',r:'B-005',ty:'lecture'},
-
-{s:'BSE-F-25-A',d:'Mo',t:0,n:1,su:'Software Engineering',te:'CE-Engr. Muhammad Atif Bajwa',r:'B-203',ty:'lecture'},
-{s:'BSE-F-25-A',d:'Mo',t:1,n:2,su:'Data Structures and Algorithms Laboratory',te:'CE-Engr. Sidrish Ehsan',r:'Computer Systems Design Lab',ty:'lab'},
-{s:'BSE-F-25-A',d:'Mo',t:4,n:1,su:'Digital Logic Design',te:'CE-Engr. Alina Maryum',r:'B-001',ty:'lecture'},
-{s:'BSE-F-25-A',d:'Mo',t:5,n:1,su:'Database Management Systems',te:'CE-Engr. Muhammad Naveed Khurshed',r:'B-001',ty:'lecture'},
-{s:'BSE-F-25-A',d:'Tu',t:1,n:1,su:'Software Engineering',te:'CE-Engr. Muhammad Atif Bajwa',r:'B-203',ty:'lecture'},
-{s:'BSE-F-25-A',d:'Tu',t:3,n:1,su:'Database Management Systems',te:'CE-Engr. Muhammad Naveed Khurshed',r:'B-001',ty:'lecture'},
-{s:'BSE-F-25-A',d:'Tu',t:4,n:2,su:'Computer Programming Laboratory',te:'CE-Engr. Alina Maryum',r:'Digital Signal Processing Lab',ty:'lab'},
-{s:'BSE-F-25-A',d:'We',t:0,n:1,su:'Software Engineering',te:'CE-Engr. Muhammad Atif Bajwa',r:'B-203',ty:'lecture'},
-{s:'BSE-F-25-A',d:'We',t:1,n:1,su:'Database Management Systems',te:'CE-Engr. Muhammad Naveed Khurshed',r:'B-001',ty:'lecture'},
-{s:'BSE-F-25-A',d:'We',t:3,n:1,su:'Digital Logic Design',te:'CE-Engr. Alina Maryum',r:'B-001',ty:'lecture'},
-{s:'BSE-F-25-A',d:'Fr',t:0,n:2,su:'Database Management Systems Laboratory',te:'CE-Engr. Muhammad Naveed Khurshed',r:'Digital Electronics Lab',ty:'lab'},
-{s:'BSE-F-25-A',d:'Fr',t:3,n:1,su:'Digital Logic Design',te:'CE-Engr. Alina Maryum',r:'B-001',ty:'lecture'},
-];
+let DATA = [];
 
 // ad-hoc room bookings: {id, r, d, t, n, by, purpose}
 let BOOKINGS = [];
@@ -1405,15 +1443,20 @@ function parsePage(items){
 
   // row bands from day label y positions
   const rows = dayItems.map(it=>({day:it.text, y:it.y})).sort((a,b)=>b.y-a.y);
-  // column boundaries from time header x positions (midpoints)
-  const colX = timeItems.map(it=>it.x);
+
+  // Column boundaries: use each header's horizontal CENTER (x + width/2),
+  // not its raw left-edge x. Right-aligned room codes and slightly-indented
+  // subject/teacher text sit close to a column's true edges, which are the
+  // midpoints between column CENTERS — using left-edge x systematically
+  // shifted every boundary left and misfiled that text into the next column.
+  const colCenters = timeItems.map(it=>it.x + it.w/2);
   const colBoundaries = [];
-  for(let i=0;i<colX.length-1;i++) colBoundaries.push((colX[i]+colX[i+1])/2);
+  for(let i=0;i<colCenters.length-1;i++) colBoundaries.push((colCenters[i]+colCenters[i+1])/2);
 
   function colIndex(x){
     let idx = 0;
     for(let i=0;i<colBoundaries.length;i++){ if(x >= colBoundaries[i]) idx = i+1; }
-    return Math.min(idx, colX.length-1);
+    return Math.min(idx, colCenters.length-1);
   }
   function rowIndex(y){
     let best=0, bestDist=Infinity;
@@ -1423,17 +1466,32 @@ function parsePage(items){
 
   // exclude structural items
   const excludeSet = new Set([...dayItems, ...timeItems]);
+  // The old top/bottom y-range cutoff (topmost day-label y + 20) clipped off
+  // the first line of a tall, 3-line subject in the top row, since that text
+  // legitimately sits above the day-label baseline. Bound instead by the
+  // header row's own y (with a small margin), which always sits safely above
+  // every cell's content, and by one row-height below the bottom day label.
+  const headerY = Math.max(...timeItems.map(it=>it.y));
+  const rowGap = rows.length>1 ? (rows[0].y - rows[rows.length-1].y)/(rows.length-1) : 90;
   const bodyItems = items.filter(it=>{
     if(excludeSet.has(it)) return false;
     const low = it.text.toLowerCase();
     if(footerWords.some(f=>low.includes(f))) return false;
     if(it.text === sectionTitle) return false;
-    // must be roughly within the grid's y range
-    const minY = Math.min(...rows.map(r=>r.y)) - 90;
-    const maxY = Math.max(...rows.map(r=>r.y)) + 20;
+    const minY = Math.min(...rows.map(r=>r.y)) - rowGap;
+    const maxY = headerY - 10;
     if(it.y < minY || it.y > maxY) return false;
     return true;
   });
+
+  if(bodyItems.length===0) return [];
+
+  // Subject text is always noticeably taller than teacher/room text (which is
+  // consistently the smallest size on the page), even when a long subject
+  // title gets auto-shrunk by the PDF to fit its cell. A fixed cutoff placed
+  // safely between the two bands classifies it reliably; a per-page "biggest
+  // gap" split mis-classified shrunk subject text as teacher/room text.
+  const bigThreshold = 8.8;
 
   // bucket into cells
   const cellMap = {}; // "row-col" -> {items:[]}
@@ -1445,6 +1503,38 @@ function parsePage(items){
     cellMap[key].items.push(it);
   });
 
+  // A merged/spanning cell's room (or teacher) text is often centered under
+  // the whole span rather than sitting in the session's starting column, so
+  // it can land in its own empty-looking "orphan" cell one or two columns to
+  // the right — losing the room/teacher for the real class and, worse,
+  // turning that leftover text into a bogus extra entry. Fold any column in
+  // a row that has no subject-sized text into the nearest real session
+  // (anchor) to its left in that same row, and use how far right the merged
+  // text reached as a floor for that session's column span.
+  const rowAnchors = {};
+  Object.values(cellMap).forEach(c=>{
+    if(c.items.some(it=>it.h >= bigThreshold)){
+      (rowAnchors[c.row] = rowAnchors[c.row] || []).push(c.col);
+    }
+  });
+  Object.keys(rowAnchors).forEach(r=>rowAnchors[r].sort((a,b)=>a-b));
+
+  const reach = {}; // anchor "row-col" key -> furthest column merged into it
+  const orphanKeys = [];
+  Object.values(cellMap).forEach(c=>{
+    if(c.items.some(it=>it.h >= bigThreshold)) return; // has its own subject — not an orphan
+    const anchors = rowAnchors[c.row] || [];
+    let target = null;
+    for(let i=anchors.length-1;i>=0;i--){ if(anchors[i] < c.col){ target=anchors[i]; break; } }
+    if(target===null && anchors.length) target = anchors.find(a=>a>c.col);
+    if(target===null) return; // no session anywhere in this row — leave as-is
+    const targetKey = c.row+'-'+target;
+    cellMap[targetKey].items.push(...c.items);
+    reach[targetKey] = Math.max(reach[targetKey]||target, c.col);
+    orphanKeys.push(c.row+'-'+c.col);
+  });
+  orphanKeys.forEach(k=>delete cellMap[k]);
+
   function looksLikeRoom(text){
     const t = (text||'').trim();
     if(!t) return false;
@@ -1453,22 +1543,19 @@ function parsePage(items){
     return false;
   }
   const entries = [];
-  Object.values(cellMap).forEach(cellObj=>{
+  Object.entries(cellMap).forEach(([key, cellObj])=>{
     if(!cellObj.items.length) return;
     const its = cellObj.items.slice().sort((a,b)=> b.y-a.y || a.x-b.x);
-    const heights = its.map(i=>i.h);
-    const maxHeight = Math.max(...heights);
-    // subject = items with the largest font (merge multi-line, top-to-bottom)
-    const subjItems = its.filter(i=>i.h >= maxHeight*0.85).sort((a,b)=>b.y-a.y);
-    const others = its.filter(i=>i.h < maxHeight*0.85);
-    // teacher = topmost small item, room = bottommost small item (often right-aligned)
-    others.sort((a,b)=>b.y-a.y);
+    // subject = items with the (page-wide) large font (merge multi-line, top-to-bottom)
+    const subjItems = its.filter(i=>i.h >= bigThreshold).sort((a,b)=>b.y-a.y);
+    const others = its.filter(i=>i.h < bigThreshold);
     // Group the small-font fragments into visual lines (by y-proximity), then join
     // fragments on the same line — a name or room can be split into several text
     // runs by the PDF (different font weights, kerning, etc).
+    others.sort((a,b)=>b.y-a.y);
     const lineGroups = [];
     others.forEach(it=>{
-      let grp = lineGroups.find(g=> Math.abs(g.y - it.y) < Math.max(maxHeight*0.6, 2));
+      let grp = lineGroups.find(g=> Math.abs(g.y - it.y) < 4.5);
       if(!grp){ grp = {y: it.y, items: []}; lineGroups.push(grp); }
       grp.items.push(it);
     });
@@ -1478,7 +1565,9 @@ function parsePage(items){
 
     let teacher = '', roomFinal = '';
     if(lineGroups.length >= 2){
-      teacher = lineText(lineGroups[0]);
+      // A teacher name that wraps onto two lines (long faculty titles) must
+      // keep both lines — only the very last line group is the room.
+      teacher = lineGroups.slice(0, -1).map(lineText).join(' ').replace(/\s+/g,' ').trim();
       roomFinal = lineText(lineGroups[lineGroups.length-1]);
     } else if(lineGroups.length === 1){
       // Only one line of small-font text in this cell — it's ambiguous whether it's a
@@ -1497,7 +1586,10 @@ function parsePage(items){
       if(rightEdge > colBoundaries[b] + 15) span++;
       else break;
     }
-    span = Math.min(span, colX.length - cellObj.col);
+    span = Math.min(span, colCenters.length - cellObj.col);
+    // A spanning lab cell's room text can drift into a column further right
+    // than the subject text's own width would suggest — trust that as a floor.
+    if(reach[key]!==undefined) span = Math.max(span, reach[key]-cellObj.col+1);
 
     const type = /laborator|\blab\b/i.test(subject) ? 'lab' : 'lecture';
     entries.push({
@@ -1522,5 +1614,6 @@ initBookingsSystem();
 initDataSystem();
 showTeacherModal();
 </script>
-</body>
-</html>
+
+
+</body></html>
