@@ -172,6 +172,26 @@ footer{text-align:center;font-size:0.75rem;color:#9a9fa5;margin-top:30px;}
 .modal-actions{display:flex; justify-content:space-between; align-items:center; margin-top:16px; gap:10px; flex-wrap:wrap;}
 .modal-actions .btn.secondary{border-color:transparent; color:var(--muted); font-weight:500;}
 
+/* Booking + info dialogs (replace native prompt/alert) */
+.modal-box.compact{max-width:400px;}
+.modal-icon{
+  width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-size:1.3rem;margin-bottom:12px;
+}
+.modal-icon.tone-book{background:var(--lecture-bg);color:var(--lecture);}
+.modal-icon.tone-success{background:var(--free);color:var(--free-ink);}
+.modal-icon.tone-error{background:var(--busy-bg);color:var(--busy-ink);}
+.modal-icon.tone-info{background:var(--lab-bg);color:var(--lab);}
+#bookFormModal .modal-sub, #infoModal .modal-sub{font-size:0.8rem;color:var(--muted);margin:2px 0 16px;}
+#bookFormModal label.field{margin-top:12px;}
+#bookFormModal label.field:first-of-type{margin-top:14px;}
+#infoModal .info-rows{margin:0 0 4px;}
+#infoModal .info-row{display:flex;gap:8px;padding:9px 0;border-top:1px solid var(--line);font-size:0.85rem;}
+#infoModal .info-row:first-child{border-top:none;}
+#infoModal .info-row .k{color:var(--muted);min-width:88px;flex-shrink:0;}
+#infoModal .info-row .v{color:var(--ink);font-weight:600;word-break:break-word;}
+#bookFormModal .field-error{font-size:0.76rem;color:var(--busy-ink);margin:4px 0 0;min-height:1em;}
+
 @media print{
   header, nav, footer, .no-print, #tabs { display:none !important; }
   body{padding:0;background:#fff;}
@@ -352,6 +372,39 @@ footer{text-align:center;font-size:0.75rem;color:#9a9fa5;margin-top:30px;}
     <div class="modal-actions">
       <button class="btn secondary" id="modalSkipBtn">Skip, show me the timetable</button>
       <button class="btn" id="modalSearchBtn">Search</button>
+    </div>
+  </div>
+</div>
+
+<!-- Room booking form (replaces native window.prompt) -->
+<div id="bookFormModalOverlay" class="modal-overlay hidden">
+  <div class="modal-box compact" id="bookFormModal">
+    <div class="modal-icon tone-book">📅</div>
+    <h2 style="margin:0 0 2px;font-size:1.1rem;" id="bookFormTitle">Book a room</h2>
+    <p class="modal-sub" id="bookFormSub"></p>
+    <label class="field" for="bookFormDate">Date</label>
+    <input type="date" id="bookFormDate">
+    <div class="field-error" id="bookFormDateErr"></div>
+    <label class="field" for="bookFormBy">Booked by <span style="text-transform:none;opacity:.7;">(optional)</span></label>
+    <input type="text" id="bookFormBy" placeholder="Your name" autocomplete="off">
+    <label class="field" for="bookFormPurpose">Purpose <span style="text-transform:none;opacity:.7;">(optional)</span></label>
+    <input type="text" id="bookFormPurpose" placeholder="e.g. Makeup class" autocomplete="off">
+    <div class="modal-actions">
+      <button class="btn secondary" id="bookFormCancelBtn">Cancel</button>
+      <button class="btn" id="bookFormConfirmBtn">Confirm booking</button>
+    </div>
+  </div>
+</div>
+
+<!-- Generic styled info / success / error dialog (replaces native window.alert) -->
+<div id="infoModalOverlay" class="modal-overlay hidden">
+  <div class="modal-box compact" id="infoModal">
+    <div class="modal-icon" id="infoModalIcon">ℹ️</div>
+    <h2 style="margin:0 0 2px;font-size:1.1rem;" id="infoModalTitle">Notice</h2>
+    <p class="modal-sub" id="infoModalSub" style="display:none;"></p>
+    <div class="info-rows" id="infoModalRows" style="display:none;"></div>
+    <div class="modal-actions" style="justify-content:flex-end;">
+      <button class="btn" id="infoModalOkBtn">OK</button>
     </div>
   </div>
 </div>
@@ -795,7 +848,74 @@ function populateBookingForm(){
   // no-op: standalone booking form was removed in favor of click-to-book pills
 }
 function setBookStatus(msg, err){
-  if(err) window.alert(msg);
+  if(err) showInfoModal({title:'Could not book that room', message:msg, tone:'error', icon:'⚠️'});
+}
+
+// ---------- STYLED DIALOGS (replace native window.prompt/alert) ----------
+function showInfoModal({title, message, rows, tone='info', icon='ℹ️'}){
+  const overlay = document.getElementById('infoModalOverlay');
+  document.getElementById('infoModalIcon').className = 'modal-icon tone-' + tone;
+  document.getElementById('infoModalIcon').textContent = icon;
+  document.getElementById('infoModalTitle').textContent = title;
+  const subEl = document.getElementById('infoModalSub');
+  if(message){ subEl.textContent = message; subEl.style.display = ''; }
+  else { subEl.style.display = 'none'; }
+  const rowsEl = document.getElementById('infoModalRows');
+  if(rows && rows.length){
+    rowsEl.innerHTML = rows.map(r=>`<div class="info-row"><span class="k">${escapeHtml(r.k)}</span><span class="v">${escapeHtml(r.v)}</span></div>`).join('');
+    rowsEl.style.display = '';
+  } else {
+    rowsEl.innerHTML = '';
+    rowsEl.style.display = 'none';
+  }
+  overlay.classList.remove('hidden');
+  return new Promise(resolve=>{
+    const okBtn = document.getElementById('infoModalOkBtn');
+    function close(){
+      overlay.classList.add('hidden');
+      okBtn.removeEventListener('click', close);
+      overlay.removeEventListener('click', onOverlay);
+      resolve();
+    }
+    function onOverlay(e){ if(e.target === overlay) close(); }
+    okBtn.addEventListener('click', close);
+    overlay.addEventListener('click', onOverlay);
+  });
+}
+function showBookFormModal(room, day, slot, defaultDate){
+  const overlay = document.getElementById('bookFormModalOverlay');
+  const dateInput = document.getElementById('bookFormDate');
+  const byInput = document.getElementById('bookFormBy');
+  const purposeInput = document.getElementById('bookFormPurpose');
+  const dateErr = document.getElementById('bookFormDateErr');
+  document.getElementById('bookFormSub').textContent = `${room} — ${DAY_FULL[day]}, ${SLOTS[slot]}`;
+  dateInput.value = defaultDate;
+  byInput.value = '';
+  purposeInput.value = '';
+  dateErr.textContent = '';
+  overlay.classList.remove('hidden');
+  setTimeout(()=>dateInput.focus(), 50);
+  return new Promise(resolve=>{
+    const confirmBtn = document.getElementById('bookFormConfirmBtn');
+    const cancelBtn = document.getElementById('bookFormCancelBtn');
+    function cleanup(){
+      overlay.classList.add('hidden');
+      confirmBtn.removeEventListener('click', onConfirm);
+      cancelBtn.removeEventListener('click', onCancel);
+      overlay.removeEventListener('click', onOverlay);
+    }
+    function onConfirm(){
+      const date = (dateInput.value || '').trim() || defaultDate;
+      if(!/^\d{4}-\d{2}-\d{2}$/.test(date)){ dateErr.textContent = 'Please choose a valid date.'; return; }
+      cleanup();
+      resolve({date, by: byInput.value.trim(), purpose: purposeInput.value.trim()});
+    }
+    function onCancel(){ cleanup(); resolve(null); }
+    function onOverlay(e){ if(e.target === overlay) onCancel(); }
+    confirmBtn.addEventListener('click', onConfirm);
+    cancelBtn.addEventListener('click', onCancel);
+    overlay.addEventListener('click', onOverlay);
+  });
 }
 
 // ---------- BOOKING PERSISTENCE (Firebase Realtime Database) ----------
@@ -935,7 +1055,7 @@ function tryBook(room, day, startSlot, span, date, by, purpose){
   if(usingFirebase){
     fbDb.ref(BOOKINGS_PATH + '/' + id).set(booking).catch(e=>{
       console.error(e);
-      window.alert('Could not save this booking to the shared database: ' + e.message);
+      showInfoModal({title:'Booking not saved', message:'Could not save this booking to the shared database: ' + e.message, tone:'error', icon:'⚠️'});
     });
     // the .on('value') listener will update the UI once Firebase confirms the write
   } else {
@@ -1023,20 +1143,26 @@ function renderRooms(){
 
   document.getElementById('roomResults').innerHTML = html;
   document.getElementById('roomResults').querySelectorAll('[data-book-room]').forEach(btn=>{
-    btn.addEventListener('click', ()=>{
+    btn.addEventListener('click', async ()=>{
       const room = btn.dataset.bookRoom;
       const day = btn.dataset.bookDay;
       const slot = parseInt(btn.dataset.bookSlot,10);
       const defaultDate = toISODate(nextDateForWeekday(day));
-      const dateInput = window.prompt(`Book ${room} on ${DAY_FULL[day]} at ${SLOTS[slot]}\n\nDate for this booking (YYYY-MM-DD):`, defaultDate);
-      if(dateInput === null) return; // cancelled
-      const date = dateInput.trim() || defaultDate;
-      if(!/^\d{4}-\d{2}-\d{2}$/.test(date)){ window.alert('Please enter the date as YYYY-MM-DD.'); return; }
-      const by = window.prompt('Booked by (optional):', '');
-      if(by === null) return; // cancelled
-      const purpose = window.prompt('Purpose (optional):', '');
-      if(purpose === null) return; // cancelled
-      tryBook(room, day, slot, 1, date, by.trim(), purpose.trim());
+      const result = await showBookFormModal(room, day, slot, defaultDate);
+      if(!result) return; // cancelled
+      const ok = tryBook(room, day, slot, 1, result.date, result.by, result.purpose);
+      if(ok){
+        showInfoModal({
+          title:'Room booked',
+          tone:'success', icon:'✅',
+          rows:[
+            {k:'Room', v:room},
+            {k:'When', v:`${DAY_FULL[day]}, ${SLOTS[slot]} (${result.date})`},
+            {k:'Booked by', v: result.by || 'Unnamed'},
+            {k:'Purpose', v: result.purpose || '—'}
+          ]
+        });
+      }
     });
   });
   document.getElementById('roomResults').querySelectorAll('[data-view-booking]').forEach(btn=>{
@@ -1044,7 +1170,16 @@ function renderRooms(){
       const b = BOOKINGS.find(x=>x.id===btn.dataset.viewBooking);
       if(!b) return;
       const time = SLOTS[b.t].split('-')[0] + '–' + SLOTS[b.t+b.n-1].split('-')[1];
-      window.alert(`${b.r} — ${DAY_FULL[b.d]} ${time} (${b.date})\n\nBooked by: ${b.by}\nPurpose: ${b.purpose || '—'}`);
+      showInfoModal({
+        title:'Booking details',
+        tone:'info', icon:'📌',
+        rows:[
+          {k:'Room', v:b.r},
+          {k:'When', v:`${DAY_FULL[b.d]}, ${time} (${b.date})`},
+          {k:'Booked by', v:b.by},
+          {k:'Purpose', v:b.purpose || '—'}
+        ]
+      });
     });
   });
 }
