@@ -403,8 +403,9 @@ footer{text-align:center;font-size:0.75rem;color:#9a9fa5;margin-top:30px;}
     <h2 style="margin:0 0 2px;font-size:1.1rem;" id="infoModalTitle">Notice</h2>
     <p class="modal-sub" id="infoModalSub" style="display:none;"></p>
     <div class="info-rows" id="infoModalRows" style="display:none;"></div>
-    <div class="modal-actions" style="justify-content:flex-end;">
-      <button class="btn" id="infoModalOkBtn">OK</button>
+    <div class="modal-actions">
+      <button class="btn secondary" id="infoModalActionBtn" style="display:none;color:var(--busy-ink);">Delete booking</button>
+      <button class="btn" id="infoModalOkBtn" style="margin-left:auto;">OK</button>
     </div>
   </div>
 </div>
@@ -852,7 +853,7 @@ function setBookStatus(msg, err){
 }
 
 // ---------- STYLED DIALOGS (replace native window.prompt/alert) ----------
-function showInfoModal({title, message, rows, tone='info', icon='ℹ️'}){
+function showInfoModal({title, message, rows, tone='info', icon='ℹ️', actionLabel, onAction}){
   const overlay = document.getElementById('infoModalOverlay');
   document.getElementById('infoModalIcon').className = 'modal-icon tone-' + tone;
   document.getElementById('infoModalIcon').textContent = icon;
@@ -868,17 +869,28 @@ function showInfoModal({title, message, rows, tone='info', icon='ℹ️'}){
     rowsEl.innerHTML = '';
     rowsEl.style.display = 'none';
   }
+  const actionBtn = document.getElementById('infoModalActionBtn');
+  if(actionLabel && onAction){
+    actionBtn.textContent = actionLabel;
+    actionBtn.style.display = '';
+  } else {
+    actionBtn.style.display = 'none';
+  }
   overlay.classList.remove('hidden');
   return new Promise(resolve=>{
     const okBtn = document.getElementById('infoModalOkBtn');
-    function close(){
+    function close(result){
       overlay.classList.add('hidden');
-      okBtn.removeEventListener('click', close);
+      okBtn.removeEventListener('click', onOk);
+      actionBtn.removeEventListener('click', onActionClick);
       overlay.removeEventListener('click', onOverlay);
-      resolve();
+      resolve(result);
     }
-    function onOverlay(e){ if(e.target === overlay) close(); }
-    okBtn.addEventListener('click', close);
+    function onOk(){ close('ok'); }
+    function onActionClick(){ if(onAction) onAction(); close('action'); }
+    function onOverlay(e){ if(e.target === overlay) close('ok'); }
+    okBtn.addEventListener('click', onOk);
+    actionBtn.addEventListener('click', onActionClick);
     overlay.addEventListener('click', onOverlay);
   });
 }
@@ -1093,7 +1105,10 @@ function renderBookingsList(){
   html += '</tbody></table>';
   el.innerHTML = html;
   el.querySelectorAll('[data-cancel]').forEach(btn=>{
-    btn.addEventListener('click', ()=>cancelBooking(btn.dataset.cancel));
+    btn.addEventListener('click', ()=>{
+      if(!requireAdmin()) return;
+      cancelBooking(btn.dataset.cancel);
+    });
   });
 }
 
@@ -1178,7 +1193,12 @@ function renderRooms(){
           {k:'When', v:`${DAY_FULL[b.d]}, ${time} (${b.date})`},
           {k:'Booked by', v:b.by},
           {k:'Purpose', v:b.purpose || '—'}
-        ]
+        ],
+        actionLabel:'Delete booking',
+        onAction: ()=>{
+          if(!requireAdmin()) return;
+          cancelBooking(b.id);
+        }
       });
     });
   });
