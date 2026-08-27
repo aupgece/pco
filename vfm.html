@@ -368,18 +368,18 @@
           <div class="field-error" id="err_cell">Cell number is required.</div>
         </div>
         <div class="field">
-          <label>Email ID *</label>
-          <input type="email" id="f_email" required>
+          <label>Email ID</label>
+          <input type="email" id="f_email">
           <div class="field-error" id="err_email">Enter a valid email.</div>
         </div>
         <div class="field">
-          <label>Department *</label>
-          <input type="text" id="f_department" placeholder="e.g. Electrical Engineering" required>
+          <label>Department</label>
+          <input type="text" id="f_department" placeholder="e.g. Electrical Engineering">
           <div class="field-error" id="err_department">Department is required.</div>
         </div>
         <div class="field">
-          <label>Section(s) *</label>
-          <input type="text" id="f_section" placeholder="e.g. BEEP-F-26-A, BEET-F-26-B" required>
+          <label>Section(s)</label>
+          <input type="text" id="f_section" placeholder="e.g. BEEP-F-26-A, BEET-F-26-B">
           <div class="field-error" id="err_section">Section is required.</div>
         </div>
         <div class="field">
@@ -391,7 +391,7 @@
           <textarea id="f_courses" placeholder=""></textarea>
         </div>
         <div class="field full">
-          <label>Status *</label>
+          <label>Status</label>
           <div class="status-toggle" id="statusToggle">
             <div class="status-opt" data-val="Shared FM">Shared FM</div>
             <div class="status-opt" data-val="Visiting FM">Visiting FM</div>
@@ -741,11 +741,8 @@ document.getElementById('fmForm').addEventListener('submit', async (e)=>{
   let valid = true;
   if(!name){ document.getElementById('err_name').style.display='block'; valid=false; }
   if(!cell){ document.getElementById('err_cell').style.display='block'; valid=false; }
-  const emailOk = /^\S+@\S+\.\S+$/.test(email);
+  const emailOk = !email || /^\S+@\S+\.\S+$/.test(email);
   if(!emailOk){ document.getElementById('err_email').style.display='block'; valid=false; }
-  if(!department){ document.getElementById('err_department').style.display='block'; valid=false; }
-  if(!section){ document.getElementById('err_section').style.display='block'; valid=false; }
-  if(!status){ showToast('Please select a status.'); valid=false; }
   if(!valid) return;
 
   const saveBtn = document.getElementById('saveBtn');
