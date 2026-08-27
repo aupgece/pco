@@ -130,9 +130,10 @@
     background:var(--surface);
     border:1px solid var(--line);
     border-radius:3px;
-    overflow:hidden;
+    overflow-x:auto;
+    overflow-y:hidden;
   }
-  table{width:100%;border-collapse:collapse;}
+  table{width:100%;border-collapse:collapse;min-width:900px;}
   thead th{
     text-align:left;
     font-family:'IBM Plex Mono',monospace;
@@ -174,7 +175,7 @@
   .badge.visiting{background:var(--gold-tint);color:var(--gold);}
   .badge.visiting::before{background:var(--gold);}
 
-  .row-actions{display:flex;gap:6px;}
+  .row-actions{display:flex;gap:6px;white-space:nowrap;}
   .icon-btn{
     background:transparent;
     border:1px solid var(--line);
@@ -289,8 +290,6 @@
 
   @media (max-width:640px){
     .field-grid{grid-template-columns:1fr;}
-    .table-card{overflow-x:auto;}
-    table{min-width:820px;}
   }
 </style>
 </head>
