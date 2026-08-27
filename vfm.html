@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Visiting Faculty Members — Department of Electrical Engineering</title>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper: #EEF0EA;
+    --surface: #FBFBF8;
+    --ink: #1C2B24;
+    --ink-soft: #55635A;
+    --line: #D6D9D0;
+    --teal: #2F6E64;
+    --teal-tint: #E1EBE8;
+    --gold: #B8862E;
+    --gold-tint: #F3E9D4;
+    --danger: #B3462C;
+    --danger-tint: #F5E2DB;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Inter',sans-serif;
+    min-height:100vh;
+  }
+  .wrap{max-width:1180px;margin:0 auto;padding:36px 24px 80px;}
+
+  header.top{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-end;
+    flex-wrap:wrap;
+    gap:20px;
+    border-bottom:2px solid var(--ink);
+    padding-bottom:20px;
+    margin-bottom:28px;
+  }
+  .brand-eyebrow{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+    margin:0 0 6px;
+  }
+  h1{
+    font-family:'Fraunces',serif;
+    font-weight:600;
+    font-size:38px;
+    margin:0;
+    line-height:1.05;
+  }
+  .top-actions{display:flex;gap:10px;align-items:center;}
+  .count-pill{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;
+    color:var(--ink-soft);
+    padding-right:6px;
+  }
+  button{font-family:'Inter',sans-serif;cursor:pointer;border:none;}
+  .btn-primary{
+    background:var(--ink);
+    color:var(--paper);
+    padding:12px 20px;
+    font-size:14px;
+    font-weight:600;
+    border-radius:2px;
+    transition:background .15s ease;
+  }
+  .btn-primary:hover{background:#0E1712;}
+
+  .controls{
+    display:flex;
+    gap:12px;
+    flex-wrap:wrap;
+    align-items:center;
+    margin-bottom:22px;
+  }
+  .search-box{
+    flex:1;
+    min-width:220px;
+    position:relative;
+  }
+  .search-box input{
+    width:100%;
+    padding:11px 14px;
+    border:1px solid var(--line);
+    background:var(--surface);
+    font-size:14px;
+    border-radius:2px;
+    font-family:'Inter',sans-serif;
+    color:var(--ink);
+  }
+  .search-box input:focus{outline:none;border-color:var(--ink);}
+  select.filter{
+    padding:11px 12px;
+    border:1px solid var(--line);
+    background:var(--surface);
+    font-size:13px;
+    border-radius:2px;
+    color:var(--ink);
+    font-family:'Inter',sans-serif;
+  }
+  .status-chips{display:flex;gap:8px;}
+  .chip{
+    padding:8px 14px;
+    border:1px solid var(--line);
+    background:var(--surface);
+    border-radius:20px;
+    font-size:12.5px;
+    font-weight:500;
+    color:var(--ink-soft);
+    transition:all .15s ease;
+  }
+  .chip.active{
+    background:var(--ink);
+    color:var(--paper);
+    border-color:var(--ink);
+  }
+
+  .table-card{
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:3px;
+    overflow:hidden;
+  }
+  table{width:100%;border-collapse:collapse;}
+  thead th{
+    text-align:left;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:10.5px;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+    padding:14px 16px;
+    border-bottom:1px solid var(--line);
+    background:#F4F5F0;
+    white-space:nowrap;
+  }
+  tbody tr{border-bottom:1px solid var(--line);transition:background .1s ease;}
+  tbody tr:last-child{border-bottom:none;}
+  tbody tr:hover{background:#F7F8F4;}
+  tbody td{padding:14px 16px;font-size:14px;vertical-align:top;}
+  td.name-cell{font-weight:600;}
+  td.mono{font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:var(--ink-soft);}
+  td.courses{max-width:220px;color:var(--ink-soft);font-size:13px;line-height:1.5;}
+
+  .badge{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    padding:5px 11px 5px 9px;
+    border-radius:2px 8px 8px 2px;
+    font-size:11.5px;
+    font-weight:600;
+    letter-spacing:.02em;
+    position:relative;
+  }
+  .badge::before{
+    content:'';
+    width:6px;height:6px;
+    border-radius:50%;
+  }
+  .badge.shared{background:var(--teal-tint);color:var(--teal);}
+  .badge.shared::before{background:var(--teal);}
+  .badge.visiting{background:var(--gold-tint);color:var(--gold);}
+  .badge.visiting::before{background:var(--gold);}
+
+  .row-actions{display:flex;gap:6px;}
+  .icon-btn{
+    background:transparent;
+    border:1px solid var(--line);
+    padding:6px 10px;
+    font-size:12px;
+    border-radius:2px;
+    color:var(--ink-soft);
+    font-weight:500;
+  }
+  .icon-btn:hover{border-color:var(--ink);color:var(--ink);}
+  .icon-btn.danger:hover{border-color:var(--danger);color:var(--danger);}
+  .admin-only{display:none;}
+  body.is-admin .admin-only{display:inline-block;}
+
+  .empty-state{
+    padding:64px 24px;
+    text-align:center;
+    color:var(--ink-soft);
+  }
+  .empty-state h3{font-family:'Fraunces',serif;font-size:22px;color:var(--ink);margin:0 0 8px;font-weight:600;}
+  .empty-state p{font-size:14px;margin:0 0 20px;}
+
+  /* Modal */
+  .overlay{
+    position:fixed;inset:0;
+    background:rgba(20,26,20,.45);
+    display:none;
+    align-items:flex-start;
+    justify-content:center;
+    padding:5vh 20px;
+    z-index:100;
+    overflow-y:auto;
+  }
+  .overlay.open{display:flex;}
+  .modal{
+    background:var(--surface);
+    width:100%;
+    max-width:560px;
+    border-radius:3px;
+    border:1px solid var(--line);
+    padding:30px 30px 26px;
+  }
+  .modal h2{
+    font-family:'Fraunces',serif;
+    font-size:24px;
+    font-weight:600;
+    margin:0 0 4px;
+  }
+  .modal .sub{font-size:13px;color:var(--ink-soft);margin:0 0 22px;}
+  .field-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  .field{margin-bottom:14px;}
+  .field.full{grid-column:1/-1;}
+  .field label{
+    display:block;
+    font-size:11.5px;
+    font-weight:600;
+    text-transform:uppercase;
+    letter-spacing:.05em;
+    color:var(--ink-soft);
+    margin-bottom:6px;
+  }
+  .field input, .field select, .field textarea{
+    width:100%;
+    padding:10px 12px;
+    border:1px solid var(--line);
+    border-radius:2px;
+    font-size:14px;
+    font-family:'Inter',sans-serif;
+    color:var(--ink);
+    background:#fff;
+  }
+  .field textarea{resize:vertical;min-height:56px;font-family:'Inter',sans-serif;}
+  .field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--ink);}
+  .status-toggle{display:flex;gap:8px;}
+  .status-opt{
+    flex:1;
+    text-align:center;
+    padding:10px;
+    border:1px solid var(--line);
+    border-radius:2px;
+    font-size:13px;
+    font-weight:600;
+    color:var(--ink-soft);
+  }
+  .status-opt.sel-shared{border-color:var(--teal);background:var(--teal-tint);color:var(--teal);}
+  .status-opt.sel-visiting{border-color:var(--gold);background:var(--gold-tint);color:var(--gold);}
+  .modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:18px;}
+  .btn-ghost{
+    background:transparent;
+    padding:11px 18px;
+    font-size:13.5px;
+    font-weight:600;
+    color:var(--ink-soft);
+    border-radius:2px;
+  }
+  .btn-ghost:hover{color:var(--ink);}
+  .field-error{color:var(--danger);font-size:12px;margin-top:5px;display:none;}
+
+  .toast{
+    position:fixed;
+    bottom:24px;left:50%;
+    transform:translateX(-50%);
+    background:var(--ink);
+    color:var(--paper);
+    padding:12px 20px;
+    border-radius:2px;
+    font-size:13.5px;
+    z-index:200;
+    display:none;
+  }
+  .loading-row td{padding:40px;text-align:center;color:var(--ink-soft);font-size:13px;}
+
+  @media (max-width:640px){
+    .field-grid{grid-template-columns:1fr;}
+    .table-card{overflow-x:auto;}
+    table{min-width:820px;}
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="top">
+    <div>
+      <p class="brand-eyebrow">Department of Electrical Engineering</p>
+      <h1 id="mainTitle" style="cursor:pointer;" title="Click for admin access">Visiting Faculty Members</h1>
+    </div>
+    <div class="top-actions">
+      <span class="count-pill" id="countPill">— records</span>
+      <button class="btn-primary" id="exportBtn" style="background:var(--teal);">Export to Excel</button>
+      <button class="btn-primary" id="addBtn">+ Add Faculty Member</button>
+    </div>
+  </header>
+
+  <div class="controls">
+    <div class="search-box">
+      <input type="text" id="searchInput" placeholder="Search by name, email, course, or section…">
+    </div>
+    <select class="filter" id="sectionFilter">
+      <option value="">All sections</option>
+    </select>
+    <div class="status-chips">
+      <button class="chip active" data-status="">All</button>
+      <button class="chip" data-status="Shared FM">Shared FM</button>
+      <button class="chip" data-status="Visiting FM">Visiting FM</button>
+    </div>
+  </div>
+
+  <div class="table-card">
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Cell No.</th>
+          <th>Email</th>
+          <th>Department</th>
+          <th>Section</th>
+          <th>Courses Teaching</th>
+          <th>Qualification</th>
+          <th>Status</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="tableBody">
+        <tr class="loading-row"><td colspan="9">Loading register…</td></tr>
+      </tbody>
+    </table>
+    <div class="empty-state" id="emptyState" style="display:none;">
+      <h3>No records yet</h3>
+      <p>Add your first visiting faculty member to start the register.</p>
+      <button class="btn-primary" id="emptyAddBtn">+ Add Faculty Member</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <h2 id="modalTitle">Add Faculty Member</h2>
+    <p class="sub">Enter the details for this record. Fields marked required must be filled.</p>
+    <form id="fmForm">
+      <input type="hidden" id="fmId">
+      <div class="field-grid">
+        <div class="field full">
+          <label>Name of FM *</label>
+          <input type="text" id="f_name" required>
+          <div class="field-error" id="err_name">Name is required.</div>
+        </div>
+        <div class="field">
+          <label>Cell No. *</label>
+          <input type="tel" id="f_cell" required>
+          <div class="field-error" id="err_cell">Cell number is required.</div>
+        </div>
+        <div class="field">
+          <label>Email ID *</label>
+          <input type="email" id="f_email" required>
+          <div class="field-error" id="err_email">Enter a valid email.</div>
+        </div>
+        <div class="field">
+          <label>Department *</label>
+          <input type="text" id="f_department" placeholder="e.g. Electrical Engineering" required>
+          <div class="field-error" id="err_department">Department is required.</div>
+        </div>
+        <div class="field">
+          <label>Section(s) *</label>
+          <input type="text" id="f_section" placeholder="e.g. BEEP-F-26-A, BEET-F-26-B" required>
+          <div class="field-error" id="err_section">Section is required.</div>
+        </div>
+        <div class="field">
+          <label>Qualification</label>
+          <input type="text" id="f_qualification" placeholder="">
+        </div>
+        <div class="field full">
+          <label>Courses Teaching</label>
+          <textarea id="f_courses" placeholder=""></textarea>
+        </div>
+        <div class="field full">
+          <label>Status *</label>
+          <div class="status-toggle" id="statusToggle">
+            <div class="status-opt" data-val="Shared FM">Shared FM</div>
+            <div class="status-opt" data-val="Visiting FM">Visiting FM</div>
+          </div>
+          <input type="hidden" id="f_status" value="">
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn-ghost" id="cancelBtn">Cancel</button>
+        <button type="submit" class="btn-primary" id="saveBtn">Save Record</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── FIREBASE CONFIGURATION (same project as index.html) ────────────────────
+var firebaseConfig = {
+  apiKey:            "AIzaSyAW6Z6c1N5QVpB7iCWXhyjxHQImeCYRgxs",
+  authDomain:        "auecepco.firebaseapp.com",
+  databaseURL:       "https://auecepco-default-rtdb.firebaseio.com",
+  projectId:         "auecepco",
+  storageBucket:     "auecepco.firebasestorage.app",
+  messagingSenderId: "314187695897",
+  appId:             "1:314187695897:web:2718ba7cbe8bdf10bea788",
+  measurementId:     "G-C4MJY4WNVD"
+};
+
+var fbDb = null;
+var COLLECTION = 'fm_visiting_faculty';
+try{
+  firebase.initializeApp(firebaseConfig);
+  fbDb = firebase.firestore();
+  console.log('Firebase initialized OK');
+}catch(e){
+  console.error('Firebase init failed:', e);
+}
+
+let records = [];
+let editingId = null;
+let activeStatus = '';
+let searchTerm = '';
+let sectionFilterVal = '';
+let isAdmin = false;
+const ADMIN_PASSWORD = 'fm2026';
+
+function setAdminMode(val){
+  isAdmin = val;
+  document.body.classList.toggle('is-admin', isAdmin);
+}
+
+function toggleAdmin(){
+  if(isAdmin){
+    setAdminMode(false);
+    showToast('Admin mode off.');
+    return;
+  }
+  const pass = prompt('Enter admin password:');
+  if(pass === null) return;
+  if(pass === ADMIN_PASSWORD){
+    setAdminMode(true);
+    showToast('Admin mode on.');
+  } else {
+    showToast('Incorrect password.');
+  }
+}
+
+const tableBody = document.getElementById('tableBody');
+const emptyState = document.getElementById('emptyState');
+const overlay = document.getElementById('overlay');
+const countPill = document.getElementById('countPill');
+const sectionFilter = document.getElementById('sectionFilter');
+
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.display = 'block';
+  setTimeout(()=>{ t.style.display = 'none'; }, 2400);
+}
+
+function loadRecords(){
+  if(!fbDb){ showToast('Firebase not available — check your connection.'); render(); return; }
+  fbDb.collection(COLLECTION).onSnapshot((snap)=>{
+    records = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    render();
+  }, (err)=>{
+    console.error('Firestore listen failed:', err);
+    showToast('Could not load records from Firebase.');
+  });
+}
+
+async function saveRecord(record){
+  try{
+    await fbDb.collection(COLLECTION).doc(record.id).set(record);
+    return true;
+  }catch(e){
+    console.error('Save failed:', e);
+    showToast('Storage error — could not save.');
+    return false;
+  }
+}
+
+async function deleteRecordDoc(id){
+  try{
+    await fbDb.collection(COLLECTION).doc(id).delete();
+    return true;
+  }catch(e){
+    console.error('Delete failed:', e);
+    showToast('Storage error — could not delete.');
+    return false;
+  }
+}
+
+function uid(){
+  return 'fm_' + Date.now() + '_' + Math.random().toString(36).slice(2,8);
+}
+
+async function exportToExcel(){
+  if(!records.length){ showToast('No records to export.'); return; }
+  try{
+    const wb = new ExcelJS.Workbook();
+    wb.creator = 'Department of Electrical Engineering';
+    wb.created = new Date();
+    const ws = wb.addWorksheet('Visiting Faculty Members');
+
+    ws.columns = [
+      { key: 'name', width: 26 },
+      { key: 'cell', width: 16 },
+      { key: 'email', width: 30 },
+      { key: 'department', width: 24 },
+      { key: 'section', width: 20 },
+      { key: 'courses', width: 34 },
+      { key: 'qualification', width: 24 },
+      { key: 'status', width: 14 }
+    ];
+
+    const lastCol = String.fromCharCode(64 + ws.columns.length);
+
+    ws.mergeCells(`A1:${lastCol}1`);
+    const titleCell = ws.getCell('A1');
+    titleCell.value = 'VISITING FMS ELECTRICAL ENGINEERING DEPARTMENT';
+    titleCell.font = { bold: true, size: 14, color: { argb: 'FFFFFFFF' } };
+    titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1C2B24' } };
+    titleCell.alignment = { vertical: 'middle', horizontal: 'center' };
+    ws.getRow(1).height = 28;
+
+    const headerRow = ws.getRow(2);
+    headerRow.values = ['Name', 'Cell No.', 'Email', 'Department', 'Section', 'Courses Teaching', 'Qualification', 'Status'];
+    headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 11 };
+    headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2F6E64' } };
+    headerRow.alignment = { vertical: 'middle', horizontal: 'left' };
+    headerRow.height = 22;
+
+    const sorted = [...records].sort((a,b) => (a.name||'').localeCompare(b.name||''));
+    sorted.forEach(r => {
+      ws.addRow({
+        name: r.name || '', cell: r.cell || '', email: r.email || '',
+        department: r.department || '', section: r.section || '', courses: r.courses || '',
+        qualification: r.qualification || '', status: r.status || ''
+      });
+    });
+
+    const thin = { style: 'thin', color: { argb: 'FFD6D9D0' } };
+    ws.eachRow((row, idx) => {
+      if(idx === 1) return;
+      row.eachCell(cell => {
+        cell.border = { top: thin, left: thin, bottom: thin, right: thin };
+        if(idx > 2){
+          cell.alignment = { vertical: 'middle', wrapText: true };
+          if((idx - 3) % 2 === 0){
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F5F0' } };
+          }
+        }
+      });
+    });
+
+    ws.autoFilter = { from: 'A2', to: `${lastCol}2` };
+    ws.views = [{ state: 'frozen', ySplit: 2 }];
+
+    const buffer = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Visiting-Faculty-Members-${new Date().toISOString().slice(0,10)}.xlsx`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    showToast('Exported to Excel.');
+  }catch(e){
+    console.error('Export failed:', e);
+    showToast('Export failed — please try again.');
+  }
+}
+
+function escapeHtml(str){
+  const d = document.createElement('div');
+  d.textContent = str || '';
+  return d.innerHTML;
+}
+
+function splitSections(sectionStr){
+  return (sectionStr || '').split(/[,\s]+/).map(s => s.trim()).filter(Boolean);
+}
+
+function populateSectionFilter(){
+  const sections = [...new Set(records.flatMap(r => splitSections(r.section)))].sort();
+  const current = sectionFilter.value;
+  sectionFilter.innerHTML = '<option value="">All sections</option>' +
+    sections.map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join('');
+  sectionFilter.value = sections.includes(current) ? current : '';
+}
+
+function getFiltered(){
+  return records.filter(r=>{
+    if(activeStatus && r.status !== activeStatus) return false;
+    if(sectionFilterVal && !splitSections(r.section).includes(sectionFilterVal)) return false;
+    if(searchTerm){
+      const hay = [r.name, r.email, r.courses, r.department, r.section, r.qualification].join(' ').toLowerCase();
+      if(!hay.includes(searchTerm.toLowerCase())) return false;
+    }
+    return true;
+  });
+}
+
+function render(){
+  populateSectionFilter();
+  const filtered = getFiltered();
+  countPill.textContent = `${filtered.length} of ${records.length} record${records.length===1?'':'s'}`;
+
+  if(records.length === 0){
+    tableBody.innerHTML = '';
+    emptyState.style.display = 'block';
+    document.querySelector('.table-card table').style.display = 'none';
+    return;
+  }
+  document.querySelector('.table-card table').style.display = 'table';
+
+  if(filtered.length === 0){
+    emptyState.style.display = 'block';
+    document.getElementById('emptyState').innerHTML = `<h3>No matches</h3><p>No faculty members match your search or filters.</p>`;
+    tableBody.innerHTML = '';
+    return;
+  }
+  emptyState.style.display = 'none';
+
+  tableBody.innerHTML = filtered.map(r => `
+    <tr>
+      <td class="name-cell">${escapeHtml(r.name)}</td>
+      <td class="mono">${escapeHtml(r.cell)}</td>
+      <td class="mono">${escapeHtml(r.email)}</td>
+      <td>${escapeHtml(r.department)}</td>
+      <td>${escapeHtml(r.section)}</td>
+      <td class="courses">${escapeHtml(r.courses)}</td>
+      <td>${escapeHtml(r.qualification)}</td>
+      <td>
+        <span class="badge ${r.status === 'Shared FM' ? 'shared' : 'visiting'}">${escapeHtml(r.status)}</span>
+      </td>
+      <td>
+        <div class="row-actions">
+          <button class="icon-btn" onclick="openEdit('${r.id}')">Edit</button>
+          <button class="icon-btn danger admin-only" onclick="deleteRecord('${r.id}')">Delete</button>
+        </div>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function openAdd(){
+  editingId = null;
+  document.getElementById('modalTitle').textContent = 'Add Faculty Member';
+  document.getElementById('fmForm').reset();
+  document.getElementById('fmId').value = '';
+  setStatusToggle('');
+  clearErrors();
+  overlay.classList.add('open');
+  document.getElementById('f_name').focus();
+}
+
+function openEdit(id){
+  const r = records.find(x => x.id === id);
+  if(!r) return;
+  editingId = id;
+  document.getElementById('modalTitle').textContent = 'Edit Faculty Member';
+  document.getElementById('fmId').value = r.id;
+  document.getElementById('f_name').value = r.name;
+  document.getElementById('f_cell').value = r.cell;
+  document.getElementById('f_email').value = r.email;
+  document.getElementById('f_department').value = r.department;
+  document.getElementById('f_section').value = r.section;
+  document.getElementById('f_qualification').value = r.qualification;
+  document.getElementById('f_courses').value = r.courses;
+  setStatusToggle(r.status);
+  clearErrors();
+  overlay.classList.add('open');
+}
+
+function closeModal(){
+  overlay.classList.remove('open');
+}
+
+function setStatusToggle(val){
+  document.getElementById('f_status').value = val;
+  document.querySelectorAll('.status-opt').forEach(el=>{
+    el.classList.remove('sel-shared','sel-visiting');
+    if(el.dataset.val === val){
+      el.classList.add(val === 'Shared FM' ? 'sel-shared' : 'sel-visiting');
+    }
+  });
+}
+
+document.getElementById('statusToggle').addEventListener('click', (e)=>{
+  const opt = e.target.closest('.status-opt');
+  if(!opt) return;
+  setStatusToggle(opt.dataset.val);
+});
+
+function clearErrors(){
+  document.querySelectorAll('.field-error').forEach(e => e.style.display = 'none');
+}
+
+async function deleteRecord(id){
+  if(!isAdmin){ showToast('Admin access required.'); return; }
+  const r = records.find(x => x.id === id);
+  if(!r) return;
+  if(!confirm(`Delete record for "${r.name}"? This cannot be undone.`)) return;
+  const ok = await deleteRecordDoc(id);
+  showToast(ok ? 'Record deleted.' : 'Delete failed — please try again.');
+}
+
+document.getElementById('fmForm').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  clearErrors();
+
+  const name = document.getElementById('f_name').value.trim();
+  const cell = document.getElementById('f_cell').value.trim();
+  const email = document.getElementById('f_email').value.trim();
+  const department = document.getElementById('f_department').value.trim();
+  const section = document.getElementById('f_section').value.trim();
+  const qualification = document.getElementById('f_qualification').value.trim();
+  const courses = document.getElementById('f_courses').value.trim();
+  const status = document.getElementById('f_status').value;
+
+  let valid = true;
+  if(!name){ document.getElementById('err_name').style.display='block'; valid=false; }
+  if(!cell){ document.getElementById('err_cell').style.display='block'; valid=false; }
+  const emailOk = /^\S+@\S+\.\S+$/.test(email);
+  if(!emailOk){ document.getElementById('err_email').style.display='block'; valid=false; }
+  if(!department){ document.getElementById('err_department').style.display='block'; valid=false; }
+  if(!section){ document.getElementById('err_section').style.display='block'; valid=false; }
+  if(!status){ showToast('Please select a status.'); valid=false; }
+  if(!valid) return;
+
+  const saveBtn = document.getElementById('saveBtn');
+  saveBtn.disabled = true;
+  saveBtn.textContent = 'Saving…';
+
+  const record = editingId
+    ? { id: editingId, name, cell, email, department, section, qualification, courses, status }
+    : { id: uid(), name, cell, email, department, section, qualification, courses, status };
+
+  const ok = await saveRecord(record);
+  saveBtn.disabled = false;
+  saveBtn.textContent = 'Save Record';
+  closeModal();
+  showToast(ok ? (editingId ? 'Record updated.' : 'Record added.') : 'Save failed — please try again.');
+});
+
+document.getElementById('addBtn').addEventListener('click', openAdd);
+document.getElementById('emptyAddBtn').addEventListener('click', openAdd);
+document.getElementById('exportBtn').addEventListener('click', exportToExcel);
+document.getElementById('mainTitle').addEventListener('click', toggleAdmin);
+document.addEventListener('keydown', (e)=>{
+  if(e.ctrlKey && e.shiftKey && (e.key === 'A' || e.key === 'a')){
+    e.preventDefault();
+    toggleAdmin();
+  }
+});
+document.getElementById('cancelBtn').addEventListener('click', closeModal);
+overlay.addEventListener('click', (e)=>{ if(e.target === overlay) closeModal(); });
+
+document.getElementById('searchInput').addEventListener('input', (e)=>{
+  searchTerm = e.target.value;
+  render();
+});
+sectionFilter.addEventListener('change', (e)=>{
+  sectionFilterVal = e.target.value;
+  render();
+});
+document.querySelectorAll('.chip').forEach(chip=>{
+  chip.addEventListener('click', ()=>{
+    document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+    activeStatus = chip.dataset.status;
+    render();
+  });
+});
+
+loadRecords();
+</script>
+</body>
+</html>
