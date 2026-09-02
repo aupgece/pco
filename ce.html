@@ -6,22 +6,22 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
 :root{
-  --navy:#0f2a3f;
-  --navy-2:#173c57;
-  --paper:#f3f1ea;
+  --navy:#33206b;
+  --navy-2:#4a2f94;
+  --paper:#f2f0f7;
   --card:#ffffff;
-  --line:#dcd7c8;
-  --ink:#1b2430;
-  --muted:#6b7280;
-  --lecture:#1f6f5c;
-  --lecture-bg:#e4f1ec;
-  --lab:#b5651d;
-  --lab-bg:#faeee0;
-  --free:#e7f4e9;
-  --free-ink:#2e7d32;
-  --busy-bg:#fdeeee;
+  --line:#dcd6ea;
+  --ink:#1c1730;
+  --muted:#6b6580;
+  --lecture:#0e7c86;
+  --lecture-bg:#e2f4f5;
+  --lab:#c2410c;
+  --lab-bg:#fbe9dd;
+  --free:#e6f6ee;
+  --free-ink:#178a52;
+  --busy-bg:#fdecec;
   --busy-ink:#a33;
-  --amber:#c47f2c;
+  --amber:#d97706;
   --mono:"IBM Plex Mono",Menlo,Consolas,monospace;
   --sans:"IBM Plex Sans","Segoe UI",system-ui,sans-serif;
 }
@@ -37,7 +37,7 @@ header .top{
   display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:8px;
 }
 header h1{margin:0;font-size:1.3rem;letter-spacing:-0.01em;}
-header .sub{font-family:var(--mono);font-size:0.72rem;color:#a9c4d6;text-transform:uppercase;letter-spacing:.06em;}
+header .sub{font-family:var(--mono);font-size:0.72rem;color:#c9bdea;text-transform:uppercase;letter-spacing:.06em;}
 nav{max-width:1100px;margin:14px auto 0;display:flex;gap:6px;flex-wrap:wrap;}
 nav button{
   background:transparent;border:1px solid rgba(255,255,255,0.25);color:#dfe8ee;
@@ -96,7 +96,7 @@ table.list tr:nth-child(even) td{background:#fafaf6;}
 #dropzone{
   border:2px dashed #b9c4bd;border-radius:10px;padding:34px 18px;text-align:center;cursor:pointer;margin-bottom:14px;
 }
-#dropzone:hover, #dropzone.drag{border-color:var(--navy);background:#eef2ee;}
+#dropzone:hover, #dropzone.drag{border-color:var(--navy);background:#eeeaf7;}
 #dropzone .big{font-weight:700;margin-bottom:4px;}
 #dropzone .small{font-size:0.82rem;color:var(--muted);}
 #fileInput{display:none;}
@@ -119,7 +119,7 @@ footer{text-align:center;font-size:0.75rem;color:#9a9fa5;margin-top:30px;}
   border:1px solid var(--line);
   border-radius:999px;
   padding:4px 6px;
-  box-shadow:0 1px 2px rgba(15,42,63,0.06);
+  box-shadow:0 1px 2px rgba(51,32,107,0.08);
 }
 .pager-btn{
   width:34px;height:34px;
@@ -130,9 +130,9 @@ footer{text-align:center;font-size:0.75rem;color:#9a9fa5;margin-top:30px;}
   display:flex;align-items:center;justify-content:center;
   cursor:pointer;
   transition:transform .12s ease, background .12s ease, box-shadow .12s ease;
-  box-shadow:0 1px 3px rgba(15,42,63,0.25);
+  box-shadow:0 1px 3px rgba(51,32,107,0.28);
 }
-.pager-btn:hover{background:var(--amber); transform:translateY(-1px); box-shadow:0 3px 8px rgba(15,42,63,0.28);}
+.pager-btn:hover{background:var(--amber); transform:translateY(-1px); box-shadow:0 3px 8px rgba(51,32,107,0.30);}
 .pager-btn:active{transform:translateY(0) scale(0.94);}
 .pager-btn svg{display:block;}
 .pager-label{
@@ -146,7 +146,7 @@ header, main{opacity:1;transition:opacity .1s ease;}
 body.boot header, body.boot main{opacity:0;}
 
 .modal-overlay{
-  position:fixed; inset:0; background:rgba(15,42,63,0.55);
+  position:fixed; inset:0; background:rgba(28,23,48,0.6);
   display:flex; align-items:center; justify-content:center;
   z-index:1000; padding:16px;
 }
@@ -255,9 +255,17 @@ body.boot header, body.boot main{opacity:0;}
 
 <header>
   <div class="top">
-    <div>
-      <h1 id="siteTitle">Computer &amp; Software Engineering — Timetable</h1>
-      <div class="sub" id="siteSub">Air University · Fall 2026</div>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <svg width="40" height="40" viewBox="0 0 40 40" style="flex:none;" aria-hidden="true">
+        <rect x="1" y="1" width="38" height="38" rx="9" fill="#4a2f94" stroke="#8f7ce0" stroke-width="1.2"/>
+        <path d="M13 14 L8 20 L13 26" fill="none" stroke="#5eead4" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M27 14 L32 20 L27 26" fill="none" stroke="#5eead4" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M22.5 11.5 L17.5 28.5" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round"/>
+      </svg>
+      <div>
+        <h1 id="siteTitle">Computer &amp; Software Engineering — Timetable</h1>
+        <div class="sub" id="siteSub">Air University · Fall 2026</div>
+      </div>
     </div>
     <div class="sub" id="lastUpdated">Loaded 16 Aug 2026</div>
   </div>
