@@ -1,0 +1,1969 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Air University — CS/SE Timetable</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<style>
+:root{
+  --navy:#0f2a3f;
+  --navy-2:#173c57;
+  --paper:#f3f1ea;
+  --card:#ffffff;
+  --line:#dcd7c8;
+  --ink:#1b2430;
+  --muted:#6b7280;
+  --lecture:#1f6f5c;
+  --lecture-bg:#e4f1ec;
+  --lab:#b5651d;
+  --lab-bg:#faeee0;
+  --free:#e7f4e9;
+  --free-ink:#2e7d32;
+  --busy-bg:#fdeeee;
+  --busy-ink:#a33;
+  --amber:#c47f2c;
+  --mono:"IBM Plex Mono",Menlo,Consolas,monospace;
+  --sans:"IBM Plex Sans","Segoe UI",system-ui,sans-serif;
+}
+*{box-sizing:border-box;}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);padding-bottom:60px;}
+header{
+  background:var(--navy);
+  color:#fff;
+  padding:20px 20px 16px;
+}
+header .top{
+  max-width:1100px;margin:0 auto;
+  display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:8px;
+}
+header h1{margin:0;font-size:1.3rem;letter-spacing:-0.01em;}
+header .sub{font-family:var(--mono);font-size:0.72rem;color:#a9c4d6;text-transform:uppercase;letter-spacing:.06em;}
+nav{max-width:1100px;margin:14px auto 0;display:flex;gap:6px;flex-wrap:wrap;}
+nav button{
+  background:transparent;border:1px solid rgba(255,255,255,0.25);color:#dfe8ee;
+  padding:8px 14px;border-radius:7px;font-family:var(--sans);font-size:0.83rem;font-weight:600;cursor:pointer;
+}
+nav button.active{background:#fff;color:var(--navy);border-color:#fff;}
+main{max-width:1100px;margin:0 auto;padding:20px;}
+.view{display:none;}
+.view.active{display:block;}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:20px;margin-bottom:16px;}
+h2{margin-top:0;font-size:1.05rem;}
+.controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:16px;}
+select, input[type=text]{
+  font-family:var(--sans);font-size:0.85rem;padding:8px 10px;border:1px solid var(--line);border-radius:6px;background:#fff;color:var(--ink);
+}
+label.field{font-size:0.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:4px;}
+.field-wrap{display:flex;flex-direction:column;gap:4px;}
+button.btn{
+  font-family:var(--sans);font-weight:600;font-size:0.83rem;border:1px solid var(--navy);background:var(--navy);color:#fff;
+  padding:9px 16px;border-radius:6px;cursor:pointer;
+}
+button.btn.secondary{background:transparent;color:var(--navy);}
+button.btn:hover{opacity:.88;}
+button.btn.small{padding:5px 10px;font-size:0.75rem;}
+
+table.grid{border-collapse:collapse;width:100%;font-size:0.78rem;table-layout:fixed;}
+table.grid th, table.grid td{border:1px solid var(--line);padding:6px;vertical-align:top;}
+table.grid th{background:var(--navy);color:#fff;font-weight:600;font-size:0.72rem;text-align:center;}
+table.grid td.daycell{background:var(--navy-2);color:#fff;font-weight:700;text-align:center;font-size:0.95rem;width:44px;}
+table.grid td.slotcell{height:64px;position:relative;}
+.entry{border-radius:6px;padding:5px 6px;height:100%;display:flex;flex-direction:column;justify-content:center;gap:2px;}
+.entry.lecture{background:var(--lecture-bg);border:1px solid var(--lecture);}
+.entry.lab{background:var(--lab-bg);border:1px solid var(--lab);}
+.entry .su{font-weight:700;font-size:0.76rem;line-height:1.15;}
+.entry .te{font-size:0.65rem;color:var(--muted);}
+.entry .rm{font-size:0.65rem;color:var(--muted);text-align:right;}
+.entry.lecture .su{color:var(--lecture);}
+.entry.lab .su{color:var(--lab);}
+
+table.list{border-collapse:collapse;width:100%;font-size:0.82rem;}
+table.list th, table.list td{border:1px solid var(--line);padding:7px 9px;text-align:left;}
+table.list th{background:#efece2;font-size:0.72rem;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);}
+table.list tr:nth-child(even) td{background:#fafaf6;}
+.badge{display:inline-block;font-size:0.68rem;font-weight:700;padding:2px 7px;border-radius:10px;}
+.badge.lecture{background:var(--lecture-bg);color:var(--lecture);}
+.badge.lab{background:var(--lab-bg);color:var(--lab);}
+
+.room-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;}
+.room-card{border-radius:8px;padding:12px;font-size:0.85rem;border:1px solid var(--line);}
+.room-card.free{background:var(--free);border-color:#bfe3c3;}
+.room-card.busy{background:var(--busy-bg);border-color:#f0c9c9;}
+.room-card .name{font-weight:700;margin-bottom:4px;}
+.room-card .free-tag{color:var(--free-ink);font-size:0.72rem;font-weight:700;}
+.room-card .busy-tag{color:var(--busy-ink);font-size:0.72rem;}
+
+#dropzone{
+  border:2px dashed #b9c4bd;border-radius:10px;padding:34px 18px;text-align:center;cursor:pointer;margin-bottom:14px;
+}
+#dropzone:hover, #dropzone.drag{border-color:var(--navy);background:#eef2ee;}
+#dropzone .big{font-weight:700;margin-bottom:4px;}
+#dropzone .small{font-size:0.82rem;color:var(--muted);}
+#fileInput{display:none;}
+.status{font-family:var(--mono);font-size:0.8rem;color:var(--lecture);margin-top:8px;min-height:1.1em;}
+.status.err{color:var(--busy-ink);}
+
+.hint{font-size:0.82rem;color:var(--muted);line-height:1.5;margin:0 0 14px;}
+.hint code{background:#efece2;padding:1px 5px;border-radius:3px;font-family:var(--mono);}
+
+.edit-table input, .edit-table select{width:100%;font-size:0.78rem;padding:4px 6px;}
+.edit-table td{padding:4px;}
+footer{text-align:center;font-size:0.75rem;color:#9a9fa5;margin-top:30px;}
+.legend{display:flex;gap:16px;font-size:0.78rem;color:var(--muted);margin-bottom:10px;flex-wrap:wrap;}
+.legend span{display:inline-flex;align-items:center;gap:5px;}
+.dot{width:10px;height:10px;border-radius:3px;display:inline-block;}
+
+.pager{
+  display:flex;align-items:center;gap:10px;
+  background:linear-gradient(180deg,#ffffff,#f6f5f1);
+  border:1px solid var(--line);
+  border-radius:999px;
+  padding:4px 6px;
+  box-shadow:0 1px 2px rgba(15,42,63,0.06);
+}
+.pager-btn{
+  width:34px;height:34px;
+  border-radius:50%;
+  border:none;
+  background:var(--navy);
+  color:#fff;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;
+  transition:transform .12s ease, background .12s ease, box-shadow .12s ease;
+  box-shadow:0 1px 3px rgba(15,42,63,0.25);
+}
+.pager-btn:hover{background:var(--amber); transform:translateY(-1px); box-shadow:0 3px 8px rgba(15,42,63,0.28);}
+.pager-btn:active{transform:translateY(0) scale(0.94);}
+.pager-btn svg{display:block;}
+.pager-label{
+  font-family:var(--mono);font-size:0.78rem;color:var(--navy);font-weight:600;
+  white-space:nowrap;min-width:96px;text-align:center;
+}
+.print-only{display:none;}
+
+body.boot header, body.boot main{visibility:hidden;}
+header, main{opacity:1;transition:opacity .1s ease;}
+body.boot header, body.boot main{opacity:0;}
+
+.modal-overlay{
+  position:fixed; inset:0; background:rgba(15,42,63,0.55);
+  display:flex; align-items:center; justify-content:center;
+  z-index:1000; padding:16px;
+}
+.modal-overlay.hidden{display:none;}
+.modal-box{
+  background:#fff; border-radius:14px; padding:26px 26px 22px;
+  max-width:460px; width:100%;
+  box-shadow:0 20px 50px rgba(0,0,0,0.3);
+  animation:modalIn .18s ease-out;
+}
+.modal-eyebrow{
+  font-family:var(--mono); font-size:0.68rem; text-transform:uppercase; letter-spacing:.08em;
+  color:var(--lecture); font-weight:700;
+}
+.modal-notices{
+  margin:12px 0 0; padding-left:18px; font-size:0.83rem; color:var(--ink); line-height:1.55;
+}
+.modal-notices li{margin-bottom:6px;}
+.modal-notices strong{color:var(--navy);}
+.modal-divider{border:none; border-top:1px solid var(--line); margin:16px 0 14px;}
+@keyframes modalIn{ from{opacity:0; transform:translateY(8px) scale(.98);} to{opacity:1; transform:none;} }
+.modal-box input[type=text], .modal-box input:not([type]){
+  width:100%; font-size:0.95rem; padding:11px 12px; border:1px solid var(--line);
+  border-radius:8px; margin:6px 0 4px; font-family:var(--sans);
+}
+.modal-actions{display:flex; justify-content:space-between; align-items:center; margin-top:16px; gap:10px; flex-wrap:wrap;}
+.modal-actions .btn.secondary{border-color:transparent; color:var(--muted); font-weight:500;}
+
+/* Booking + info dialogs (replace native prompt/alert) */
+.modal-box.compact{max-width:400px;}
+.modal-icon{
+  width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-size:1.3rem;margin-bottom:12px;
+}
+.modal-icon.tone-book{background:var(--lecture-bg);color:var(--lecture);}
+.modal-icon.tone-success{background:var(--free);color:var(--free-ink);}
+.modal-icon.tone-error{background:var(--busy-bg);color:var(--busy-ink);}
+.modal-icon.tone-info{background:var(--lab-bg);color:var(--lab);}
+#bookFormModal .modal-sub, #infoModal .modal-sub{font-size:0.8rem;color:var(--muted);margin:2px 0 16px;}
+#bookFormModal label.field{margin-top:12px;}
+#bookFormModal label.field:first-of-type{margin-top:14px;}
+#infoModal .info-rows{margin:0 0 4px;}
+#infoModal .info-row{display:flex;gap:8px;padding:9px 0;border-top:1px solid var(--line);font-size:0.85rem;}
+#infoModal .info-row:first-child{border-top:none;}
+#infoModal .info-row .k{color:var(--muted);min-width:88px;flex-shrink:0;}
+#infoModal .info-row .v{color:var(--ink);font-weight:600;word-break:break-word;}
+#bookFormModal .field-error{font-size:0.76rem;color:var(--busy-ink);margin:4px 0 0;min-height:1em;}
+
+@media print{
+  @page{ size:landscape; margin:8mm 10mm; }
+  header, nav, footer, .no-print, #tabs { display:none !important; }
+  html, body{padding:0;background:#fff;height:auto;}
+  main{padding:0;max-width:none;width:100%;}
+  .panel{border:none;box-shadow:none;padding:0;margin:0;width:100%;}
+  .print-only{display:block !important;}
+
+  .print-masthead{
+    display:flex;align-items:baseline;justify-content:space-between;
+    border-bottom:1.5pt solid #000;padding-bottom:5pt;margin-bottom:7pt;
+  }
+  .print-masthead .name{font-size:13pt;font-weight:800;color:#000;}
+  .print-masthead .sub{font-size:8.5pt;font-weight:600;color:#333;}
+  .print-masthead .gen{font-size:8pt;color:#555;text-align:right;}
+
+  #gridSectionTitle, #teacherPrintTitle{
+    font-size:14pt;font-weight:800;color:#000 !important;
+    margin:0 0 6pt;padding-bottom:3pt;border-bottom:0.75pt solid #999;
+  }
+
+  /* Keep the whole weekly grid — masthead, title and table — together on
+     one printed page rather than letting the table spill onto a second. */
+  #view-grid, #view-teacher{ page-break-inside:avoid; }
+
+  table.grid{font-size:9.5pt;width:100%;table-layout:fixed;page-break-inside:avoid;}
+  table.grid th{background:#e8e8e8 !important;color:#000 !important;font-weight:700;-webkit-print-color-adjust:exact;print-color-adjust:exact;padding:4pt 3pt;}
+  table.grid td.daycell{background:#ddd !important;color:#000 !important;font-weight:800;font-size:9.5pt;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  table.grid td.slotcell{height:auto;min-height:44pt;padding:3pt;}
+  .entry.lecture, .entry.lab{-webkit-print-color-adjust:exact;print-color-adjust:exact;height:100%;}
+  .entry .su{font-weight:700;font-size:8.5pt;}
+  .entry .te, .entry .rm{font-size:7.5pt;}
+
+  table.list{font-size:10pt;width:100%;}
+  table.list th{background:#e8e8e8 !important;color:#000 !important;font-weight:700;-webkit-print-color-adjust:exact;print-color-adjust:exact;padding:6pt 7pt;}
+  table.list td{padding:5pt 7pt;}
+
+  table{page-break-inside:auto;}
+  tr{page-break-inside:avoid;}
+  thead{display:table-header-group;}
+
+  /* "Print all sections" mode: show only the generated multi-section
+     container, one section per page, and hide the normal single-view UI. */
+  body.printing-all .view{display:none !important;}
+  body.printing-all #allSectionsPrint{display:block !important;}
+  .print-section-block{page-break-inside:avoid;page-break-after:always;}
+  .print-section-block:last-child{page-break-after:auto;}
+  .print-section-heading{
+    font-size:14pt;font-weight:800;color:#000;
+    margin:0 0 6pt;padding-bottom:3pt;border-bottom:0.75pt solid #999;
+  }
+}
+#allSectionsPrint{display:none;}
+</style>
+</head>
+<body class="boot">
+<script>setTimeout(function(){ document.body.classList.remove('boot'); }, 2000);</script>
+
+<header>
+  <div class="top">
+    <div>
+      <h1 id="siteTitle">Computer &amp; Software Engineering — Timetable</h1>
+      <div class="sub" id="siteSub">Air University · Fall 2026</div>
+    </div>
+    <div class="sub" id="lastUpdated">Loaded 16 Aug 2026</div>
+  </div>
+  <nav id="tabs">
+    <button data-view="grid" class="active">All Timetable</button>
+    <button data-view="teacher">Teacher</button>
+    <button data-view="rooms">Free Rooms</button>
+    <button data-view="search">Search</button>
+    <button data-view="update" id="updateTabBtn" style="">Update Data</button>
+    <button class="secondary small" id="adminLoginBtn" style="margin-left:auto;">Admin ✓</button>
+  </nav>
+</header>
+
+<main>
+
+  <!-- Shown only when printing (screen header is hidden via @media print) -->
+  <div class="print-masthead print-only">
+    <div>
+      <div class="name" id="printHeaderTitle"></div>
+      <div class="sub" id="printHeaderSub"></div>
+    </div>
+    <div class="gen">Printed <span id="printGenDate"></span></div>
+  </div>
+
+  <!-- Populated only when "Print all sections" is used; otherwise empty/hidden -->
+  <div id="allSectionsPrint"></div>
+
+  <!-- GRID VIEW -->
+  <section class="view active" id="view-grid">
+    <div class="panel" id="gridPanel">
+      <div class="controls">
+        <div class="field-wrap">
+          <label class="field">Section</label>
+          <select id="sectionSelect"></select>
+        </div>
+        <div class="field-wrap no-print">
+          <label class="field">Browse</label>
+          <div class="pager">
+            <button class="pager-btn" id="prevSectionBtn" title="Previous section" aria-label="Previous section">
+              <svg viewBox="0 0 24 24" width="18" height="18"><path d="M15 5 8 12l7 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+            </button>
+            <span id="sectionPageLabel" class="pager-label"></span>
+            <button class="pager-btn" id="nextSectionBtn" title="Next section" aria-label="Next section">
+              <svg viewBox="0 0 24 24" width="18" height="18"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+            </button>
+          </div>
+        </div>
+        <div class="field-wrap no-print">
+          <label class="field">&nbsp;</label>
+          <button class="btn secondary small" id="printSectionBtn">🖨 Print this section</button>
+        </div>
+        <div class="field-wrap no-print">
+          <label class="field">&nbsp;</label>
+          <button class="btn secondary small" id="printAllSectionsBtn">🖨 Print all sections</button>
+        </div>
+      </div>
+      <div class="legend no-print">
+        <span><span class="dot" style="background:var(--lecture)"></span> Lecture</span>
+        <span><span class="dot" style="background:var(--lab)"></span> Lab</span>
+      </div>
+      <h2 id="gridSectionTitle" style="margin:6px 0 12px;color:var(--navy);"></h2>
+      <div id="gridContainer"><table class="grid"><thead><tr><th></th><th>08:00-09:20</th><th>09:20-10:40</th><th>10:40-12:00</th><th>12:00-13:20</th><th>13:20-14:40</th><th>14:40-16:00</th></tr></thead><tbody><tr><td class="daycell">Mo</td><td class="slotcell"></td><td class="slotcell"></td><td class="slotcell"></td><td class="slotcell"></td><td class="slotcell"></td><td class="slotcell"></td></tr><tr><td class="daycell">Tu</td><td class="slotcell"></td><td class="slotcell"></td><td class="slotcell"></td><td class="slotcell"></td><td class="slotcell"></td><td class="slotcell"></td></tr><tr><td class="daycell">We</td><td class="slotcell"></td><td class="slotcell"></td><td class="slotcell"></td><td class="slotcell"></td><td class="slotcell"></td><td class="slotcell"></td></tr><tr><td class="daycell">Th</td><td class="slotcell"></td><td class="slotcell"></td><td class="slotcell"></td><td class="slotcell"></td><td class="slotcell"></td><td class="slotcell"></td></tr><tr><td class="daycell">Fr</td><td class="slotcell"></td><td class="slotcell"></td><td class="slotcell"></td><td class="slotcell"></td><td class="slotcell"></td><td class="slotcell"></td></tr></tbody></table></div>
+    </div>
+  </section>
+
+  <!-- TEACHER VIEW -->
+  <section class="view" id="view-teacher">
+    <div class="panel" id="teacherPanel">
+      <h2>Teacher schedule</h2>
+      <p class="hint no-print">Pick a teacher to see their full week — classes they teach, and when they're free.</p>
+      <div class="controls">
+        <div class="field-wrap">
+          <label class="field">Search teacher</label>
+          <input type="text" id="teacherSearchInput" list="teacherDatalist" placeholder="Type a teacher's name…" autocomplete="off">
+          <div class="status err" id="teacherSearchErr" style="display:none;min-height:0;"></div>
+        </div>
+        <div class="field-wrap">
+          <label class="field">Or pick from list</label>
+          <select id="teacher-select"><option value="">All teachers</option></select>
+        </div>
+        <div class="field-wrap no-print">
+          <label class="field">&nbsp;</label>
+          <button class="btn secondary small" id="printTeacherBtn">🖨 Print this schedule</button>
+        </div>
+      </div>
+      <div class="legend no-print">
+        <span><span class="dot" style="background:var(--lecture)"></span> Lecture</span>
+        <span><span class="dot" style="background:var(--lab)"></span> Lab</span>
+        <span><span class="dot" style="background:#8fcf95"></span> Free</span>
+      </div>
+      <h2 id="teacherPrintTitle" class="print-only" style="margin:6px 0 12px;color:var(--navy);">All Teachers — Full Schedule</h2>
+      <div id="teacherResults"><p class="hint no-print">Showing all 0 teachers. Pick one above to see just their week, or scroll through everyone below.</p><table class="list"><thead><tr><th>Teacher</th><th>Day</th><th>Time</th><th>Subject</th><th>Section</th><th>Room</th><th>Type</th></tr></thead><tbody></tbody></table></div>
+    </div>
+  </section>
+
+  <!-- SEARCH VIEW -->
+  <section class="view" id="view-search">
+    <div class="panel">
+      <h2>Search &amp; filter classes</h2>
+      <p class="hint">For a teacher's full schedule use the <strong>Teacher</strong> tab, and for open rooms use <strong>Free Rooms</strong>. This tab is for combined/text search across everything.</p>
+      <div class="controls">
+        <div class="field-wrap"><label class="field">Section</label><select id="f-section"><option value="">All</option></select></div>
+        <div class="field-wrap"><label class="field">Day</label><select id="f-day"><option value="">All</option><option value="Mo">Monday</option><option value="Tu">Tuesday</option><option value="We">Wednesday</option><option value="Th">Thursday</option><option value="Fr">Friday</option></select></div>
+        <div class="field-wrap"><label class="field">Teacher</label><select id="f-teacher"><option value="">All</option></select></div>
+        <div class="field-wrap"><label class="field">Room</label><select id="f-room"><option value="">All</option></select></div>
+        <div class="field-wrap"><label class="field">Type</label><select id="f-type"><option value="">All</option><option value="lecture">Lecture</option><option value="lab">Lab</option></select></div>
+        <div class="field-wrap"><label class="field">Text search</label><input type="text" id="f-text" placeholder="subject, teacher, room…"></div>
+      </div>
+      <div id="teacherPrompt"></div>
+      <div id="searchResults"><p class="hint">0 classes found.</p><table class="list"><thead><tr><th>Section</th><th>Day</th><th>Time</th><th>Subject</th><th>Teacher</th><th>Room</th><th>Type</th></tr></thead><tbody></tbody></table></div>
+    </div>
+  </section>
+
+  <!-- FREE ROOMS VIEW -->
+  <section class="view" id="view-rooms">
+    <div class="panel">
+      <h2>Find &amp; book a free room</h2>
+      <p class="hint">Pick a day (or leave it on "All days"). Click any green free room to book it instantly.</p>
+      <div class="controls" id="room-day-tabs"><button class="btn  small" data-day="ALL">All days</button><button class="btn secondary small" data-day="Mo">Monday</button><button class="btn secondary small" data-day="Tu">Tuesday</button><button class="btn secondary small" data-day="We">Wednesday</button><button class="btn secondary small" data-day="Th">Thursday</button><button class="btn secondary small" data-day="Fr">Friday</button></div>
+      <div id="roomResults"><h3 style="margin:18px 0 8px;color:var(--navy);">Monday</h3><div class="panel" style="padding:14px 16px;margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
+          <strong style="font-size:0.9rem;">08:00-09:20</strong>
+          <span style="font-size:0.75rem;color:var(--muted);">0 of 0 rooms free</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;"></div></div><div class="panel" style="padding:14px 16px;margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
+          <strong style="font-size:0.9rem;">09:20-10:40</strong>
+          <span style="font-size:0.75rem;color:var(--muted);">0 of 0 rooms free</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;"></div></div><div class="panel" style="padding:14px 16px;margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
+          <strong style="font-size:0.9rem;">10:40-12:00</strong>
+          <span style="font-size:0.75rem;color:var(--muted);">0 of 0 rooms free</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;"></div></div><div class="panel" style="padding:14px 16px;margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
+          <strong style="font-size:0.9rem;">12:00-13:20</strong>
+          <span style="font-size:0.75rem;color:var(--muted);">0 of 0 rooms free</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;"></div></div><div class="panel" style="padding:14px 16px;margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
+          <strong style="font-size:0.9rem;">13:20-14:40</strong>
+          <span style="font-size:0.75rem;color:var(--muted);">0 of 0 rooms free</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;"></div></div><div class="panel" style="padding:14px 16px;margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
+          <strong style="font-size:0.9rem;">14:40-16:00</strong>
+          <span style="font-size:0.75rem;color:var(--muted);">0 of 0 rooms free</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;"></div></div><h3 style="margin:18px 0 8px;color:var(--navy);">Tuesday</h3><div class="panel" style="padding:14px 16px;margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
+          <strong style="font-size:0.9rem;">08:00-09:20</strong>
+          <span style="font-size:0.75rem;color:var(--muted);">0 of 0 rooms free</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;"></div></div><div class="panel" style="padding:14px 16px;margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
+          <strong style="font-size:0.9rem;">09:20-10:40</strong>
+          <span style="font-size:0.75rem;color:var(--muted);">0 of 0 rooms free</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;"></div></div><div class="panel" style="padding:14px 16px;margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
+          <strong style="font-size:0.9rem;">10:40-12:00</strong>
+          <span style="font-size:0.75rem;color:var(--muted);">0 of 0 rooms free</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;"></div></div><div class="panel" style="padding:14px 16px;margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
+          <strong style="font-size:0.9rem;">12:00-13:20</strong>
+          <span style="font-size:0.75rem;color:var(--muted);">0 of 0 rooms free</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;"></div></div><div class="panel" style="padding:14px 16px;margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
+          <strong style="font-size:0.9rem;">13:20-14:40</strong>
+          <span style="font-size:0.75rem;color:var(--muted);">0 of 0 rooms free</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;"></div></div><div class="panel" style="padding:14px 16px;margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
+          <strong style="font-size:0.9rem;">14:40-16:00</strong>
+          <span style="font-size:0.75rem;color:var(--muted);">0 of 0 rooms free</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;"></div></div><h3 style="margin:18px 0 8px;color:var(--navy);">Wednesday</h3><div class="panel" style="padding:14px 16px;margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
+          <strong style="font-size:0.9rem;">08:00-09:20</strong>
+          <span style="font-size:0.75rem;color:var(--muted);">0 of 0 rooms free</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;"></div></div><div class="panel" style="padding:14px 16px;margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
+          <strong style="font-size:0.9rem;">09:20-10:40</strong>
+          <span style="font-size:0.75rem;color:var(--muted);">0 of 0 rooms free</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;"></div></div><div class="panel" style="padding:14px 16px;margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
+          <strong style="font-size:0.9rem;">10:40-12:00</strong>
+          <span style="font-size:0.75rem;color:var(--muted);">0 of 0 rooms free</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;"></div></div><div class="panel" style="padding:14px 16px;margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
+          <strong style="font-size:0.9rem;">12:00-13:20</strong>
+          <span style="font-size:0.75rem;color:var(--muted);">0 of 0 rooms free</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;"></div></div><div class="panel" style="padding:14px 16px;margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
+          <strong style="font-size:0.9rem;">13:20-14:40</strong>
+          <span style="font-size:0.75rem;color:var(--muted);">0 of 0 rooms free</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;"></div></div><div class="panel" style="padding:14px 16px;margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
+          <strong style="font-size:0.9rem;">14:40-16:00</strong>
+          <span style="font-size:0.75rem;color:var(--muted);">0 of 0 rooms free</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;"></div></div><h3 style="margin:18px 0 8px;color:var(--navy);">Thursday</h3><div class="panel" style="padding:14px 16px;margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
+          <strong style="font-size:0.9rem;">08:00-09:20</strong>
+          <span style="font-size:0.75rem;color:var(--muted);">0 of 0 rooms free</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;"></div></div><div class="panel" style="padding:14px 16px;margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
+          <strong style="font-size:0.9rem;">09:20-10:40</strong>
+          <span style="font-size:0.75rem;color:var(--muted);">0 of 0 rooms free</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;"></div></div><div class="panel" style="padding:14px 16px;margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
+          <strong style="font-size:0.9rem;">10:40-12:00</strong>
+          <span style="font-size:0.75rem;color:var(--muted);">0 of 0 rooms free</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;"></div></div><div class="panel" style="padding:14px 16px;margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
+          <strong style="font-size:0.9rem;">12:00-13:20</strong>
+          <span style="font-size:0.75rem;color:var(--muted);">0 of 0 rooms free</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;"></div></div><div class="panel" style="padding:14px 16px;margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
+          <strong style="font-size:0.9rem;">13:20-14:40</strong>
+          <span style="font-size:0.75rem;color:var(--muted);">0 of 0 rooms free</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;"></div></div><div class="panel" style="padding:14px 16px;margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
+          <strong style="font-size:0.9rem;">14:40-16:00</strong>
+          <span style="font-size:0.75rem;color:var(--muted);">0 of 0 rooms free</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;"></div></div><h3 style="margin:18px 0 8px;color:var(--navy);">Friday</h3><div class="panel" style="padding:14px 16px;margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
+          <strong style="font-size:0.9rem;">08:00-09:20</strong>
+          <span style="font-size:0.75rem;color:var(--muted);">0 of 0 rooms free</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;"></div></div><div class="panel" style="padding:14px 16px;margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
+          <strong style="font-size:0.9rem;">09:20-10:40</strong>
+          <span style="font-size:0.75rem;color:var(--muted);">0 of 0 rooms free</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;"></div></div><div class="panel" style="padding:14px 16px;margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
+          <strong style="font-size:0.9rem;">10:40-12:00</strong>
+          <span style="font-size:0.75rem;color:var(--muted);">0 of 0 rooms free</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;"></div></div><div class="panel" style="padding:14px 16px;margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
+          <strong style="font-size:0.9rem;">12:00-13:20</strong>
+          <span style="font-size:0.75rem;color:var(--muted);">0 of 0 rooms free</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;"></div></div><div class="panel" style="padding:14px 16px;margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
+          <strong style="font-size:0.9rem;">13:20-14:40</strong>
+          <span style="font-size:0.75rem;color:var(--muted);">0 of 0 rooms free</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;"></div></div><div class="panel" style="padding:14px 16px;margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
+          <strong style="font-size:0.9rem;">14:40-16:00</strong>
+          <span style="font-size:0.75rem;color:var(--muted);">0 of 0 rooms free</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;"></div></div></div>
+    </div>
+
+    <div class="panel">
+      <h2>Current bookings</h2>
+      <div id="bookingsList"><p class="hint">No bookings yet.</p></div>
+    </div>
+  </section>
+
+  <!-- FREE TIME VIEW (kept out of front nav, view removed) -->
+
+  <!-- UPDATE VIEW -->
+  <section class="view" id="view-update">
+    <div class="panel">
+      <h2>Site banner, page title &amp; welcome popup</h2>
+      <p class="hint">Everything here is admin-editable and saves for everyone on refresh.</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px 16px;">
+        <div class="field-wrap">
+          <label class="field" for="setSiteTitle">Banner title</label>
+          <input type="text" id="setSiteTitle">
+        </div>
+        <div class="field-wrap">
+          <label class="field" for="setSiteSub">Banner subtitle</label>
+          <input type="text" id="setSiteSub">
+        </div>
+        <div class="field-wrap" style="grid-column:1 / -1;">
+          <label class="field" for="setPageTitle">Browser tab title</label>
+          <input type="text" id="setPageTitle">
+        </div>
+        <div class="field-wrap">
+          <label class="field" for="setPopupEyebrow">Popup eyebrow</label>
+          <input type="text" id="setPopupEyebrow">
+        </div>
+        <div class="field-wrap">
+          <label class="field" for="setPopupHeading">Popup heading</label>
+          <input type="text" id="setPopupHeading">
+        </div>
+        <div class="field-wrap" style="grid-column:1 / -1;">
+          <label class="field" for="setPopupNotices">Popup notice lines (one per line)</label>
+          <textarea id="setPopupNotices" rows="4" style="width:100%;font-family:var(--sans);font-size:0.85rem;padding:8px 10px;border:1px solid var(--line);border-radius:6px;"></textarea>
+        </div>
+        <div class="field-wrap">
+          <label class="field" for="setPopupSkipLabel">Popup "skip" button text</label>
+          <input type="text" id="setPopupSkipLabel">
+        </div>
+        <div class="field-wrap">
+          <label class="field" for="setPopupSearchLabel">Popup "search" button text</label>
+          <input type="text" id="setPopupSearchLabel">
+        </div>
+      </div>
+      <div class="controls" style="margin-top:14px;">
+        <button class="btn small" id="saveSettingsBtn">Save site settings</button>
+        <button class="btn secondary small" id="resetSettingsBtn">Reset to defaults</button>
+      </div>
+      <div class="status" id="settingsStatus"></div>
+    </div>
+
+    <div class="panel">
+      <h2>Replace with a new timetable PDF</h2>
+      <p class="hint">Upload a new PDF whenever the timetable changes (admin password required). It's parsed automatically (best effort) — check the rows below and fix anything that looks off, then apply. Changes save automatically and will be there for everyone on refresh — downloading a copy is optional, just for your own backup.</p>
+      <div id="dropzone">
+        <div class="big">Drop a timetable PDF here, or click to choose one</div>
+        <div class="small">Processed entirely in your browser — nothing is uploaded anywhere.</div>
+        <input type="file" id="fileInput" accept="application/pdf">
+      </div>
+      <div class="status" id="uploadStatus">All sections deleted.</div>
+    </div>
+
+    <div class="panel">
+      <h2>Edit class entries</h2>
+      <div class="controls">
+        <button class="btn secondary small" id="addRowBtn">+ Add entry</button>
+        <button class="btn small" id="applyBtn">Apply changes</button>
+        <button class="btn secondary small" id="deleteAllBtn" style="color:#b32020;border-color:#e3a8a8;">Delete all sections</button>
+        <button class="btn secondary small" id="downloadBtn">Download updated timetable.html</button>
+      </div>
+      <div style="overflow-x:auto;">
+        <table class="list edit-table" id="editTable">
+          <thead>
+            <tr><th>Section</th><th>Day</th><th>Start</th><th>Span</th><th>Type</th><th>Subject</th><th>Teacher</th><th>Room</th><th></th></tr>
+          </thead>
+          <tbody id="editBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<div id="teacherModalOverlay" class="modal-overlay hidden">
+  <div class="modal-box">
+    <div class="modal-eyebrow" id="popupEyebrow">Air University · CS/SE Department</div>
+    <h2 style="margin-top:2px;" id="popupHeading">Timetable — Fall 2026</h2>
+    <ul class="modal-notices" id="popupNotices">
+      <li>Search any <strong>teacher</strong> by name to see their full weekly schedule and free periods.</li>
+      <li>Check <strong>Free Rooms</strong> and click a free slot to <strong>book a room</strong> — handy for makeup classes.</li>
+      <li>Browse <strong>All Timetable</strong> section-by-section with the ‹ › page controls, and print any page.</li>
+    </ul>
+    <hr class="modal-divider">
+    <p class="hint" style="margin:0 0 4px;font-weight:600;color:var(--ink);">Search by teacher</p>
+    <input list="teacherDatalist" id="modalTeacherInput" placeholder="Start typing a teacher's name…" autocomplete="off">
+    <datalist id="teacherDatalist"></datalist>
+    <div id="modalError" class="status err" style="display:none;"></div>
+    <div class="modal-actions">
+      <button class="btn secondary" id="modalSkipBtn">Skip, show me the timetable</button>
+      <button class="btn" id="modalSearchBtn">Search</button>
+    </div>
+  </div>
+</div>
+
+<!-- Room booking form (replaces native window.prompt) -->
+<div id="bookFormModalOverlay" class="modal-overlay hidden">
+  <div class="modal-box compact" id="bookFormModal">
+    <div class="modal-icon tone-book">📅</div>
+    <h2 style="margin:0 0 2px;font-size:1.1rem;" id="bookFormTitle">Book a room</h2>
+    <p class="modal-sub" id="bookFormSub"></p>
+    <label class="field" for="bookFormDate">Date</label>
+    <input type="date" id="bookFormDate">
+    <div class="field-error" id="bookFormDateErr"></div>
+    <label class="field" for="bookFormBy">Booked by <span style="text-transform:none;opacity:.7;">(optional)</span></label>
+    <input type="text" id="bookFormBy" placeholder="Your name" autocomplete="off">
+    <label class="field" for="bookFormPurpose">Purpose <span style="text-transform:none;opacity:.7;">(optional)</span></label>
+    <input type="text" id="bookFormPurpose" placeholder="e.g. Makeup class" autocomplete="off">
+    <div class="modal-actions">
+      <button class="btn secondary" id="bookFormCancelBtn">Cancel</button>
+      <button class="btn" id="bookFormConfirmBtn">Confirm booking</button>
+    </div>
+  </div>
+</div>
+
+<!-- Generic styled info / success / error dialog (replaces native window.alert) -->
+<div id="infoModalOverlay" class="modal-overlay hidden">
+  <div class="modal-box compact" id="infoModal">
+    <div class="modal-icon" id="infoModalIcon">ℹ️</div>
+    <h2 style="margin:0 0 2px;font-size:1.1rem;" id="infoModalTitle">Notice</h2>
+    <p class="modal-sub" id="infoModalSub" style="display:none;"></p>
+    <div class="info-rows" id="infoModalRows" style="display:none;"></div>
+    <div class="modal-actions">
+      <button class="btn secondary" id="infoModalActionBtn" style="display:none;color:var(--busy-ink);">Delete booking</button>
+      <button class="btn" id="infoModalOkBtn" style="margin-left:auto;">OK</button>
+    </div>
+  </div>
+</div>
+
+<!-- Firebase SDK (Realtime Database) — shared booking storage -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+
+<script>
+const DAYS = ['Mo','Tu','We','Th','Fr'];
+const DAY_FULL = {Mo:'Monday',Tu:'Tuesday',We:'Wednesday',Th:'Thursday',Fr:'Friday'};
+const SLOTS = ['08:00-09:20','09:20-10:40','10:40-12:00','12:00-13:20','13:20-14:40','14:40-16:00'];
+
+// entries: s=section, d=day, t=start slot idx, n=span, su=subject, te=teacher, r=room, ty=type
+let DATA = [];
+
+// ad-hoc room bookings: {id, r, d, t, n, by, purpose}
+let BOOKINGS = [];
+
+// site chrome: banner, browser tab title, welcome popup — all admin-editable
+const DEFAULT_SETTINGS = {
+  siteTitle: 'Computer & Software Engineering — Timetable',
+  siteSub: 'Air University · Fall 2026',
+  pageTitle: 'Air University — CS/SE Timetable',
+  popupEyebrow: 'Air University · CS/SE Department',
+  popupHeading: 'Timetable — Fall 2026',
+  popupNotices: [
+    'Search any teacher by name to see their full weekly schedule and free periods.',
+    'Check Free Rooms and click a free slot to book a room — handy for makeup classes.',
+    'Browse All Timetable section-by-section with the ‹ › page controls, and print any page.'
+  ],
+  popupSkipLabel: 'Skip, show me the timetable',
+  popupSearchLabel: 'Search'
+};
+let SETTINGS = Object.assign({}, DEFAULT_SETTINGS);
+
+// ---------- CACHE-FIRST HYDRATION ----------
+// localStorage is synchronous and local, so reading it happens instantly — unlike the
+// Firebase round-trip. We hydrate DATA/BOOKINGS/SETTINGS from whatever was last seen
+// (either this browser's own edits, or the last update a Firebase listener wrote here)
+// before anything is rendered, so a refresh shows the latest known content immediately
+// instead of the stale defaults baked into this file. The Firebase listeners (set up
+// later) still run and silently reconcile if something changed elsewhere in the meantime.
+const DATA_LOCAL_KEY = 'cse_timetable_data_v1';
+const BOOKINGS_LOCAL_KEY = 'cse_timetable_bookings_v1';
+const SETTINGS_LOCAL_KEY = 'cse_timetable_settings_v1';
+(function hydrateFromCache(){
+  try{
+    const rawData = localStorage.getItem(DATA_LOCAL_KEY);
+    if(rawData) DATA = JSON.parse(rawData);
+  }catch(e){ console.warn('cache hydrate (data) failed', e); }
+  try{
+    const rawBookings = localStorage.getItem(BOOKINGS_LOCAL_KEY);
+    if(rawBookings) BOOKINGS = JSON.parse(rawBookings);
+  }catch(e){ console.warn('cache hydrate (bookings) failed', e); }
+  try{
+    const rawSettings = localStorage.getItem(SETTINGS_LOCAL_KEY);
+    if(rawSettings) SETTINGS = Object.assign({}, DEFAULT_SETTINGS, JSON.parse(rawSettings));
+  }catch(e){ console.warn('cache hydrate (settings) failed', e); }
+})();
+function revealPage(){ document.body.classList.remove('boot'); }
+
+// ---------- helpers ----------
+function uniq(arr){ return [...new Set(arr.filter(Boolean))].sort((a,b)=>a.localeCompare(b)); }
+function sections(){ return uniq(DATA.map(e=>e.s)); }
+function looksLikeRoomName(text){
+  const t = (text||'').trim();
+  if(!t) return false;
+  if(/lab|block|hall|auditorium/i.test(t)) return true;
+  if(/^[A-Za-z]{0,4}[\s-]?\d{2,4}[A-Za-z]?$/.test(t)) return true; // e.g. "B-105", "B105", "204"
+  return false;
+}
+function teachers(){
+  // Exclude bad/leftover values (room names, or stray 1-2 char fragments) so they
+  // never show up in teacher dropdowns, even if such a value exists in the data.
+  return uniq(DATA.map(e=>e.te).filter(t=> t && t.trim().length > 2 && !looksLikeRoomName(t)));
+}
+function rooms(){ return uniq(DATA.map(e=>e.r)); }
+
+function occupiedSlots(entry){
+  const out=[];
+  for(let i=0;i<entry.n;i++) out.push(entry.t+i);
+  return out;
+}
+
+function setLastUpdated(){
+  document.getElementById('lastUpdated').textContent = 'Loaded ' + new Date().toLocaleDateString(undefined,{year:'numeric',month:'short',day:'numeric'});
+}
+
+// Print masthead date is refreshed right before printing (rather than once on
+// load) so it always reflects the moment the page was actually printed.
+window.addEventListener('beforeprint', ()=>{
+  document.getElementById('printGenDate').textContent = new Date().toLocaleDateString(undefined,{year:'numeric',month:'short',day:'numeric'});
+});
+
+// ---------- SITE SETTINGS (banner / tab title / popup) ----------
+function applySettings(){
+  document.getElementById('siteTitle').textContent = SETTINGS.siteTitle;
+  document.getElementById('siteSub').textContent = SETTINGS.siteSub;
+  document.getElementById('printHeaderTitle').textContent = SETTINGS.siteTitle;
+  document.getElementById('printHeaderSub').textContent = SETTINGS.siteSub;
+  document.title = SETTINGS.pageTitle;
+  document.getElementById('popupEyebrow').textContent = SETTINGS.popupEyebrow;
+  document.getElementById('popupHeading').textContent = SETTINGS.popupHeading;
+  const noticesList = (SETTINGS.popupNotices && SETTINGS.popupNotices.length) ? SETTINGS.popupNotices : DEFAULT_SETTINGS.popupNotices;
+  document.getElementById('popupNotices').innerHTML = noticesList.map(n=>`<li>${escapeHtml(n)}</li>`).join('');
+  document.getElementById('modalSkipBtn').textContent = SETTINGS.popupSkipLabel;
+  document.getElementById('modalSearchBtn').textContent = SETTINGS.popupSearchLabel;
+  populateSettingsForm();
+}
+function populateSettingsForm(){
+  document.getElementById('setSiteTitle').value = SETTINGS.siteTitle;
+  document.getElementById('setSiteSub').value = SETTINGS.siteSub;
+  document.getElementById('setPageTitle').value = SETTINGS.pageTitle;
+  document.getElementById('setPopupEyebrow').value = SETTINGS.popupEyebrow;
+  document.getElementById('setPopupHeading').value = SETTINGS.popupHeading;
+  document.getElementById('setPopupNotices').value = (SETTINGS.popupNotices||[]).join('\n');
+  document.getElementById('setPopupSkipLabel').value = SETTINGS.popupSkipLabel;
+  document.getElementById('setPopupSearchLabel').value = SETTINGS.popupSearchLabel;
+}
+document.getElementById('saveSettingsBtn').addEventListener('click', ()=>{
+  if(!requireAdmin()) return;
+  SETTINGS = {
+    siteTitle: document.getElementById('setSiteTitle').value.trim() || DEFAULT_SETTINGS.siteTitle,
+    siteSub: document.getElementById('setSiteSub').value.trim() || DEFAULT_SETTINGS.siteSub,
+    pageTitle: document.getElementById('setPageTitle').value.trim() || DEFAULT_SETTINGS.pageTitle,
+    popupEyebrow: document.getElementById('setPopupEyebrow').value.trim() || DEFAULT_SETTINGS.popupEyebrow,
+    popupHeading: document.getElementById('setPopupHeading').value.trim() || DEFAULT_SETTINGS.popupHeading,
+    popupNotices: document.getElementById('setPopupNotices').value.split('\n').map(s=>s.trim()).filter(Boolean),
+    popupSkipLabel: document.getElementById('setPopupSkipLabel').value.trim() || DEFAULT_SETTINGS.popupSkipLabel,
+    popupSearchLabel: document.getElementById('setPopupSearchLabel').value.trim() || DEFAULT_SETTINGS.popupSearchLabel
+  };
+  applySettings();
+  saveSettings();
+  document.getElementById('settingsStatus').textContent = 'Saved — everyone will see this on refresh.';
+  document.getElementById('settingsStatus').className = 'status';
+});
+document.getElementById('resetSettingsBtn').addEventListener('click', ()=>{
+  if(!requireAdmin()) return;
+  if(!window.confirm('Reset banner, tab title and popup back to defaults?')) return;
+  SETTINGS = Object.assign({}, DEFAULT_SETTINGS);
+  applySettings();
+  saveSettings();
+  document.getElementById('settingsStatus').textContent = 'Reset to defaults.';
+  document.getElementById('settingsStatus').className = 'status';
+});
+
+// ---------- tabs ----------
+document.querySelectorAll('#tabs button[data-view]').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('#tabs button[data-view]').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+    document.getElementById('view-'+btn.dataset.view).classList.add('active');
+    if(btn.dataset.view==='teacher') renderTeacher();
+    if(btn.dataset.view==='search') renderSearch();
+    if(btn.dataset.view==='rooms') renderRooms();
+    if(btn.dataset.view==='update') renderEditTable();
+  });
+});
+
+// ---------- GRID VIEW ----------
+function populateFrontTeacherSelect(){
+  // keeps the teacher datalist used by the startup search modal in sync
+  const dl = document.getElementById('teacherDatalist');
+  if(dl) dl.innerHTML = teachers().map(t=>`<option value="${t}"></option>`).join('');
+}
+
+function populateSectionSelect(){
+  const sel = document.getElementById('sectionSelect');
+  sel.innerHTML = sections().map(s=>`<option value="${s}">${s}</option>`).join('');
+  sel.addEventListener('change', renderGrid);
+}
+function buildSectionTable(entries){
+  const cell = {}; // key day-slot -> entry, and mark consumed slots
+  const consumed = new Set();
+  entries.forEach(e=>{
+    cell[e.d+'-'+e.t] = e;
+    occupiedSlots(e).slice(1).forEach(i=>consumed.add(e.d+'-'+i));
+  });
+
+  let html = '<table class="grid"><thead><tr><th></th>';
+  SLOTS.forEach(s=>html+=`<th>${s}</th>`);
+  html += '</tr></thead><tbody>';
+  DAYS.forEach(d=>{
+    html += `<tr><td class="daycell">${d}</td>`;
+    for(let i=0;i<SLOTS.length;i++){
+      if(consumed.has(d+'-'+i)) continue; // skip, covered by colspan
+      const e = cell[d+'-'+i];
+      if(e){
+        html += `<td class="slotcell"${e.n>1?` colspan="${e.n}"`:''}>
+          <div class="entry ${e.ty}">
+            <div class="su">${escapeHtml(e.su)}</div>
+            <div class="te">${escapeHtml(e.te)}</div>
+            <div class="rm">${escapeHtml(e.r)}</div>
+          </div></td>`;
+      } else {
+        html += `<td class="slotcell"></td>`;
+      }
+    }
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+  return html;
+}
+function renderGrid(){
+  const list = sections();
+  const sel = document.getElementById('sectionSelect');
+  if(!sel.value && list.length) sel.value = list[0];
+  const sec = sel.value;
+  const idx = list.indexOf(sec);
+
+  document.getElementById('gridSectionTitle').textContent = sec;
+  document.getElementById('sectionPageLabel').textContent = list.length ? `Section ${idx+1} of ${list.length}` : '';
+
+  const entries = DATA.filter(e=>e.s===sec);
+  document.getElementById('gridContainer').innerHTML = buildSectionTable(entries);
+}
+function stepSection(delta){
+  const list = sections();
+  if(!list.length) return;
+  const sel = document.getElementById('sectionSelect');
+  let idx = list.indexOf(sel.value);
+  idx = (idx + delta + list.length) % list.length;
+  sel.value = list[idx];
+  renderGrid();
+}
+document.getElementById('prevSectionBtn').addEventListener('click', ()=>stepSection(-1));
+document.getElementById('nextSectionBtn').addEventListener('click', ()=>stepSection(1));
+document.getElementById('printSectionBtn').addEventListener('click', ()=>window.print());
+
+function printAllSections(){
+  const list = sections();
+  const container = document.getElementById('allSectionsPrint');
+  container.innerHTML = list.map(sec=>{
+    const entries = DATA.filter(e=>e.s===sec);
+    return `<div class="print-section-block">
+        <h2 class="print-section-heading">${escapeHtml(sec)}</h2>
+        ${buildSectionTable(entries)}
+      </div>`;
+  }).join('');
+  document.body.classList.add('printing-all');
+  window.print();
+}
+// afterprint (not a click handler) so this also fires if printing is
+// cancelled from the browser's print dialog, not just after a real print.
+window.addEventListener('afterprint', ()=>{
+  document.body.classList.remove('printing-all');
+  document.getElementById('allSectionsPrint').innerHTML = '';
+});
+document.getElementById('printAllSectionsBtn').addEventListener('click', printAllSections);
+function escapeHtml(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// ---------- TEACHER VIEW ----------
+function populateTeacherSelect(){
+  const sel = document.getElementById('teacher-select');
+  sel.innerHTML = '<option value="">All teachers</option>' + teachers().map(t=>`<option value="${t}">${t}</option>`).join('');
+  sel.addEventListener('change', ()=>{
+    document.getElementById('teacherSearchInput').value = sel.value;
+    teacherSearchQuery = '';
+    renderTeacher();
+  });
+}
+let teacherSearchQuery = ''; // substring search with 2+ matches — used only when no single teacher is selected
+function setupTeacherSearchInput(){
+  const input = document.getElementById('teacherSearchInput');
+  const sel = document.getElementById('teacher-select');
+  const errEl = document.getElementById('teacherSearchErr');
+  function applyFromInput(){
+    const typed = input.value.trim();
+    if(!typed){
+      sel.value = '';
+      teacherSearchQuery = '';
+      if(errEl){ errEl.style.display='none'; }
+      renderTeacher();
+      return;
+    }
+    const typedLower = typed.toLowerCase();
+    const exact = teachers().find(t=>t.toLowerCase()===typedLower);
+    const matches = exact ? [exact] : teachers().filter(t=>t.toLowerCase().includes(typedLower));
+    if(matches.length===1){
+      sel.value = matches[0];
+      teacherSearchQuery = '';
+      if(errEl){ errEl.style.display='none'; }
+    } else if(matches.length>1){
+      sel.value = '';
+      teacherSearchQuery = typed;
+      if(errEl){ errEl.style.display='none'; }
+    } else {
+      sel.value = '';
+      teacherSearchQuery = '';
+      if(errEl){ errEl.style.display='block'; errEl.textContent = `No teacher matching "${typed}".`; }
+    }
+    renderTeacher();
+  }
+  input.addEventListener('input', applyFromInput);
+  input.addEventListener('keydown', e=>{ if(e.key==='Enter') applyFromInput(); });
+}
+function renderTeacherSearchResults(query){
+  const q = query.toLowerCase();
+  const matchedTeachers = teachers().filter(t=>t.toLowerCase().includes(q));
+  document.getElementById('teacherPrintTitle').textContent = `Teachers matching "${query}"`;
+  let html = `<p class="hint no-print">${matchedTeachers.length} teachers match "${escapeHtml(query)}": ${matchedTeachers.map(escapeHtml).join(', ')}. Keep typing to narrow it down, or pick one from the list above.</p>`;
+  html += '<table class="list"><thead><tr><th>Teacher</th><th>Day</th><th>Time</th><th>Subject</th><th>Section</th><th>Room</th><th>Type</th></tr></thead><tbody>';
+  const rows = DATA.filter(e=>e.te && e.te.toLowerCase().includes(q))
+    .sort((a,b)=> a.te.localeCompare(b.te) || DAYS.indexOf(a.d)-DAYS.indexOf(b.d) || a.t-b.t);
+  rows.forEach(e=>{
+    const time = SLOTS[e.t].split('-')[0] + '–' + SLOTS[e.t+e.n-1].split('-')[1];
+    html += `<tr><td>${escapeHtml(e.te)}</td><td>${DAY_FULL[e.d]}</td><td>${time}</td><td>${escapeHtml(e.su)}</td><td>${e.s}</td><td>${escapeHtml(e.r)}</td><td><span class="badge ${e.ty}">${e.ty}</span></td></tr>`;
+  });
+  html += '</tbody></table>';
+  document.getElementById('teacherResults').innerHTML = html;
+}
+function renderTeacher(){
+  const sel = document.getElementById('teacher-select');
+  if(!sel.value){
+    if(teacherSearchQuery){
+      renderTeacherSearchResults(teacherSearchQuery);
+      return;
+    }
+    document.getElementById('teacherPrintTitle').textContent = 'All Teachers — Full Schedule';
+    renderAllTeachers();
+    return;
+  }
+  const val = sel.value;
+  document.getElementById('teacherPrintTitle').textContent = val;
+  const entries = DATA.filter(e=>e.te===val);
+
+  const cell = {}; const consumed = new Set();
+  entries.forEach(e=>{
+    cell[e.d+'-'+e.t]=e;
+    occupiedSlots(e).slice(1).forEach(i=>consumed.add(e.d+'-'+i));
+  });
+
+  let html = '<table class="grid"><thead><tr><th></th>';
+  SLOTS.forEach(s=>html+=`<th>${s}</th>`);
+  html += '</tr></thead><tbody>';
+  DAYS.forEach(d=>{
+    html += `<tr><td class="daycell">${d}</td>`;
+    for(let i=0;i<SLOTS.length;i++){
+      if(consumed.has(d+'-'+i)) continue;
+      const e = cell[d+'-'+i];
+      if(e){
+        html += `<td class="slotcell"${e.n>1?` colspan="${e.n}"`:''}>
+          <div class="entry ${e.ty}">
+            <div class="su">${escapeHtml(e.su)}</div>
+            <div class="te">${escapeHtml(e.s)}</div>
+            <div class="rm">${escapeHtml(e.r)}</div>
+          </div></td>`;
+      } else {
+        html += `<td class="slotcell" style="background:var(--free);"><div style="text-align:center;color:var(--free-ink);font-size:0.72rem;font-weight:700;padding-top:20px;">Free</div></td>`;
+      }
+    }
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+  document.getElementById('teacherResults').innerHTML = html;
+}
+function renderAllTeachers(){
+  const list = teachers();
+  let html = `<p class="hint no-print">Showing all ${list.length} teachers. Pick one above to see just their week, or scroll through everyone below.</p>`;
+  html += '<table class="list"><thead><tr><th>Teacher</th><th>Day</th><th>Time</th><th>Subject</th><th>Section</th><th>Room</th><th>Type</th></tr></thead><tbody>';
+  const rows = DATA.slice().sort((a,b)=> a.te.localeCompare(b.te) || DAYS.indexOf(a.d)-DAYS.indexOf(b.d) || a.t-b.t);
+  rows.forEach(e=>{
+    const time = SLOTS[e.t].split('-')[0] + '–' + SLOTS[e.t+e.n-1].split('-')[1];
+    html += `<tr><td>${escapeHtml(e.te)}</td><td>${DAY_FULL[e.d]}</td><td>${time}</td><td>${escapeHtml(e.su)}</td><td>${e.s}</td><td>${escapeHtml(e.r)}</td><td><span class="badge ${e.ty}">${e.ty}</span></td></tr>`;
+  });
+  html += '</tbody></table>';
+  document.getElementById('teacherResults').innerHTML = html;
+}
+document.getElementById('printTeacherBtn').addEventListener('click', ()=>window.print());
+
+// ---------- SEARCH VIEW ----------
+function goToTeacherPage(teacherName){
+  const teacherTabBtn = document.querySelector('#tabs button[data-view="teacher"]');
+  document.querySelectorAll('#tabs button[data-view]').forEach(b=>b.classList.remove('active'));
+  teacherTabBtn.classList.add('active');
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-teacher').classList.add('active');
+  document.getElementById('teacher-select').value = teacherName;
+  document.getElementById('teacherSearchInput').value = teacherName;
+  teacherSearchQuery = '';
+  renderTeacher();
+}
+
+// ---------- STARTUP TEACHER SEARCH MODAL ----------
+function hideTeacherModal(){
+  document.getElementById('teacherModalOverlay').classList.add('hidden');
+}
+function showTeacherModal(){
+  document.getElementById('teacherModalOverlay').classList.remove('hidden');
+  document.getElementById('modalTeacherInput').focus();
+}
+function attemptModalSearch(){
+  const input = document.getElementById('modalTeacherInput');
+  const errEl = document.getElementById('modalError');
+  const typed = input.value.trim();
+  if(!typed){ errEl.style.display='block'; errEl.textContent = 'Type or pick a teacher name first.'; return; }
+  const match = teachers().find(t=>t.toLowerCase()===typed.toLowerCase())
+             || teachers().find(t=>t.toLowerCase().includes(typed.toLowerCase()));
+  if(!match){
+    errEl.style.display='block';
+    errEl.textContent = `No teacher matching "${typed}" found. Pick one from the suggestions.`;
+    return;
+  }
+  errEl.style.display='none';
+  hideTeacherModal();
+  goToTeacherPage(match);
+}
+document.getElementById('modalSearchBtn').addEventListener('click', attemptModalSearch);
+document.getElementById('modalSkipBtn').addEventListener('click', hideTeacherModal);
+document.getElementById('modalTeacherInput').addEventListener('keydown', e=>{
+  if(e.key==='Enter') attemptModalSearch();
+});
+document.getElementById('teacherModalOverlay').addEventListener('click', e=>{
+  if(e.target.id==='teacherModalOverlay') hideTeacherModal();
+});
+
+function populateSearchFilters(){
+  document.getElementById('f-section').innerHTML += sections().map(s=>`<option value="${s}">${s}</option>`).join('');
+  document.getElementById('f-day').innerHTML += DAYS.map(d=>`<option value="${d}">${DAY_FULL[d]}</option>`).join('');
+  document.getElementById('f-teacher').innerHTML += teachers().map(t=>`<option value="${t}">${t}</option>`).join('');
+  document.getElementById('f-room').innerHTML += rooms().map(r=>`<option value="${r}">${r}</option>`).join('');
+  ['f-section','f-day','f-teacher','f-room','f-type'].forEach(id=>document.getElementById(id).addEventListener('change', renderSearch));
+  document.getElementById('f-text').addEventListener('input', renderSearch);
+}
+function renderSearch(){
+  const fs = document.getElementById('f-section').value;
+  const fd = document.getElementById('f-day').value;
+  const ft = document.getElementById('f-teacher').value;
+  const fr = document.getElementById('f-room').value;
+  const fty = document.getElementById('f-type').value;
+  const txt = document.getElementById('f-text').value.toLowerCase().trim();
+
+  const promptEl = document.getElementById('teacherPrompt');
+  if(ft){
+    promptEl.innerHTML = `<div class="panel" style="background:var(--accent-soft,var(--free));border-color:#bfe3c3;padding:12px 16px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+      <span style="font-size:0.85rem;">Want <strong>${escapeHtml(ft)}</strong>'s full weekly schedule, free periods, and a print option?</span>
+      <button class="btn small" id="goTeacherPageBtn">Open full Teacher page →</button>
+    </div>`;
+    document.getElementById('goTeacherPageBtn').addEventListener('click', ()=>goToTeacherPage(ft));
+  } else {
+    promptEl.innerHTML = '';
+  }
+
+  const rows = DATA.filter(e=>{
+    if(fs && e.s!==fs) return false;
+    if(fd && e.d!==fd) return false;
+    if(ft && e.te!==ft) return false;
+    if(fr && e.r!==fr) return false;
+    if(fty && e.ty!==fty) return false;
+    if(txt && !(e.su+e.te+e.r+e.s).toLowerCase().includes(txt)) return false;
+    return true;
+  }).sort((a,b)=> DAYS.indexOf(a.d)-DAYS.indexOf(b.d) || a.t-b.t || a.s.localeCompare(b.s));
+
+  let html = `<p class="hint">${rows.length} class${rows.length===1?'':'es'} found.</p>`;
+  html += '<table class="list"><thead><tr><th>Section</th><th>Day</th><th>Time</th><th>Subject</th><th>Teacher</th><th>Room</th><th>Type</th></tr></thead><tbody>';
+  rows.forEach(e=>{
+    const time = SLOTS[e.t].split('-')[0] + '–' + SLOTS[e.t+e.n-1].split('-')[1];
+    html += `<tr><td>${e.s}</td><td>${DAY_FULL[e.d]}</td><td>${time}</td><td>${escapeHtml(e.su)}</td><td>${escapeHtml(e.te)}</td><td>${escapeHtml(e.r)}</td><td><span class="badge ${e.ty}">${e.ty}</span></td></tr>`;
+  });
+  html += '</tbody></table>';
+  document.getElementById('searchResults').innerHTML = html;
+}
+
+// ---------- FREE ROOMS & BOOKING ----------
+let roomDayFilter = 'ALL';
+const DAY_NUM = {Mo:1,Tu:2,We:3,Th:4,Fr:5};
+
+function nextDateForWeekday(dayAbbrev, fromDate){
+  const target = DAY_NUM[dayAbbrev];
+  const d = new Date(fromDate || Date.now());
+  d.setHours(0,0,0,0);
+  const diff = (target - d.getDay() + 7) % 7;
+  d.setDate(d.getDate() + diff);
+  return d;
+}
+function toISODate(d){
+  const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), day=String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
+function bookingEndDateTime(b){
+  const endStr = SLOTS[b.t + b.n - 1].split('-')[1];
+  const [hh,mm] = endStr.split(':').map(Number);
+  const [y,mo,da] = (b.date || toISODate(nextDateForWeekday(b.d))).split('-').map(Number);
+  return new Date(y, mo-1, da, hh, mm, 0);
+}
+function isExpired(b){
+  return bookingEndDateTime(b).getTime() < Date.now();
+}
+function purgeExpiredBookings(){
+  const before = BOOKINGS.length;
+  BOOKINGS = BOOKINGS.filter(b=>!isExpired(b));
+  return BOOKINGS.length !== before;
+}
+
+function isSlotOccupied(room, day, slot){
+  const inClass = DATA.some(e=> e.r===room && e.d===day && occupiedSlots(e).includes(slot));
+  if(inClass) return true;
+  const inBooking = BOOKINGS.some(b=> b.r===room && b.d===day && occupiedSlots(b).includes(slot) && !isExpired(b));
+  return inBooking;
+}
+function whoOccupies(room, day, slot){
+  const cls = DATA.find(e=> e.r===room && e.d===day && occupiedSlots(e).includes(slot));
+  if(cls) return {type:'class', entry:cls};
+  const bk = BOOKINGS.find(b=> b.r===room && b.d===day && occupiedSlots(b).includes(slot) && !isExpired(b));
+  if(bk) return {type:'booking', entry:bk};
+  return null;
+}
+
+function populateBookingForm(){
+  // no-op: standalone booking form was removed in favor of click-to-book pills
+}
+function setBookStatus(msg, err){
+  if(err) showInfoModal({title:'Could not book that room', message:msg, tone:'error', icon:'⚠️'});
+}
+
+// ---------- STYLED DIALOGS (replace native window.prompt/alert) ----------
+function showInfoModal({title, message, rows, tone='info', icon='ℹ️', actionLabel, onAction}){
+  const overlay = document.getElementById('infoModalOverlay');
+  document.getElementById('infoModalIcon').className = 'modal-icon tone-' + tone;
+  document.getElementById('infoModalIcon').textContent = icon;
+  document.getElementById('infoModalTitle').textContent = title;
+  const subEl = document.getElementById('infoModalSub');
+  if(message){ subEl.textContent = message; subEl.style.display = ''; }
+  else { subEl.style.display = 'none'; }
+  const rowsEl = document.getElementById('infoModalRows');
+  if(rows && rows.length){
+    rowsEl.innerHTML = rows.map(r=>`<div class="info-row"><span class="k">${escapeHtml(r.k)}</span><span class="v">${escapeHtml(r.v)}</span></div>`).join('');
+    rowsEl.style.display = '';
+  } else {
+    rowsEl.innerHTML = '';
+    rowsEl.style.display = 'none';
+  }
+  const actionBtn = document.getElementById('infoModalActionBtn');
+  if(actionLabel && onAction){
+    actionBtn.textContent = actionLabel;
+    actionBtn.style.display = '';
+  } else {
+    actionBtn.style.display = 'none';
+  }
+  overlay.classList.remove('hidden');
+  return new Promise(resolve=>{
+    const okBtn = document.getElementById('infoModalOkBtn');
+    function close(result){
+      overlay.classList.add('hidden');
+      okBtn.removeEventListener('click', onOk);
+      actionBtn.removeEventListener('click', onActionClick);
+      overlay.removeEventListener('click', onOverlay);
+      resolve(result);
+    }
+    function onOk(){ close('ok'); }
+    function onActionClick(){ if(onAction) onAction(); close('action'); }
+    function onOverlay(e){ if(e.target === overlay) close('ok'); }
+    okBtn.addEventListener('click', onOk);
+    actionBtn.addEventListener('click', onActionClick);
+    overlay.addEventListener('click', onOverlay);
+  });
+}
+function showBookFormModal(room, day, slot, defaultDate){
+  const overlay = document.getElementById('bookFormModalOverlay');
+  const dateInput = document.getElementById('bookFormDate');
+  const byInput = document.getElementById('bookFormBy');
+  const purposeInput = document.getElementById('bookFormPurpose');
+  const dateErr = document.getElementById('bookFormDateErr');
+  document.getElementById('bookFormSub').textContent = `${room} — ${DAY_FULL[day]}, ${SLOTS[slot]}`;
+  dateInput.value = defaultDate;
+  byInput.value = '';
+  purposeInput.value = '';
+  dateErr.textContent = '';
+  overlay.classList.remove('hidden');
+  setTimeout(()=>dateInput.focus(), 50);
+  return new Promise(resolve=>{
+    const confirmBtn = document.getElementById('bookFormConfirmBtn');
+    const cancelBtn = document.getElementById('bookFormCancelBtn');
+    function cleanup(){
+      overlay.classList.add('hidden');
+      confirmBtn.removeEventListener('click', onConfirm);
+      cancelBtn.removeEventListener('click', onCancel);
+      overlay.removeEventListener('click', onOverlay);
+    }
+    function onConfirm(){
+      const date = (dateInput.value || '').trim() || defaultDate;
+      if(!/^\d{4}-\d{2}-\d{2}$/.test(date)){ dateErr.textContent = 'Please choose a valid date.'; return; }
+      cleanup();
+      resolve({date, by: byInput.value.trim(), purpose: purposeInput.value.trim()});
+    }
+    function onCancel(){ cleanup(); resolve(null); }
+    function onOverlay(e){ if(e.target === overlay) onCancel(); }
+    confirmBtn.addEventListener('click', onConfirm);
+    cancelBtn.addEventListener('click', onCancel);
+    overlay.addEventListener('click', onOverlay);
+  });
+}
+
+// ---------- BOOKING PERSISTENCE (Firebase Realtime Database) ----------
+// Same Firebase project as aupgece.github.io/pco, under its own path so it
+// doesn't collide with that site's own data. Every booking is its own child
+// key, and every client listens live via .on('value'), so a booking made on
+// one device shows up on everyone else's screen within a second — genuinely
+// global, not per-browser. Falls back to localStorage (this browser only) if
+// the Firebase SDK can't load (e.g. opened as a local file:// without internet).
+var firebaseConfig = {
+  apiKey:            "AIzaSyAW6Z6c1N5QVpB7iCWXhyjxHQImeCYRgxs",
+  authDomain:        "auecepco.firebaseapp.com",
+  databaseURL:       "https://auecepco-default-rtdb.firebaseio.com",
+  projectId:         "auecepco",
+  storageBucket:     "auecepco.firebasestorage.app",
+  messagingSenderId: "314187695897",
+  appId:             "1:314187695897:web:2718ba7cbe8bdf10bea788",
+  measurementId:     "G-C4MJY4WNVD"
+};
+var fbDb = null;
+var usingFirebase = false;
+const BOOKINGS_PATH = 'cse_timetable_bookings';
+
+function initFirebaseBookings(){
+  if(typeof firebase === 'undefined'){
+    console.warn('Firebase SDK not loaded — bookings will save to this browser only.');
+    return false;
+  }
+  try{
+    if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+    fbDb = firebase.database();
+    return true;
+  }catch(e){
+    console.error('Firebase init failed:', e);
+    return false;
+  }
+}
+function saveBookingsLocalFallback(){
+  try{ localStorage.setItem(BOOKINGS_LOCAL_KEY, JSON.stringify(BOOKINGS)); }catch(e){ console.warn('localStorage save failed', e); }
+}
+function loadBookingsLocalFallback(){
+  try{
+    const raw = localStorage.getItem(BOOKINGS_LOCAL_KEY);
+    if(raw) BOOKINGS = JSON.parse(raw);
+  }catch(e){ console.warn('localStorage load failed', e); }
+  purgeExpiredBookings();
+}
+function attachBookingsListener(){
+  fbDb.ref(BOOKINGS_PATH).on('value', function(snap){
+    const val = snap.val() || {};
+    const all = Object.keys(val).map(function(k){ return Object.assign({id:k}, val[k]); });
+    const expired = all.filter(isExpired);
+    BOOKINGS = all.filter(function(b){ return !isExpired(b); });
+    expired.forEach(function(b){ fbDb.ref(BOOKINGS_PATH + '/' + b.id).remove(); });
+    saveBookingsLocalFallback();
+    renderRooms();
+    renderBookingsList();
+  }, function(err){
+    console.error('Firebase bookings listener error:', err);
+    setBookStatus('Lost connection to the shared booking database — showing this browser\'s last known bookings.', true);
+  });
+}
+async function initBookingsSystem(){
+  usingFirebase = initFirebaseBookings();
+  if(usingFirebase){
+    attachBookingsListener();
+  } else {
+    loadBookingsLocalFallback();
+    renderRooms();
+    renderBookingsList();
+  }
+}
+
+// ---------- CLASS DATA PERSISTENCE (same Firebase project, own path) ----------
+// So deletes/uploads survive a refresh without manually downloading the file.
+const DATA_PATH = 'cse_timetable_data';
+let dataLoadedFromRemote = false;
+
+function saveData(){
+  if(usingFirebase){
+    fbDb.ref(DATA_PATH).set({items: DATA, savedAt: Date.now()}).catch(e=>{
+      console.error(e);
+      window.alert('Could not save this change to the shared database: ' + e.message);
+    });
+  } else {
+    try{ localStorage.setItem(DATA_LOCAL_KEY, JSON.stringify(DATA)); }catch(e){ console.warn('localStorage save failed', e); }
+  }
+}
+function attachDataListener(){
+  fbDb.ref(DATA_PATH).on('value', function(snap){
+    const val = snap.val();
+    if(val === null){
+      // Truly nothing saved here yet (first time this file/path has ever been used) —
+      // seed it with whatever is currently baked into this file so it isn't lost.
+      fbDb.ref(DATA_PATH).set({items: DATA, savedAt: Date.now()});
+      return;
+    }
+    // val.items may be missing if the list was saved empty (Firebase drops empty arrays) —
+    // that means "intentionally emptied", not "never saved", so treat it as [].
+    DATA = val.items || [];
+    dataLoadedFromRemote = true;
+    try{ localStorage.setItem(DATA_LOCAL_KEY, JSON.stringify(DATA)); }catch(e){ console.warn('localStorage cache write failed', e); }
+    renderEditTable();
+    refreshAllViews();
+  }, function(err){
+    console.error('Firebase data listener error:', err);
+  });
+}
+function loadDataLocalFallback(){
+  try{
+    const raw = localStorage.getItem(DATA_LOCAL_KEY);
+    if(raw){ DATA = JSON.parse(raw); dataLoadedFromRemote = true; }
+  }catch(e){ console.warn('localStorage load failed', e); }
+  renderEditTable();
+  refreshAllViews();
+}
+function initDataSystem(){
+  if(usingFirebase){
+    attachDataListener();
+  } else {
+    loadDataLocalFallback();
+  }
+}
+
+// ---------- SITE SETTINGS PERSISTENCE (same Firebase project, own path) ----------
+const SETTINGS_PATH = 'cse_timetable_settings';
+
+function saveSettings(){
+  if(usingFirebase){
+    fbDb.ref(SETTINGS_PATH).set(SETTINGS).catch(e=>{
+      console.error(e);
+      window.alert('Could not save site settings to the shared database: ' + e.message);
+    });
+  } else {
+    try{ localStorage.setItem(SETTINGS_LOCAL_KEY, JSON.stringify(SETTINGS)); }catch(e){ console.warn('localStorage save failed', e); }
+  }
+}
+function attachSettingsListener(){
+  fbDb.ref(SETTINGS_PATH).on('value', function(snap){
+    const val = snap.val();
+    if(val === null){
+      fbDb.ref(SETTINGS_PATH).set(SETTINGS);
+      return;
+    }
+    SETTINGS = Object.assign({}, DEFAULT_SETTINGS, val);
+    try{ localStorage.setItem(SETTINGS_LOCAL_KEY, JSON.stringify(SETTINGS)); }catch(e){ console.warn('localStorage cache write failed', e); }
+    applySettings();
+  }, function(err){
+    console.error('Firebase settings listener error:', err);
+  });
+}
+function loadSettingsLocalFallback(){
+  try{
+    const raw = localStorage.getItem(SETTINGS_LOCAL_KEY);
+    if(raw) SETTINGS = Object.assign({}, DEFAULT_SETTINGS, JSON.parse(raw));
+  }catch(e){ console.warn('localStorage load failed', e); }
+  applySettings();
+}
+function initSettingsSystem(){
+  if(usingFirebase){
+    attachSettingsListener();
+  } else {
+    loadSettingsLocalFallback();
+  }
+}
+
+function tryBook(room, day, startSlot, span, date, by, purpose){
+  span = Math.min(span, SLOTS.length - startSlot);
+  for(let i=0;i<span;i++){
+    if(isSlotOccupied(room, day, startSlot+i)){
+      const occ = whoOccupies(room, day, startSlot+i);
+      const what = occ.type==='class' ? `${occ.entry.su} (${occ.entry.s})` : `a booking (${occ.entry.purpose||'no purpose given'})`;
+      setBookStatus(`${room} is already taken on ${DAY_FULL[day]} at ${SLOTS[startSlot+i]} — ${what}.`, true);
+      return false;
+    }
+  }
+  const id = 'bk-' + Date.now() + '-' + Math.floor(Math.random()*1000);
+  const booking = { r: room, d: day, date: date, t: startSlot, n: span, by: by || 'Unnamed', purpose: purpose || '' };
+  if(usingFirebase){
+    fbDb.ref(BOOKINGS_PATH + '/' + id).set(booking).catch(e=>{
+      console.error(e);
+      showInfoModal({title:'Booking not saved', message:'Could not save this booking to the shared database: ' + e.message, tone:'error', icon:'⚠️'});
+    });
+    // the .on('value') listener will update the UI once Firebase confirms the write
+  } else {
+    BOOKINGS.push(Object.assign({id}, booking));
+    saveBookingsLocalFallback();
+    renderRooms();
+    renderBookingsList();
+  }
+  return true;
+}
+
+function cancelBooking(id){
+  if(usingFirebase){
+    fbDb.ref(BOOKINGS_PATH + '/' + id).remove().catch(e=>console.error(e));
+  } else {
+    const i = BOOKINGS.findIndex(b=>b.id===id);
+    if(i>-1) BOOKINGS.splice(i,1);
+    saveBookingsLocalFallback();
+    renderRooms();
+    renderBookingsList();
+  }
+}
+
+function renderBookingsList(){
+  const el = document.getElementById('bookingsList');
+  if(!usingFirebase && purgeExpiredBookings()) saveBookingsLocalFallback();
+  if(!BOOKINGS.length){ el.innerHTML = '<p class="hint">No bookings yet.</p>'; return; }
+  const rows = BOOKINGS.slice().sort((a,b)=> (a.date||'').localeCompare(b.date||'') || a.t-b.t);
+  let html = `<p class="hint">${usingFirebase ? 'Shared live via Firebase — everyone viewing this page sees the same list.' : 'Firebase unavailable — saved to this browser only.'} Past bookings are removed automatically.</p>`;
+  html += '<table class="list"><thead><tr><th>Room</th><th>Date</th><th>Day</th><th>Time</th><th>Booked by</th><th>Purpose</th><th></th></tr></thead><tbody>';
+  rows.forEach(b=>{
+    const time = SLOTS[b.t].split('-')[0] + '–' + SLOTS[b.t+b.n-1].split('-')[1];
+    html += `<tr><td>${escapeHtml(b.r)}</td><td>${b.date||'—'}</td><td>${DAY_FULL[b.d]}</td><td>${time}</td><td>${escapeHtml(b.by)}</td><td>${escapeHtml(b.purpose)}</td><td><button class="btn secondary small" data-cancel="${b.id}">Cancel</button></td></tr>`;
+  });
+  html += '</tbody></table>';
+  el.innerHTML = html;
+  el.querySelectorAll('[data-cancel]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      if(!requireAdmin()) return;
+      cancelBooking(btn.dataset.cancel);
+    });
+  });
+}
+
+function populateRoomDayTabs(){
+  const el = document.getElementById('room-day-tabs');
+  const opts = [{v:'ALL',l:'All days'}, ...DAYS.map(d=>({v:d,l:DAY_FULL[d]}))];
+  el.innerHTML = opts.map(o=>`<button class="btn ${o.v===roomDayFilter?'':'secondary'} small" data-day="${o.v}">${o.l}</button>`).join('');
+  el.querySelectorAll('button').forEach(b=>{
+    b.addEventListener('click', ()=>{ roomDayFilter = b.dataset.day; populateRoomDayTabs(); renderRooms(); });
+  });
+}
+function renderRooms(){
+  if(purgeExpiredBookings()) saveBookings();
+  const allRooms = rooms();
+  const daysToShow = roomDayFilter==='ALL' ? DAYS : [roomDayFilter];
+
+  let html = '';
+  daysToShow.forEach(d=>{
+    html += `<h3 style="margin:18px 0 8px;color:var(--navy);">${DAY_FULL[d]}</h3>`;
+    for(let i=0;i<SLOTS.length;i++){
+      const freeRooms = allRooms.filter(r=>!isSlotOccupied(r,d,i));
+      const takenRooms = allRooms.filter(r=>isSlotOccupied(r,d,i));
+
+      html += `<div class="panel" style="padding:14px 16px;margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
+          <strong style="font-size:0.9rem;">${SLOTS[i]}</strong>
+          <span style="font-size:0.75rem;color:var(--muted);">${freeRooms.length} of ${allRooms.length} rooms free</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;">`;
+      freeRooms.forEach(r=>{
+        html += `<button class="btn-pill-free" data-book-room="${escapeAttr(r)}" data-book-day="${d}" data-book-slot="${i}"
+          style="cursor:pointer;background:var(--free);color:var(--free-ink);border:1px solid #bfe3c3;padding:4px 10px;border-radius:20px;font-size:0.78rem;font-weight:600;">${r}</button>`;
+      });
+      takenRooms.forEach(r=>{
+        const occ = whoOccupies(r, d, i);
+        if(occ.type==='class'){
+          const e = occ.entry;
+          html += `<span title="${escapeAttr(e.su)} — ${e.s}" style="background:var(--busy-bg);color:var(--busy-ink);border:1px solid #f0c9c9;padding:4px 10px;border-radius:20px;font-size:0.78rem;">${r} <span style="opacity:.75;">· ${escapeHtml(e.s)}</span></span>`;
+        } else {
+          const b = occ.entry;
+          html += `<button data-view-booking="${escapeAttr(b.id)}" title="Booked by ${escapeAttr(b.by)} — ${escapeAttr(b.purpose)} (${b.date})" style="cursor:pointer;background:#f1e6f7;color:#7a3ea1;border:1px solid #ddc2ea;padding:4px 10px;border-radius:20px;font-size:0.78rem;">${r} <span style="opacity:.75;">· booked</span></button>`;
+        }
+      });
+      html += `</div></div>`;
+    }
+  });
+
+  document.getElementById('roomResults').innerHTML = html;
+  document.getElementById('roomResults').querySelectorAll('[data-book-room]').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const room = btn.dataset.bookRoom;
+      const day = btn.dataset.bookDay;
+      const slot = parseInt(btn.dataset.bookSlot,10);
+      const defaultDate = toISODate(nextDateForWeekday(day));
+      const result = await showBookFormModal(room, day, slot, defaultDate);
+      if(!result) return; // cancelled
+      const ok = tryBook(room, day, slot, 1, result.date, result.by, result.purpose);
+      if(ok){
+        showInfoModal({
+          title:'Room booked',
+          tone:'success', icon:'✅',
+          rows:[
+            {k:'Room', v:room},
+            {k:'When', v:`${DAY_FULL[day]}, ${SLOTS[slot]} (${result.date})`},
+            {k:'Booked by', v: result.by || 'Unnamed'},
+            {k:'Purpose', v: result.purpose || '—'}
+          ]
+        });
+      }
+    });
+  });
+  document.getElementById('roomResults').querySelectorAll('[data-view-booking]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const b = BOOKINGS.find(x=>x.id===btn.dataset.viewBooking);
+      if(!b) return;
+      const time = SLOTS[b.t].split('-')[0] + '–' + SLOTS[b.t+b.n-1].split('-')[1];
+      showInfoModal({
+        title:'Booking details',
+        tone:'info', icon:'📌',
+        rows:[
+          {k:'Room', v:b.r},
+          {k:'When', v:`${DAY_FULL[b.d]}, ${time} (${b.date})`},
+          {k:'Booked by', v:b.by},
+          {k:'Purpose', v:b.purpose || '—'}
+        ],
+        actionLabel:'Delete booking',
+        onAction: ()=>{
+          if(!requireAdmin()) return;
+          cancelBooking(b.id);
+        }
+      });
+    });
+  });
+}
+
+// ---------- ADMIN ACCESS ----------
+const ADMIN_PASSWORD = 'tt2026';
+let isAdmin = false; // resets every page load/refresh — must log in again each time
+function updateAdminUI(){
+  document.getElementById('updateTabBtn').style.display = isAdmin ? '' : 'none';
+  document.getElementById('adminLoginBtn').textContent = isAdmin ? 'Admin ✓' : 'Admin';
+}
+function requireAdmin(){
+  if(isAdmin) return true;
+  const pw = window.prompt('Admin password required to make this change:');
+  if(pw === null) return false;
+  if(pw === ADMIN_PASSWORD){
+    isAdmin = true;
+    updateAdminUI();
+    return true;
+  }
+  window.alert('Incorrect password.');
+  return false;
+}
+document.getElementById('adminLoginBtn').addEventListener('click', ()=>{ requireAdmin(); });
+updateAdminUI();
+
+// ---------- EDIT TABLE ----------
+function renderEditTable(){
+  const body = document.getElementById('editBody');
+  body.innerHTML = '';
+  DATA.forEach((e,idx)=> body.appendChild(makeEditRow(e,idx)));
+}
+function makeEditRow(e, idx){
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td><input type="text" value="${escapeAttr(e.s)}" data-f="s"></td>
+    <td><select data-f="d">${DAYS.map(d=>`<option value="${d}" ${d===e.d?'selected':''}>${d}</option>`).join('')}</select></td>
+    <td><select data-f="t">${SLOTS.map((s,i)=>`<option value="${i}" ${i===e.t?'selected':''}>${s}</option>`).join('')}</select></td>
+    <td><select data-f="n"><option value="1" ${e.n===1?'selected':''}>1</option><option value="2" ${e.n===2?'selected':''}>2</option></select></td>
+    <td><select data-f="ty"><option value="lecture" ${e.ty==='lecture'?'selected':''}>Lecture</option><option value="lab" ${e.ty==='lab'?'selected':''}>Lab</option></select></td>
+    <td><input type="text" value="${escapeAttr(e.su)}" data-f="su"></td>
+    <td><input type="text" value="${escapeAttr(e.te)}" data-f="te"></td>
+    <td><input type="text" value="${escapeAttr(e.r)}" data-f="r"></td>
+    <td><button class="btn secondary small" data-del="${idx}">✕</button></td>
+  `;
+  tr.querySelectorAll('[data-f]').forEach(inp=>{
+    inp.addEventListener('change', ()=>{
+      const f = inp.dataset.f;
+      e[f] = (f==='t'||f==='n') ? parseInt(inp.value,10) : inp.value;
+      saveData();
+    });
+  });
+  tr.querySelector('[data-del]').addEventListener('click', ()=>{
+    if(!requireAdmin()) return;
+    const i = DATA.indexOf(e);
+    if(i>-1) DATA.splice(i,1);
+    renderEditTable();
+    saveData();
+  });
+  return tr;
+}
+function escapeAttr(s){ return (s||'').replace(/"/g,'&quot;'); }
+
+document.getElementById('addRowBtn').addEventListener('click', ()=>{
+  if(!requireAdmin()) return;
+  DATA.push({s:sections()[0]||'NEW-SECTION',d:'Mo',t:0,n:1,su:'New subject',te:'Teacher',r:'Room',ty:'lecture'});
+  renderEditTable();
+  saveData();
+});
+document.getElementById('applyBtn').addEventListener('click', ()=>{
+  refreshAllViews();
+  saveData();
+  document.getElementById('uploadStatus').textContent = 'Changes applied.';
+  document.getElementById('uploadStatus').className='status';
+});
+document.getElementById('deleteAllBtn').addEventListener('click', ()=>{
+  if(!requireAdmin()) return;
+  if(!window.confirm('Delete ALL sections/class entries? This cannot be undone.')) return;
+  DATA = [];
+  renderEditTable();
+  refreshAllViews();
+  saveData();
+  setUploadStatus('All sections deleted.');
+});
+document.getElementById('downloadBtn').addEventListener('click', ()=>{
+  let html = document.documentElement.outerHTML.replace(
+    /let DATA = \[[\s\S]*?\];\n\n\/\/ ad-hoc room bookings/,
+    'let DATA = ' + JSON.stringify(DATA, null, 0) + ';\n\n// ad-hoc room bookings'
+  );
+  html = html.replace(
+    /let BOOKINGS = \[[\s\S]*?\];\n\n\/\/ ---------- helpers/,
+    'let BOOKINGS = ' + JSON.stringify(BOOKINGS, null, 0) + ';\n\n// ---------- helpers'
+  );
+  html = html.replace(
+    /let SETTINGS = Object\.assign\(\{\}, DEFAULT_SETTINGS\);/,
+    'let SETTINGS = ' + JSON.stringify(Object.assign({}, DEFAULT_SETTINGS, SETTINGS), null, 0) + ';'
+  );
+  const blob = new Blob(['<!DOCTYPE html>\n'+html], {type:'text/html'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'timetable.html';
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+});
+
+function refreshAllViews(){
+  populateSectionSelect_refresh();
+  renderGrid();
+  populateFrontTeacherSelect();
+  refreshTeacherSelect();
+  renderTeacher();
+  refreshSearchFilters();
+  renderSearch();
+  populateBookingForm();
+  renderRooms();
+  renderBookingsList();
+}
+function refreshTeacherSelect(){
+  const sel = document.getElementById('teacher-select');
+  const prev = sel.value;
+  sel.innerHTML = '<option value="">All teachers</option>' + teachers().map(t=>`<option value="${t}">${t}</option>`).join('');
+  if(prev==='' || teachers().includes(prev)) sel.value = prev;
+}
+function populateSectionSelect_refresh(){
+  const sel = document.getElementById('sectionSelect');
+  const prev = sel.value;
+  sel.innerHTML = sections().map(s=>`<option value="${s}">${s}</option>`).join('');
+  if(sections().includes(prev)) sel.value = prev;
+}
+function refreshSearchFilters(){
+  const fs=document.getElementById('f-section'), ft=document.getElementById('f-teacher'), fr=document.getElementById('f-room');
+  fs.innerHTML = '<option value="">All</option>'+sections().map(s=>`<option value="${s}">${s}</option>`).join('');
+  ft.innerHTML = '<option value="">All</option>'+teachers().map(t=>`<option value="${t}">${t}</option>`).join('');
+  fr.innerHTML = '<option value="">All</option>'+rooms().map(r=>`<option value="${r}">${r}</option>`).join('');
+}
+
+// ---------- PDF UPLOAD & PARSE ----------
+const dropzone = document.getElementById('dropzone');
+const fileInput = document.getElementById('fileInput');
+const uploadStatus = document.getElementById('uploadStatus');
+
+dropzone.addEventListener('click', ()=>{ if(requireAdmin()) fileInput.click(); });
+dropzone.addEventListener('dragover', e=>{e.preventDefault(); dropzone.classList.add('drag');});
+dropzone.addEventListener('dragleave', ()=>dropzone.classList.remove('drag'));
+dropzone.addEventListener('drop', e=>{
+  e.preventDefault(); dropzone.classList.remove('drag');
+  if(!requireAdmin()) return;
+  if(e.dataTransfer.files.length) handlePdf(e.dataTransfer.files[0]);
+});
+fileInput.addEventListener('change', e=>{ if(e.target.files.length && requireAdmin()) handlePdf(e.target.files[0]); });
+
+function setUploadStatus(msg, err){
+  uploadStatus.textContent = msg;
+  uploadStatus.className = 'status' + (err?' err':'');
+}
+
+async function handlePdf(file){
+  setUploadStatus('Reading PDF…');
+  try{
+    const buf = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({data:buf}).promise;
+    let newEntries = [];
+    for(let p=1;p<=pdf.numPages;p++){
+      const page = await pdf.getPage(p);
+      const content = await page.getTextContent();
+      const items = content.items.filter(it=>it.str && it.str.trim().length).map(it=>({
+        text: it.str.trim(), x: it.transform[4], y: it.transform[5], h: Math.abs(it.transform[3]), w: it.width
+      }));
+      const parsed = parsePage(items);
+      if(parsed) newEntries = newEntries.concat(parsed);
+    }
+    if(newEntries.length===0){
+      setUploadStatus('Could not detect a timetable grid in this PDF. You can still add entries manually below.', true);
+    } else {
+      DATA = newEntries;
+      setUploadStatus(`Extracted ${newEntries.length} class entries from ${pdf.numPages} page(s). Review the table below, fix anything that looks wrong, then click "Apply changes".`);
+      saveData();
+    }
+    renderEditTable();
+    refreshAllViews();
+  }catch(err){
+    console.error(err);
+    setUploadStatus('Could not read that PDF: '+err.message, true);
+  }
+}
+
+// Parse one page (assumed to be one section's weekly grid) into entries.
+function parsePage(items){
+  // find day labels
+  const dayItems = items.filter(it=>DAYS.includes(it.text));
+  if(dayItems.length < 3) return null; // not a recognizable grid page
+
+  // find time-slot headers
+  const timeRe = /^\d{2}:\d{2}-\d{2}:\d{2}$/;
+  const timeItems = items.filter(it=>timeRe.test(it.text)).sort((a,b)=>a.x-b.x);
+  if(timeItems.length < 3) return null;
+
+  // section title: largest font item that's not a day/time/footer
+  const footerWords = ['air university','timetable generated','asc timetables'];
+  const candidates = items.filter(it=>{
+    const low = it.text.toLowerCase();
+    return !DAYS.includes(it.text) && !timeRe.test(it.text) && !footerWords.some(f=>low.includes(f));
+  });
+  let sectionTitle = 'SECTION';
+  let maxH = 0;
+  candidates.forEach(it=>{ if(it.h>maxH){ maxH=it.h; sectionTitle=it.text; } });
+
+  // row bands from day label y positions
+  const rows = dayItems.map(it=>({day:it.text, y:it.y})).sort((a,b)=>b.y-a.y);
+
+  // Column boundaries: use each header's horizontal CENTER (x + width/2),
+  // not its raw left-edge x. Right-aligned room codes and slightly-indented
+  // subject/teacher text sit close to a column's true edges, which are the
+  // midpoints between column CENTERS — using left-edge x systematically
+  // shifted every boundary left and misfiled that text into the next column.
+  const colCenters = timeItems.map(it=>it.x + it.w/2);
+  const colBoundaries = [];
+  for(let i=0;i<colCenters.length-1;i++) colBoundaries.push((colCenters[i]+colCenters[i+1])/2);
+
+  function colIndex(x){
+    let idx = 0;
+    for(let i=0;i<colBoundaries.length;i++){ if(x >= colBoundaries[i]) idx = i+1; }
+    return Math.min(idx, colCenters.length-1);
+  }
+  function rowIndex(y){
+    let best=0, bestDist=Infinity;
+    rows.forEach((r,i)=>{ const d=Math.abs(r.y-y); if(d<bestDist){bestDist=d; best=i;} });
+    return best;
+  }
+
+  // exclude structural items
+  const excludeSet = new Set([...dayItems, ...timeItems]);
+  // The old top/bottom y-range cutoff (topmost day-label y + 20) clipped off
+  // the first line of a tall, 3-line subject in the top row, since that text
+  // legitimately sits above the day-label baseline. Bound instead by the
+  // header row's own y (with a small margin), which always sits safely above
+  // every cell's content, and by one row-height below the bottom day label.
+  const headerY = Math.max(...timeItems.map(it=>it.y));
+  const rowGap = rows.length>1 ? (rows[0].y - rows[rows.length-1].y)/(rows.length-1) : 90;
+  const bodyItems = items.filter(it=>{
+    if(excludeSet.has(it)) return false;
+    const low = it.text.toLowerCase();
+    if(footerWords.some(f=>low.includes(f))) return false;
+    if(it.text === sectionTitle) return false;
+    const minY = Math.min(...rows.map(r=>r.y)) - rowGap;
+    const maxY = headerY - 10;
+    if(it.y < minY || it.y > maxY) return false;
+    return true;
+  });
+
+  if(bodyItems.length===0) return [];
+
+  // Subject text is always noticeably taller than teacher/room text (which is
+  // consistently the smallest size on the page), even when a long subject
+  // title gets auto-shrunk by the PDF to fit its cell. A fixed cutoff placed
+  // safely between the two bands classifies it reliably; a per-page "biggest
+  // gap" split mis-classified shrunk subject text as teacher/room text.
+  const bigThreshold = 8.8;
+
+  // bucket into cells
+  const cellMap = {}; // "row-col" -> {items:[]}
+  bodyItems.forEach(it=>{
+    const ri = rowIndex(it.y);
+    const ci = colIndex(it.x);
+    const key = ri+'-'+ci;
+    if(!cellMap[key]) cellMap[key] = {items:[], row:ri, col:ci};
+    cellMap[key].items.push(it);
+  });
+
+  // A merged/spanning cell's room (or teacher) text is often centered under
+  // the whole span rather than sitting in the session's starting column, so
+  // it can land in its own empty-looking "orphan" cell one or two columns to
+  // the right — losing the room/teacher for the real class and, worse,
+  // turning that leftover text into a bogus extra entry. Fold any column in
+  // a row that has no subject-sized text into the nearest real session
+  // (anchor) to its left in that same row, and use how far right the merged
+  // text reached as a floor for that session's column span.
+  const rowAnchors = {};
+  Object.values(cellMap).forEach(c=>{
+    if(c.items.some(it=>it.h >= bigThreshold)){
+      (rowAnchors[c.row] = rowAnchors[c.row] || []).push(c.col);
+    }
+  });
+  Object.keys(rowAnchors).forEach(r=>rowAnchors[r].sort((a,b)=>a-b));
+
+  const reach = {}; // anchor "row-col" key -> furthest column merged into it
+  const orphanKeys = [];
+  Object.values(cellMap).forEach(c=>{
+    if(c.items.some(it=>it.h >= bigThreshold)) return; // has its own subject — not an orphan
+    const anchors = rowAnchors[c.row] || [];
+    let target = null;
+    for(let i=anchors.length-1;i>=0;i--){ if(anchors[i] < c.col){ target=anchors[i]; break; } }
+    if(target===null && anchors.length) target = anchors.find(a=>a>c.col);
+    if(target===null) return; // no session anywhere in this row — leave as-is
+    const targetKey = c.row+'-'+target;
+    cellMap[targetKey].items.push(...c.items);
+    reach[targetKey] = Math.max(reach[targetKey]||target, c.col);
+    orphanKeys.push(c.row+'-'+c.col);
+  });
+  orphanKeys.forEach(k=>delete cellMap[k]);
+
+  function looksLikeRoom(text){
+    const t = (text||'').trim();
+    if(!t) return false;
+    if(/lab|block|hall|auditorium/i.test(t)) return true;
+    if(/^[A-Za-z]{0,4}[\s-]?\d{2,4}[A-Za-z]?$/.test(t)) return true; // e.g. "B-105", "B105", "204"
+    return false;
+  }
+  const entries = [];
+  Object.entries(cellMap).forEach(([key, cellObj])=>{
+    if(!cellObj.items.length) return;
+    const its = cellObj.items.slice().sort((a,b)=> b.y-a.y || a.x-b.x);
+    // subject = items with the (page-wide) large font (merge multi-line, top-to-bottom)
+    const subjItems = its.filter(i=>i.h >= bigThreshold).sort((a,b)=>b.y-a.y);
+    const others = its.filter(i=>i.h < bigThreshold);
+    // Group the small-font fragments into visual lines (by y-proximity), then join
+    // fragments on the same line — a name or room can be split into several text
+    // runs by the PDF (different font weights, kerning, etc).
+    others.sort((a,b)=>b.y-a.y);
+    const lineGroups = [];
+    others.forEach(it=>{
+      let grp = lineGroups.find(g=> Math.abs(g.y - it.y) < 4.5);
+      if(!grp){ grp = {y: it.y, items: []}; lineGroups.push(grp); }
+      grp.items.push(it);
+    });
+    lineGroups.forEach(g=> g.items.sort((a,b)=>a.x-b.x));
+    lineGroups.sort((a,b)=> b.y - a.y); // topmost line first
+    const lineText = g => g.items.map(i=>i.text).join(' ').replace(/\s+/g,' ').trim();
+
+    let teacher = '', roomFinal = '';
+    if(lineGroups.length >= 2){
+      // A teacher name that wraps onto two lines (long faculty titles) must
+      // keep both lines — only the very last line group is the room.
+      teacher = lineGroups.slice(0, -1).map(lineText).join(' ').replace(/\s+/g,' ').trim();
+      roomFinal = lineText(lineGroups[lineGroups.length-1]);
+    } else if(lineGroups.length === 1){
+      // Only one line of small-font text in this cell — it's ambiguous whether it's a
+      // teacher name or a room with no teacher listed, so check which it looks like.
+      const text = lineText(lineGroups[0]);
+      if(looksLikeRoom(text)) roomFinal = text;
+      else teacher = text;
+    }
+    const subject = subjItems.map(i=>i.text).join(' ').replace(/\s+/g,' ').trim();
+    if(!subject) return;
+
+    // span detection: does any subject item's right edge cross into the next column?
+    let span = 1;
+    const rightEdge = Math.max(...subjItems.map(i=>i.x+i.w));
+    for(let b=cellObj.col;b<colBoundaries.length;b++){
+      if(rightEdge > colBoundaries[b] + 15) span++;
+      else break;
+    }
+    span = Math.min(span, colCenters.length - cellObj.col);
+    // A spanning lab cell's room text can drift into a column further right
+    // than the subject text's own width would suggest — trust that as a floor.
+    if(reach[key]!==undefined) span = Math.max(span, reach[key]-cellObj.col+1);
+
+    const type = /laborator|\blab\b/i.test(subject) ? 'lab' : 'lecture';
+    entries.push({
+      s: sectionTitle, d: rows[cellObj.row].day, t: cellObj.col, n: span,
+      su: subject, te: teacher || '', r: roomFinal || '', ty: type
+    });
+  });
+
+  return entries;
+}
+
+// ---------- init ----------
+try{
+  applySettings();
+  setLastUpdated();
+  populateSectionSelect();
+  renderGrid();
+  populateFrontTeacherSelect();
+  populateTeacherSelect();
+  setupTeacherSearchInput();
+  populateSearchFilters();
+  populateRoomDayTabs();
+  populateBookingForm();
+}finally{
+  // Reveal now, using whatever was cached locally (instant) — Firebase listeners
+  // below will quietly reconcile in the background if anything changed elsewhere,
+  // without making the user wait or see a flash of stale/default content first.
+  revealPage();
+}
+initBookingsSystem();
+initDataSystem();
+initSettingsSystem();
+showTeacherModal();
+</script>
+
+
+</body></html>
