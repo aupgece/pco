@@ -196,18 +196,41 @@ body.boot header, body.boot main{opacity:0;}
 #bookFormModal .field-error{font-size:0.76rem;color:var(--busy-ink);margin:4px 0 0;min-height:1em;}
 
 @media print{
+  @page{ size:landscape; margin:10mm 12mm; }
   header, nav, footer, .no-print, #tabs { display:none !important; }
   body{padding:0;background:#fff;}
-  main{padding:0;max-width:none;}
-  .panel{border:none;box-shadow:none;padding:0;margin:0;}
-  table.grid{font-size:11pt;}
-  table.grid th{background:#e8e8e8 !important;color:#000 !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
-  table.grid td.daycell{background:#ddd !important;color:#000 !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
-  .entry.lecture, .entry.lab{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
-  table.list{font-size:10pt;}
-  table.list th{background:#e8e8e8 !important;color:#000 !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
-  #gridSectionTitle{font-size:16pt;margin-bottom:10pt;}
+  main{padding:0;max-width:none;width:100%;}
+  .panel{border:none;box-shadow:none;padding:0;margin:0;width:100%;}
   .print-only{display:block !important;}
+
+  .print-masthead{
+    display:flex;align-items:baseline;justify-content:space-between;
+    border-bottom:2pt solid #000;padding-bottom:8pt;margin-bottom:14pt;
+  }
+  .print-masthead .name{font-size:15pt;font-weight:800;color:#000;}
+  .print-masthead .sub{font-size:9.5pt;font-weight:600;color:#333;}
+  .print-masthead .gen{font-size:8.5pt;color:#555;text-align:right;}
+
+  #gridSectionTitle, #teacherPrintTitle{
+    font-size:18pt;font-weight:800;color:#000 !important;
+    margin:0 0 12pt;padding-bottom:5pt;border-bottom:1pt solid #999;
+  }
+
+  table.grid{font-size:12pt;width:100%;table-layout:fixed;}
+  table.grid th{background:#e8e8e8 !important;color:#000 !important;font-weight:700;-webkit-print-color-adjust:exact;print-color-adjust:exact;padding:8pt 4pt;}
+  table.grid td.daycell{background:#ddd !important;color:#000 !important;font-weight:800;font-size:12pt;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  table.grid td.slotcell{height:auto;min-height:78pt;padding:5pt;}
+  .entry.lecture, .entry.lab{-webkit-print-color-adjust:exact;print-color-adjust:exact;height:100%;}
+  .entry .su{font-weight:700;font-size:10.5pt;}
+  .entry .te, .entry .rm{font-size:9pt;}
+
+  table.list{font-size:11pt;width:100%;}
+  table.list th{background:#e8e8e8 !important;color:#000 !important;font-weight:700;-webkit-print-color-adjust:exact;print-color-adjust:exact;padding:7pt 8pt;}
+  table.list td{padding:6pt 8pt;}
+
+  table{page-break-inside:auto;}
+  tr{page-break-inside:avoid;}
+  thead{display:table-header-group;}
 }
 </style>
 </head>
@@ -233,6 +256,15 @@ body.boot header, body.boot main{opacity:0;}
 </header>
 
 <main>
+
+  <!-- Shown only when printing (screen header is hidden via @media print) -->
+  <div class="print-masthead print-only">
+    <div>
+      <div class="name" id="printHeaderTitle"></div>
+      <div class="sub" id="printHeaderSub"></div>
+    </div>
+    <div class="gen">Printed <span id="printGenDate"></span></div>
+  </div>
 
   <!-- GRID VIEW -->
   <section class="view active" id="view-grid">
@@ -701,10 +733,18 @@ function setLastUpdated(){
   document.getElementById('lastUpdated').textContent = 'Loaded ' + new Date().toLocaleDateString(undefined,{year:'numeric',month:'short',day:'numeric'});
 }
 
+// Print masthead date is refreshed right before printing (rather than once on
+// load) so it always reflects the moment the page was actually printed.
+window.addEventListener('beforeprint', ()=>{
+  document.getElementById('printGenDate').textContent = new Date().toLocaleDateString(undefined,{year:'numeric',month:'short',day:'numeric'});
+});
+
 // ---------- SITE SETTINGS (banner / tab title / popup) ----------
 function applySettings(){
   document.getElementById('siteTitle').textContent = SETTINGS.siteTitle;
   document.getElementById('siteSub').textContent = SETTINGS.siteSub;
+  document.getElementById('printHeaderTitle').textContent = SETTINGS.siteTitle;
+  document.getElementById('printHeaderSub').textContent = SETTINGS.siteSub;
   document.title = SETTINGS.pageTitle;
   document.getElementById('popupEyebrow').textContent = SETTINGS.popupEyebrow;
   document.getElementById('popupHeading').textContent = SETTINGS.popupHeading;
