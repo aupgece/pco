@@ -196,42 +196,58 @@ body.boot header, body.boot main{opacity:0;}
 #bookFormModal .field-error{font-size:0.76rem;color:var(--busy-ink);margin:4px 0 0;min-height:1em;}
 
 @media print{
-  @page{ size:landscape; margin:10mm 12mm; }
+  @page{ size:landscape; margin:8mm 10mm; }
   header, nav, footer, .no-print, #tabs { display:none !important; }
-  body{padding:0;background:#fff;}
+  html, body{padding:0;background:#fff;height:auto;}
   main{padding:0;max-width:none;width:100%;}
   .panel{border:none;box-shadow:none;padding:0;margin:0;width:100%;}
   .print-only{display:block !important;}
 
   .print-masthead{
     display:flex;align-items:baseline;justify-content:space-between;
-    border-bottom:2pt solid #000;padding-bottom:8pt;margin-bottom:14pt;
+    border-bottom:1.5pt solid #000;padding-bottom:5pt;margin-bottom:7pt;
   }
-  .print-masthead .name{font-size:15pt;font-weight:800;color:#000;}
-  .print-masthead .sub{font-size:9.5pt;font-weight:600;color:#333;}
-  .print-masthead .gen{font-size:8.5pt;color:#555;text-align:right;}
+  .print-masthead .name{font-size:13pt;font-weight:800;color:#000;}
+  .print-masthead .sub{font-size:8.5pt;font-weight:600;color:#333;}
+  .print-masthead .gen{font-size:8pt;color:#555;text-align:right;}
 
   #gridSectionTitle, #teacherPrintTitle{
-    font-size:18pt;font-weight:800;color:#000 !important;
-    margin:0 0 12pt;padding-bottom:5pt;border-bottom:1pt solid #999;
+    font-size:14pt;font-weight:800;color:#000 !important;
+    margin:0 0 6pt;padding-bottom:3pt;border-bottom:0.75pt solid #999;
   }
 
-  table.grid{font-size:12pt;width:100%;table-layout:fixed;}
-  table.grid th{background:#e8e8e8 !important;color:#000 !important;font-weight:700;-webkit-print-color-adjust:exact;print-color-adjust:exact;padding:8pt 4pt;}
-  table.grid td.daycell{background:#ddd !important;color:#000 !important;font-weight:800;font-size:12pt;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
-  table.grid td.slotcell{height:auto;min-height:78pt;padding:5pt;}
-  .entry.lecture, .entry.lab{-webkit-print-color-adjust:exact;print-color-adjust:exact;height:100%;}
-  .entry .su{font-weight:700;font-size:10.5pt;}
-  .entry .te, .entry .rm{font-size:9pt;}
+  /* Keep the whole weekly grid — masthead, title and table — together on
+     one printed page rather than letting the table spill onto a second. */
+  #view-grid, #view-teacher{ page-break-inside:avoid; }
 
-  table.list{font-size:11pt;width:100%;}
-  table.list th{background:#e8e8e8 !important;color:#000 !important;font-weight:700;-webkit-print-color-adjust:exact;print-color-adjust:exact;padding:7pt 8pt;}
-  table.list td{padding:6pt 8pt;}
+  table.grid{font-size:9.5pt;width:100%;table-layout:fixed;page-break-inside:avoid;}
+  table.grid th{background:#e8e8e8 !important;color:#000 !important;font-weight:700;-webkit-print-color-adjust:exact;print-color-adjust:exact;padding:4pt 3pt;}
+  table.grid td.daycell{background:#ddd !important;color:#000 !important;font-weight:800;font-size:9.5pt;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  table.grid td.slotcell{height:auto;min-height:44pt;padding:3pt;}
+  .entry.lecture, .entry.lab{-webkit-print-color-adjust:exact;print-color-adjust:exact;height:100%;}
+  .entry .su{font-weight:700;font-size:8.5pt;}
+  .entry .te, .entry .rm{font-size:7.5pt;}
+
+  table.list{font-size:10pt;width:100%;}
+  table.list th{background:#e8e8e8 !important;color:#000 !important;font-weight:700;-webkit-print-color-adjust:exact;print-color-adjust:exact;padding:6pt 7pt;}
+  table.list td{padding:5pt 7pt;}
 
   table{page-break-inside:auto;}
   tr{page-break-inside:avoid;}
   thead{display:table-header-group;}
+
+  /* "Print all sections" mode: show only the generated multi-section
+     container, one section per page, and hide the normal single-view UI. */
+  body.printing-all .view{display:none !important;}
+  body.printing-all #allSectionsPrint{display:block !important;}
+  .print-section-block{page-break-inside:avoid;page-break-after:always;}
+  .print-section-block:last-child{page-break-after:auto;}
+  .print-section-heading{
+    font-size:14pt;font-weight:800;color:#000;
+    margin:0 0 6pt;padding-bottom:3pt;border-bottom:0.75pt solid #999;
+  }
 }
+#allSectionsPrint{display:none;}
 </style>
 </head>
 <body class="boot">
@@ -266,6 +282,9 @@ body.boot header, body.boot main{opacity:0;}
     <div class="gen">Printed <span id="printGenDate"></span></div>
   </div>
 
+  <!-- Populated only when "Print all sections" is used; otherwise empty/hidden -->
+  <div id="allSectionsPrint"></div>
+
   <!-- GRID VIEW -->
   <section class="view active" id="view-grid">
     <div class="panel" id="gridPanel">
@@ -289,6 +308,10 @@ body.boot header, body.boot main{opacity:0;}
         <div class="field-wrap no-print">
           <label class="field">&nbsp;</label>
           <button class="btn secondary small" id="printSectionBtn">🖨 Print this section</button>
+        </div>
+        <div class="field-wrap no-print">
+          <label class="field">&nbsp;</label>
+          <button class="btn secondary small" id="printAllSectionsBtn">🖨 Print all sections</button>
         </div>
       </div>
       <div class="legend no-print">
@@ -874,6 +897,27 @@ function stepSection(delta){
 document.getElementById('prevSectionBtn').addEventListener('click', ()=>stepSection(-1));
 document.getElementById('nextSectionBtn').addEventListener('click', ()=>stepSection(1));
 document.getElementById('printSectionBtn').addEventListener('click', ()=>window.print());
+
+function printAllSections(){
+  const list = sections();
+  const container = document.getElementById('allSectionsPrint');
+  container.innerHTML = list.map(sec=>{
+    const entries = DATA.filter(e=>e.s===sec);
+    return `<div class="print-section-block">
+        <h2 class="print-section-heading">${escapeHtml(sec)}</h2>
+        ${buildSectionTable(entries)}
+      </div>`;
+  }).join('');
+  document.body.classList.add('printing-all');
+  window.print();
+}
+// afterprint (not a click handler) so this also fires if printing is
+// cancelled from the browser's print dialog, not just after a real print.
+window.addEventListener('afterprint', ()=>{
+  document.body.classList.remove('printing-all');
+  document.getElementById('allSectionsPrint').innerHTML = '';
+});
+document.getElementById('printAllSectionsBtn').addEventListener('click', printAllSections);
 function escapeHtml(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
 // ---------- TEACHER VIEW ----------
