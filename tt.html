@@ -224,6 +224,7 @@ body.boot header, body.boot main{opacity:0;}
   table.grid th{background:#e8e8e8 !important;color:#000 !important;font-weight:700;-webkit-print-color-adjust:exact;print-color-adjust:exact;padding:4pt 3pt;}
   table.grid td.daycell{background:#ddd !important;color:#000 !important;font-weight:800;font-size:9.5pt;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
   table.grid td.slotcell{height:auto;min-height:44pt;padding:3pt;}
+  table.grid td.slotcell[style*="--free"]{background:#fff !important;}
   .entry.lecture, .entry.lab{-webkit-print-color-adjust:exact;print-color-adjust:exact;height:100%;}
   .entry .su{font-weight:700;font-size:8.5pt;}
   .entry .te, .entry .rm{font-size:7.5pt;}
@@ -1017,7 +1018,7 @@ function renderTeacher(){
             <div class="rm">${escapeHtml(e.r)}</div>
           </div></td>`;
       } else {
-        html += `<td class="slotcell" style="background:var(--free);"><div style="text-align:center;color:var(--free-ink);font-size:0.72rem;font-weight:700;padding-top:20px;">Free</div></td>`;
+        html += `<td class="slotcell" style="background:var(--free);"></td>`;
       }
     }
     html += '</tr>';
