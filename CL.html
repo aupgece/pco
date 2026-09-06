@@ -124,7 +124,7 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
     display:inline-block; font-size:11px; padding:2px 8px; border-radius:999px;
     margin:2px 3px 2px 0; border:1px solid var(--line); font-family:'IBM Plex Sans',sans-serif;
   }
-  .odf-pill.taken{ background:#EEF0FF; color:var(--muted); text-decoration:line-through; }
+  .odf-pill.taken{ background:#EEF0FF; color:var(--ink-soft); }
   .odf-pill.open{ background:rgba(108,63,235,.12); color:var(--teal-deep); border-color:var(--teal); font-weight:600; }
   .odf-dept-card{
     background:var(--paper-card); border:1px solid var(--line); border-radius:10px;
@@ -905,7 +905,7 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
     <div class="tabs">
       <button class="tab-btn active" data-tab="detail">Course Load</button>
       <button class="tab-btn" data-tab="summary">Faculty Summary</button>
-      <button class="tab-btn" data-tab="otherdept">FMs From Other Depts</button>
+      <button class="tab-btn" data-tab="otherdept">Cross-Dept Load</button>
     </div>
   </div>
 </div>
@@ -3764,21 +3764,35 @@ function renderAll(){
 function resolveOtherDeptSections(c){
   const code = (c.code||'').trim();
   const taken = getTakenSectionsForCourse(code);
-  const assignedRowCount = data.filter(r=>(r.code||'').trim()===code).length;
+  // Map each taken section value to the faculty name assigned to it.
+  const secToFm = {};
+  data.forEach(r=>{
+    if((r.code||'').trim() !== code) return;
+    const fm = (r.name||'').trim();
+    ['s1','s2','s3'].forEach(f=>{
+      const v = (r[f]||'').trim();
+      if(v && fm) secToFm[v] = fm;
+    });
+  });
+  const assignedRows = data.filter(r=>(r.code||'').trim()===code);
+  const assignedRowCount = assignedRows.length;
 
   const official = getCourseSections(code);
   if(official && official.length){
-    const items = official.map(name=>({name, taken: taken.has(name)}));
+    const items = official.map(name=>({name, taken: taken.has(name), fm: secToFm[name] || ''}));
     return {items, count: official.length, takenCount: items.filter(i=>i.taken).length};
   }
   if(c.sectionNames && c.sectionNames.length){
-    const items = c.sectionNames.map(name=>({name, taken: taken.has(name)}));
+    const items = c.sectionNames.map(name=>({name, taken: taken.has(name), fm: secToFm[name] || ''}));
     return {items, count: c.sectionNames.length, takenCount: items.filter(i=>i.taken).length};
   }
   if(c.totalSections && Number(c.totalSections) > 0){
     const total = Number(c.totalSections);
     const items = [];
-    for(let i=1;i<=total;i++) items.push({name:'Sec '+i, taken: i<=assignedRowCount});
+    for(let i=1;i<=total;i++){
+      const isTaken = i<=assignedRowCount;
+      items.push({name:'Sec '+i, taken: isTaken, fm: isTaken ? (assignedRows[i-1].name||'').trim() : ''});
+    }
     return {items, count: total, takenCount: Math.min(assignedRowCount, total)};
   }
   return {items: [], count: 0, takenCount: 0};
@@ -3822,7 +3836,7 @@ function renderOtherDeptFms(){
     .sort((a,b)=>(a.c.code||'').localeCompare(b.c.code||''))
     .map(({c, sec})=>{
       const secHtml = sec.items.length
-        ? sec.items.map(i=>`<span class="odf-pill ${i.taken?'taken':'open'}">${escHtml(i.name)}</span>`).join('')
+        ? sec.items.map(i=>`<span class="odf-pill ${i.taken?'taken':'open'}">${escHtml(i.name)}${i.taken && i.fm ? ' — '+escHtml(i.fm) : ''}</span>`).join('')
         : '—';
       return `
       <tr>
