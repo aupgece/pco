@@ -125,6 +125,7 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
     margin:2px 3px 2px 0; border:1px solid var(--line); font-family:'IBM Plex Sans',sans-serif;
   }
   .odf-pill.taken{ background:#EEF0FF; color:var(--ink-soft); }
+  .odf-pill.suggested{ background:#FFF6E5; color:#946200; border-color:#F0C36D; font-style:italic; }
   .odf-pill.open{ background:rgba(108,63,235,.12); color:var(--teal-deep); border-color:var(--teal); font-weight:600; }
   .odf-dept-card{
     background:var(--paper-card); border:1px solid var(--line); border-radius:10px;
@@ -881,6 +882,7 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
 </style>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body class="view-only">
@@ -1248,12 +1250,13 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
     <div class="card" style="padding:18px 20px; margin-bottom:16px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
       <div>
         <div style="font-size:32px; font-weight:700; color:var(--teal-deep);" id="odfTotalCourses">–</div>
-        <div style="font-size:12.5px; color:var(--muted);">courses needing an FM from another department</div>
+        <div style="font-size:12.5px; color:var(--muted);">courses taught by another department</div>
         <div style="font-size:12.5px; color:var(--muted); margin-top:4px;" id="odfSectionsLine"></div>
       </div>
       <div style="font-size:12px; color:var(--muted);">
-        <span class="odf-pill open">open</span> = still needs an FM &nbsp;
-        <span class="odf-pill taken">taken</span> = already assigned
+        <span class="odf-pill open">open</span> = no FM found (not in CL or the timetable) &nbsp;
+        <span class="odf-pill suggested">from timetable</span> = FM per the current timetable &nbsp;
+        <span class="odf-pill taken">confirmed</span> = FM recorded in Course Loading
       </div>
     </div>
     <div class="compact-grid" id="odfDeptGrid" style="margin-bottom:16px;"></div>
@@ -1672,6 +1675,112 @@ try {
   }
 } catch(e) {
   console.warn('Firebase init failed:', e);
+}
+
+// ─── TIMETABLE LINK (read-only, separate Firebase project) ──────────────────
+// Pulls faculty names from the live class timetable (timetable.html's
+// Realtime Database) so an unassigned other-dept section can show who's
+// actually teaching it there, even before CL's own records are updated.
+// Uses a second, named Firebase app instance so it doesn't collide with the
+// main Firestore connection above.
+let timetableSessions = [];
+function initTimetableLink(){
+  try{
+    if(typeof firebase === 'undefined') return;
+    const TIMETABLE_FB_CONFIG = {
+      apiKey: "AIzaSyAW6Z6c1N5QVpB7iCWXhyjxHQImeCYRgxs",
+      authDomain: "auecepco.firebaseapp.com",
+      databaseURL: "https://auecepco-default-rtdb.firebaseio.com",
+      projectId: "auecepco",
+      storageBucket: "auecepco.firebasestorage.app",
+      messagingSenderId: "314187695897",
+      appId: "1:314187695897:web:2718ba7cbe8bdf10bea788"
+    };
+    const existing = firebase.apps.find(a=>a.name==='timetableLink');
+    const tApp = existing || firebase.initializeApp(TIMETABLE_FB_CONFIG, 'timetableLink');
+    const tDb = tApp.database();
+    tDb.ref('pco_timetable_data').on('value', snap=>{
+      const val = snap.val();
+      timetableSessions = (val && val.items) || [];
+      renderOtherDeptFms();
+    }, err=>{
+      console.warn('Timetable link error:', err);
+    });
+  }catch(e){
+    console.warn('Could not connect to timetable database:', e);
+  }
+}
+initTimetableLink();
+
+// Loose text match: lowercase, drop parenthetical notes (e.g. "(1st Sem)"),
+// treat "&" the same as "and", strip punctuation, collapse whitespace —
+// timetable subject names and CL course names are entered by hand in each
+// tool and drift (e.g. "Applied Physics" vs "APPLIED PHYSICS", "Calculus &
+// Analytical Geometry" vs "Calculus and Analytical Geometry (1st Sem)").
+function normalizeCourseText(s){
+  let t = (s||'').toLowerCase();
+  t = t.replace(/\([^)]*\)/g, ' ');
+  t = t.replace(/&/g, ' and ');
+  t = t.replace(/[^a-z0-9]+/g, ' ').trim();
+  return t;
+}
+const COURSE_NAME_STOPWORDS = new Set(['and','of','the','for','to','in','i','ii','iii','iv','v']);
+function courseNameTokens(s){
+  return normalizeCourseText(s).split(' ').filter(w => w && !COURSE_NAME_STOPWORDS.has(w));
+}
+// True if a course name refers to a lab/laboratory session.
+function isLabCourseName(s){
+  return /\blab(oratory)?\b/.test(normalizeCourseText(s));
+}
+// Two course names are considered the same course if they agree on
+// lecture-vs-lab AND every meaningful word of the shorter name appears in
+// the longer one (a token-set match, so word order/filler words/"&" vs
+// "and"/parenthetical suffixes don't break the match) — while still
+// keeping "ICT" from wrongly matching "ICT Laboratory".
+function courseNamesMatch(a, b){
+  const ta = courseNameTokens(a), tb = courseNameTokens(b);
+  if(!ta.length || !tb.length) return false;
+  if(isLabCourseName(a) !== isLabCourseName(b)) return false;
+  const [shorter, longer] = ta.length <= tb.length ? [ta, tb] : [tb, ta];
+  const longerSet = new Set(longer);
+  if(shorter.every(tok => longerSet.has(tok))) return true;
+  // Fallback for a stray extra space splitting one word into two tokens
+  // (e.g. timetable's "Procur ement" vs CL's "Procurement") — join every
+  // token with no separator at all and require an EXACT match (not a
+  // substring check, which would too easily false-match short generic
+  // names like "Management" against a longer unrelated course name).
+  return ta.join('') === tb.join('');
+}
+// Looks up who's teaching a given section, per the timetable, by matching
+// section code exactly and course name loosely (lecture/lab aware).
+// Returns exactly whatever the timetable has on file for that slot —
+// including placeholder-style entries like "FM 1 Telecom Lecturer" — since
+// that's what the timetable currently says, right or not.
+function findTimetableFm(courseName, sectionName){
+  if(!courseName || !sectionName) return '';
+  const nSec = String(sectionName).trim().toUpperCase();
+  const hit = timetableSessions.find(e=>{
+    if(String(e.s||'').trim().toUpperCase() !== nSec) return false;
+    return courseNamesMatch(courseName, e.su);
+  });
+  return hit ? String(hit.te||'').trim() : '';
+}
+// Returns the actual real-world sections the timetable has this course
+// running under (e.g. BEEE-F-26-A, BEEE-F-26-B), each with exactly whatever
+// name the timetable has on file for that slot — used when CL itself has
+// no official section list for a course, so the tab reflects real sections
+// instead of a generic "Sec N" count.
+function findTimetableSectionsForCourse(courseName){
+  const seen = {};
+  timetableSessions.forEach(e=>{
+    if(courseNamesMatch(courseName, e.su)){
+      const sec = String(e.s||'').trim();
+      if(sec && !Object.prototype.hasOwnProperty.call(seen, sec)){
+        seen[sec] = String(e.te||'').trim();
+      }
+    }
+  });
+  return Object.keys(seen).sort().map(sec=>({section:sec, fm:seen[sec]}));
 }
 
 let unsubscribeSnapshot = null;
@@ -3779,11 +3888,33 @@ function resolveOtherDeptSections(c){
 
   const official = getCourseSections(code);
   if(official && official.length){
-    const items = official.map(name=>({name, taken: taken.has(name), fm: secToFm[name] || ''}));
+    const items = official.map(name=>({
+      name, taken: taken.has(name), fm: secToFm[name] || '',
+      suggestedFm: taken.has(name) ? '' : findTimetableFm(c.name, name)
+    }));
     return {items, count: official.length, takenCount: items.filter(i=>i.taken).length};
   }
+
+  // No official section list curated in CL yet — pull the real section
+  // codes straight from the live timetable (e.g. BEEE-F-26-A, -B) instead
+  // of falling back to a generic "Sec N" placeholder that can't match
+  // anything. Stays live: any timetable change re-renders this tab.
+  const ttSections = findTimetableSectionsForCourse(c.name);
+  if(ttSections.length){
+    const items = ttSections.map(({section, fm})=>({
+      name: section,
+      taken: taken.has(section),
+      fm: secToFm[section] || '',
+      suggestedFm: taken.has(section) ? '' : fm
+    }));
+    return {items, count: items.length, takenCount: items.filter(i=>i.taken).length};
+  }
+
   if(c.sectionNames && c.sectionNames.length){
-    const items = c.sectionNames.map(name=>({name, taken: taken.has(name), fm: secToFm[name] || ''}));
+    const items = c.sectionNames.map(name=>({
+      name, taken: taken.has(name), fm: secToFm[name] || '',
+      suggestedFm: taken.has(name) ? '' : findTimetableFm(c.name, name)
+    }));
     return {items, count: c.sectionNames.length, takenCount: items.filter(i=>i.taken).length};
   }
   if(c.totalSections && Number(c.totalSections) > 0){
@@ -3791,7 +3922,9 @@ function resolveOtherDeptSections(c){
     const items = [];
     for(let i=1;i<=total;i++){
       const isTaken = i<=assignedRowCount;
-      items.push({name:'Sec '+i, taken: isTaken, fm: isTaken ? (assignedRows[i-1].name||'').trim() : ''});
+      // Generic "Sec N" labels don't correspond to any real section code, so
+      // there's nothing to look up in the timetable for these.
+      items.push({name:'Sec '+i, taken: isTaken, fm: isTaken ? (assignedRows[i-1].name||'').trim() : '', suggestedFm: ''});
     }
     return {items, count: total, takenCount: Math.min(assignedRowCount, total)};
   }
@@ -3810,7 +3943,7 @@ function renderOtherDeptFms(){
   const bySections = matches.map(c => ({c, sec: resolveOtherDeptSections(c)}));
   bySections.forEach(({sec})=>{ totalSections += sec.count; totalTaken += sec.takenCount; });
   document.getElementById('odfSectionsLine').textContent =
-    totalSections > 0 ? `${totalTaken} of ${totalSections} sections already have an FM assigned` : '';
+    totalSections > 0 ? `${totalTaken} of ${totalSections} sections confirmed in Course Loading — the rest show the FM per the timetable, where found` : '';
 
   // Group by department for the summary cards
   const byDept = {};
@@ -3836,7 +3969,15 @@ function renderOtherDeptFms(){
     .sort((a,b)=>(a.c.code||'').localeCompare(b.c.code||''))
     .map(({c, sec})=>{
       const secHtml = sec.items.length
-        ? sec.items.map(i=>`<span class="odf-pill ${i.taken?'taken':'open'}">${escHtml(i.name)}${i.taken && i.fm ? ' — '+escHtml(i.fm) : ''}</span>`).join('')
+        ? sec.items.map(i=>{
+            if(i.taken){
+              return `<span class="odf-pill taken">${escHtml(i.name)}${i.fm ? ' — '+escHtml(i.fm) : ''}</span>`;
+            }
+            if(i.suggestedFm){
+              return `<span class="odf-pill suggested" title="FM per the current timetable — not yet added to Course Loading's own records">${escHtml(i.name)} — ${escHtml(i.suggestedFm)} (timetable)</span>`;
+            }
+            return `<span class="odf-pill open">${escHtml(i.name)}</span>`;
+          }).join('')
         : '—';
       return `
       <tr>
