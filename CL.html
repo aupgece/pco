@@ -1751,11 +1751,19 @@ function courseNamesMatch(a, b){
   // names like "Management" against a longer unrelated course name).
   return ta.join('') === tb.join('');
 }
+// True if a timetable-listed "teacher" is a generic unfilled-slot
+// placeholder (e.g. "FM 1 Telecom Lecturer", "ict lab faculity",
+// "CE (FACULITY)", "TBD") rather than an actual person's name — in that
+// case the slot should show as open in Cross-Dept Load, not "suggested".
+function isPlaceholderTeacherName(s){
+  const t = (s||'').trim();
+  if(!t) return true;
+  return /faculity|facility|^fm\s*\d+\b|\btbd\b|\bvacant\b|\bn ?\/ ?a\b|\bnot assigned\b|\bstaff\b/i.test(t);
+}
 // Looks up who's teaching a given section, per the timetable, by matching
 // section code exactly and course name loosely (lecture/lab aware).
-// Returns exactly whatever the timetable has on file for that slot —
-// including placeholder-style entries like "FM 1 Telecom Lecturer" — since
-// that's what the timetable currently says, right or not.
+// Returns '' if no match, or if the timetable only has a generic unfilled
+// placeholder for that slot (no real name to show).
 function findTimetableFm(courseName, sectionName){
   if(!courseName || !sectionName) return '';
   const nSec = String(sectionName).trim().toUpperCase();
@@ -1763,20 +1771,23 @@ function findTimetableFm(courseName, sectionName){
     if(String(e.s||'').trim().toUpperCase() !== nSec) return false;
     return courseNamesMatch(courseName, e.su);
   });
-  return hit ? String(hit.te||'').trim() : '';
+  if(!hit) return '';
+  const te = String(hit.te||'').trim();
+  return isPlaceholderTeacherName(te) ? '' : te;
 }
 // Returns the actual real-world sections the timetable has this course
-// running under (e.g. BEEE-F-26-A, BEEE-F-26-B), each with exactly whatever
-// name the timetable has on file for that slot — used when CL itself has
-// no official section list for a course, so the tab reflects real sections
-// instead of a generic "Sec N" count.
+// running under (e.g. BEEE-F-26-A, BEEE-F-26-B), each with its assigned
+// teacher (blank if the timetable only has a generic placeholder there) —
+// used when CL itself has no official section list for a course, so the
+// tab reflects real sections instead of a generic "Sec N" count.
 function findTimetableSectionsForCourse(courseName){
   const seen = {};
   timetableSessions.forEach(e=>{
     if(courseNamesMatch(courseName, e.su)){
       const sec = String(e.s||'').trim();
       if(sec && !Object.prototype.hasOwnProperty.call(seen, sec)){
-        seen[sec] = String(e.te||'').trim();
+        const te = String(e.te||'').trim();
+        seen[sec] = isPlaceholderTeacherName(te) ? '' : te;
       }
     }
   });
