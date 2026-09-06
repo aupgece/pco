@@ -120,6 +120,19 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
   .panel{display:none;}
   .panel.active{display:block;}
 
+  .odf-pill{
+    display:inline-block; font-size:11px; padding:2px 8px; border-radius:999px;
+    margin:2px 3px 2px 0; border:1px solid var(--line); font-family:'IBM Plex Sans',sans-serif;
+  }
+  .odf-pill.taken{ background:#EEF0FF; color:var(--muted); text-decoration:line-through; }
+  .odf-pill.open{ background:rgba(108,63,235,.12); color:var(--teal-deep); border-color:var(--teal); font-weight:600; }
+  .odf-dept-card{
+    background:var(--paper-card); border:1px solid var(--line); border-radius:10px;
+    padding:12px 14px;
+  }
+  .odf-dept-card .odf-dept-name{font-size:12px; color:var(--muted); margin-bottom:4px;}
+  .odf-dept-card .odf-dept-count{font-size:22px; font-weight:700; color:var(--teal-deep);}
+
   .card{
     background:var(--paper-card); border:1px solid var(--line); border-radius:12px;
     overflow:hidden;
@@ -892,6 +905,7 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
     <div class="tabs">
       <button class="tab-btn active" data-tab="detail">Course Load</button>
       <button class="tab-btn" data-tab="summary">Faculty Summary</button>
+      <button class="tab-btn" data-tab="otherdept">FMs From Other Depts</button>
     </div>
   </div>
 </div>
@@ -1225,6 +1239,37 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
             <tbody id="courseBody"></tbody>
           </table>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FMs FROM OTHER DEPTS PANEL -->
+  <div class="panel" id="panel-otherdept">
+    <div class="card" style="padding:18px 20px; margin-bottom:16px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
+      <div>
+        <div style="font-size:32px; font-weight:700; color:var(--teal-deep);" id="odfTotalCourses">–</div>
+        <div style="font-size:12.5px; color:var(--muted);">courses needing an FM from another department</div>
+        <div style="font-size:12.5px; color:var(--muted); margin-top:4px;" id="odfSectionsLine"></div>
+      </div>
+      <div style="font-size:12px; color:var(--muted);">
+        <span class="odf-pill open">open</span> = still needs an FM &nbsp;
+        <span class="odf-pill taken">taken</span> = already assigned
+      </div>
+    </div>
+    <div class="compact-grid" id="odfDeptGrid" style="margin-bottom:16px;"></div>
+    <div class="card">
+      <div class="table-scroll">
+        <table class="sum-table" id="odfTable">
+          <thead>
+            <tr>
+              <th style="text-align:left;">Code</th>
+              <th style="text-align:left;">Course Name</th>
+              <th style="text-align:left;">Department</th>
+              <th style="text-align:left;">Sections</th>
+            </tr>
+          </thead>
+          <tbody id="odfBody"></tbody>
+        </table>
       </div>
     </div>
   </div>
@@ -3706,7 +3751,87 @@ function withScrollPreserved(fn){
   requestAnimationFrame(()=> window.scrollTo(sx, sy));
 }
 function renderAll(){
-  withScrollPreserved(()=>{ renderDetail(); renderSummary(); renderSection(); renderStatCards(); renderSummaryToolbarLabels(); });
+  withScrollPreserved(()=>{ renderDetail(); renderSummary(); renderSection(); renderStatCards(); renderSummaryToolbarLabels(); renderOtherDeptFms(); });
+}
+
+// ── "FMs From Other Depts" tab ────────────────────────────────────────────
+// Shows every course categorized as 'otherDeptFms' (auto-detected by code
+// prefix via DEPT_PREFIX_MAP, same rule used elsewhere in the app), with a
+// per-department breakdown and a section-by-section taken/open view.
+// Resolves a course's sections the same way the rest of the app does:
+// official named list (lists.courseSections) > plain totalSections count.
+// Marks each section taken/open against the live FM-assignment rows.
+function resolveOtherDeptSections(c){
+  const code = (c.code||'').trim();
+  const taken = getTakenSectionsForCourse(code);
+  const assignedRowCount = data.filter(r=>(r.code||'').trim()===code).length;
+
+  const official = getCourseSections(code);
+  if(official && official.length){
+    const items = official.map(name=>({name, taken: taken.has(name)}));
+    return {items, count: official.length, takenCount: items.filter(i=>i.taken).length};
+  }
+  if(c.sectionNames && c.sectionNames.length){
+    const items = c.sectionNames.map(name=>({name, taken: taken.has(name)}));
+    return {items, count: c.sectionNames.length, takenCount: items.filter(i=>i.taken).length};
+  }
+  if(c.totalSections && Number(c.totalSections) > 0){
+    const total = Number(c.totalSections);
+    const items = [];
+    for(let i=1;i<=total;i++) items.push({name:'Sec '+i, taken: i<=assignedRowCount});
+    return {items, count: total, takenCount: Math.min(assignedRowCount, total)};
+  }
+  return {items: [], count: 0, takenCount: 0};
+}
+
+function renderOtherDeptFms(){
+  const panel = document.getElementById('panel-otherdept');
+  if(!panel) return;
+
+  const matches = lists.courses.filter(c => courseCodeProgram(c.code) === 'otherDeptFms');
+
+  document.getElementById('odfTotalCourses').textContent = matches.length;
+
+  let totalSections = 0, totalTaken = 0;
+  const bySections = matches.map(c => ({c, sec: resolveOtherDeptSections(c)}));
+  bySections.forEach(({sec})=>{ totalSections += sec.count; totalTaken += sec.takenCount; });
+  document.getElementById('odfSectionsLine').textContent =
+    totalSections > 0 ? `${totalTaken} of ${totalSections} sections already have an FM assigned` : '';
+
+  // Group by department for the summary cards
+  const byDept = {};
+  matches.forEach(c=>{
+    const dept = effectiveDept(c);
+    (byDept[dept] = byDept[dept] || []).push(c);
+  });
+  const deptGrid = document.getElementById('odfDeptGrid');
+  const depts = Object.keys(byDept).sort((a,b)=>byDept[b].length-byDept[a].length);
+  deptGrid.innerHTML = depts.map(d=>`
+    <div class="odf-dept-card">
+      <div class="odf-dept-name">${escHtml(d||'Unspecified')}</div>
+      <div class="odf-dept-count">${byDept[d].length}</div>
+    </div>`).join('');
+
+  const body = document.getElementById('odfBody');
+  if(!matches.length){
+    body.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:20px;">No matching courses found</td></tr>';
+    return;
+  }
+  body.innerHTML = bySections
+    .slice()
+    .sort((a,b)=>(a.c.code||'').localeCompare(b.c.code||''))
+    .map(({c, sec})=>{
+      const secHtml = sec.items.length
+        ? sec.items.map(i=>`<span class="odf-pill ${i.taken?'taken':'open'}">${escHtml(i.name)}</span>`).join('')
+        : '—';
+      return `
+      <tr>
+        <td>${escHtml(c.code||'—')}</td>
+        <td>${escHtml(c.name||'—')}</td>
+        <td>${escHtml(effectiveDept(c)||'Unspecified')}</td>
+        <td>${secHtml}</td>
+      </tr>`;
+    }).join('');
 }
 
 // ── EE / CE split-button print dropdowns ─────────────────────────────────────
