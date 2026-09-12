@@ -1,0 +1,1850 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Online Class Monitoring — Air University EE Department</title>
+<!-- Firebase SDK (Realtime Database) — shared record storage, same project as the timetable tool -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<!-- pdf.js — used by the admin "Upload latest timetable" feature to parse timetable PDFs -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<style>
+  :root{
+    --navy: #0f2942;
+    --navy-2: #16395c;
+    --slate: #4a5b6c;
+    --paper: #f6f4ef;
+    --paper-2: #ffffff;
+    --line: #dcd6c8;
+    --amber: #b9763a;
+    --green: #2f6f4f;
+    --red: #a8402f;
+    --ink: #1c2530;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family: "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+    background: var(--paper);
+    color: var(--ink);
+  }
+  header.top{
+    background: var(--navy);
+    color: #f2ede0;
+    padding: 28px 24px 22px;
+    border-bottom: 4px solid var(--amber);
+  }
+  header.top .wrap{
+    max-width: 1080px;
+    margin: 0 auto;
+    display:flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  header.top h1{
+    font-size: 1.6rem;
+    margin:0 0 4px;
+    font-weight: 600;
+    letter-spacing: .2px;
+  }
+  header.top p{
+    margin:0;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: .85rem;
+    color: #cdd8e2;
+  }
+  nav.tabs{
+    max-width: 1080px;
+    margin: 0 auto;
+    display:flex;
+    gap: 2px;
+    padding: 0 24px;
+    margin-top: 18px;
+  }
+  nav.tabs button{
+    font-family: Arial, Helvetica, sans-serif;
+    background: transparent;
+    border: none;
+    border-bottom: 3px solid transparent;
+    color: #cdd8e2;
+    padding: 10px 4px;
+    margin-right: 26px;
+    font-size: .92rem;
+    cursor: pointer;
+  }
+  nav.tabs button.active{
+    color: #fff;
+    border-bottom-color: var(--amber);
+    font-weight: 600;
+  }
+  main{
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 28px 24px 60px;
+  }
+  section.panel{ display:none; }
+  section.panel.active{ display:block; }
+
+  .controls{
+    background: var(--paper-2);
+    border: 1px solid var(--line);
+    padding: 18px 20px;
+    display:flex;
+    gap: 18px;
+    flex-wrap: wrap;
+    align-items:flex-end;
+  }
+  .field{ display:flex; flex-direction:column; gap:6px; }
+  .field label{
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: .74rem;
+    color: var(--slate);
+  }
+  select, input[type=date], input[type=text], input[type=number], input[type=url], textarea{
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: .92rem;
+    padding: 8px 10px;
+    border: 1px solid #b9b2a0;
+    background: #fff;
+    color: var(--ink);
+    min-width: 220px;
+  }
+  textarea{ min-width: 100%; resize: vertical; min-height: 54px; }
+  button.primary{
+    font-family: Arial, Helvetica, sans-serif;
+    background: var(--navy);
+    color: #fff;
+    border: none;
+    padding: 10px 18px;
+    font-size: .88rem;
+    cursor: pointer;
+  }
+  button.primary:hover{ background: var(--navy-2); }
+  button.ghost{
+    font-family: Arial, Helvetica, sans-serif;
+    background: transparent;
+    color: var(--navy);
+    border: 1px solid var(--navy);
+    padding: 9px 16px;
+    font-size: .85rem;
+    cursor: pointer;
+  }
+
+  .day-heading{
+    margin: 26px 0 12px;
+    font-size: 1.05rem;
+    color: var(--navy);
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 6px;
+  }
+  .empty-note{
+    font-family: Arial, Helvetica, sans-serif;
+    color: var(--slate);
+    padding: 30px 4px;
+    font-size: .95rem;
+  }
+
+  .class-card{
+    background: var(--paper-2);
+    border: 1px solid var(--line);
+    border-left: 5px solid var(--navy);
+    margin-bottom: 16px;
+    padding: 16px 20px 18px;
+  }
+  .class-card.status-yes{ border-left-color: var(--green); }
+  .class-card.status-no{ border-left-color: var(--red); }
+  .class-card .meta{
+    display:flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .class-card .meta h3{
+    margin: 0 0 2px;
+    font-size: 1.08rem;
+    color: var(--ink);
+  }
+  .class-card .meta .sub{
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: .8rem;
+    color: var(--slate);
+  }
+  .class-card .meta .time-badge{
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: .78rem;
+    background: var(--paper);
+    border: 1px solid var(--line);
+    padding: 4px 10px;
+    height: fit-content;
+    color: var(--navy);
+  }
+  .grid2{
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px 20px;
+  }
+  @media (max-width: 620px){ .grid2{ grid-template-columns: 1fr; } }
+
+  .radio-row{
+    display:flex;
+    gap: 18px;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: .9rem;
+    align-items:center;
+    padding-top: 4px;
+  }
+  .radio-row label{ display:flex; align-items:center; gap:6px; cursor:pointer; }
+
+  .card-footer{
+    display:flex;
+    justify-content: space-between;
+    align-items:center;
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px dashed var(--line);
+  }
+  .save-msg{
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: .82rem;
+    color: var(--green);
+    min-height: 1em;
+  }
+
+  table.records{
+    width:100%;
+    border-collapse: collapse;
+    margin-top: 18px;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: .82rem;
+    background: var(--paper-2);
+  }
+  table.records th, table.records td{
+    border: 1px solid var(--line);
+    padding: 8px 10px;
+    text-align: left;
+    vertical-align: top;
+  }
+  table.records th{
+    background: var(--navy);
+    color: #fff;
+    font-weight: 600;
+    position: sticky;
+    top:0;
+  }
+  table.records tr:nth-child(even){ background: #fbfaf6; }
+  .tag-yes{ color: var(--green); font-weight:700; }
+  .tag-no{ color: var(--red); font-weight:700; }
+  .table-wrap{ overflow-x:auto; max-height: 560px; overflow-y:auto; border:1px solid var(--line); }
+  .link-cell a{ color: var(--navy); }
+  .note-shared{
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: .78rem;
+    color: var(--slate);
+    margin-top: 8px;
+  }
+  .count-line{
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: .82rem;
+    color: var(--slate);
+    margin-top: 12px;
+  }
+
+  /* ---- Searchable faculty combo (search + dropdown) ---- */
+  .combo-field{ position: relative; }
+  .combo-wrap{ position: relative; }
+  .combo-wrap input[type=text]{ width: 100%; min-width: 220px; }
+  .combo-list{
+    display:none;
+    position:absolute;
+    top: calc(100% + 2px);
+    left:0; right:0;
+    background:#fff;
+    border:1px solid #b9b2a0;
+    box-shadow: 0 6px 16px rgba(15,41,66,0.18);
+    max-height: 220px;
+    overflow-y:auto;
+    z-index: 50;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: .88rem;
+  }
+  .combo-list.open{ display:block; }
+  .combo-item{ padding:8px 10px; cursor:pointer; }
+  .combo-item:hover, .combo-item.hl{ background: var(--paper); }
+  .combo-empty{ padding:8px 10px; color: var(--slate); font-style:italic; }
+
+  /* ---- Admin tab ---- */
+  .admin-gate-msg{
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: .82rem;
+    color: var(--red);
+  }
+  table.records input[type=text], table.records input[type=date],
+  table.records input[type=number], table.records input[type=url],
+  table.records select, table.records textarea{
+    min-width: 0;
+    width:100%;
+    padding: 5px 6px;
+    font-size: .82rem;
+  }
+  table.records textarea{ min-height: 40px; }
+  .row-btn{
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: .78rem;
+    padding: 5px 10px;
+    cursor:pointer;
+    margin: 0 3px 3px 0;
+  }
+  .row-btn.edit{ background: transparent; border:1px solid var(--navy); color:var(--navy); }
+  .row-btn.save{ background: var(--navy); border:1px solid var(--navy); color:#fff; }
+  .row-btn.delete, .row-btn.cancel{ background: transparent; border:1px solid var(--red); color:var(--red); }
+  .row-btn.cancel{ border-color:#b9b2a0; color:var(--slate); }
+
+  /* ---- Stat cards (scheduled / held online) ---- */
+  .stats-row{
+    display:flex;
+    gap:14px;
+    flex-wrap:wrap;
+    margin-bottom:6px;
+  }
+  .stat-card{
+    background: var(--paper-2);
+    border: 1px solid var(--line);
+    border-top: 4px solid var(--navy);
+    padding: 14px 22px;
+    min-width: 160px;
+    flex: 1 1 160px;
+  }
+  .stat-card.held{ border-top-color: var(--green); }
+  .stat-card .stat-num{
+    font-size: 1.9rem;
+    font-weight: 700;
+    line-height: 1.1;
+    color: var(--navy);
+  }
+  .stat-card.held .stat-num{ color: var(--green); }
+  .stat-card .stat-lbl{
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: .76rem;
+    color: var(--slate);
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    margin-top: 4px;
+  }
+  .stats-hint{
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: .82rem;
+    color: var(--slate);
+    margin: 8px 0 18px;
+  }
+
+  /* ---- Admin: upload latest timetable ---- */
+  .admin-block{
+    background: var(--paper-2);
+    border: 1px solid var(--line);
+    padding: 18px 20px;
+    margin: 22px 0 0;
+  }
+  .admin-block h3{
+    margin: 0 0 8px;
+    font-size: 1rem;
+    color: var(--navy);
+  }
+  .admin-block .hint{
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: .82rem;
+    color: var(--slate);
+    line-height: 1.5;
+    margin: 0 0 14px;
+  }
+  #scheduleDropzone{
+    border: 2px dashed #b9c4bd;
+    border-radius: 6px;
+    padding: 26px 16px;
+    text-align: center;
+    cursor: pointer;
+    margin-bottom: 8px;
+  }
+  #scheduleDropzone:hover, #scheduleDropzone.drag{ border-color: var(--navy); background: var(--paper); }
+  #scheduleDropzone .big{ font-weight: 700; margin-bottom: 4px; font-family: Arial, Helvetica, sans-serif; }
+  #scheduleDropzone .small{ font-size: .8rem; color: var(--slate); font-family: Arial, Helvetica, sans-serif; }
+  #scheduleFileInput{ display: none; }
+  .upload-status{
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: .82rem;
+    color: var(--green);
+    min-height: 1.1em;
+    margin: 4px 0 14px;
+  }
+  .upload-status.err{ color: var(--red); }
+  table.edit-schedule-table td{ vertical-align: middle; }
+  table.edit-schedule-table select{ min-width: 0; width:100%; padding:5px 6px; font-size:.82rem; }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <div>
+      <h1>Online Class Monitoring</h1>
+      <p>Department of Electrical Engineering — Air University · Fall 2026 timetable (generated 9/11/2026)</p>
+    </div>
+  </div>
+  <nav class="tabs">
+    <button id="tabBtnRecord" class="active">Record a class</button>
+    <button id="tabBtnView">View all records</button>
+    <button id="tabBtnAdmin">Admin</button>
+  </nav>
+</header>
+
+<main>
+
+  <!-- RECORD PANEL -->
+  <section id="panelRecord" class="panel active">
+    <div class="controls">
+      <div class="field combo-field">
+        <label for="facultySelect">Faculty member</label>
+        <div class="combo-wrap">
+          <input type="text" id="facultySelect" placeholder="— select your name —" autocomplete="off">
+          <div class="combo-list" id="facultySelectList"></div>
+        </div>
+      </div>
+      <div class="field">
+        <label for="dateInput">Date</label>
+        <input type="date" id="dateInput">
+      </div>
+      <button class="primary" id="loadBtn">Show my classes</button>
+    </div>
+
+    <div id="dayHeading"></div>
+    <div id="classList"></div>
+  </section>
+
+  <!-- VIEW PANEL -->
+  <section id="panelView" class="panel">
+    <div class="stats-row" id="viewStatsRow">
+      <div class="stat-card scheduled">
+        <div class="stat-num" id="viewStatScheduled">–</div>
+        <div class="stat-lbl">Classes scheduled</div>
+      </div>
+      <div class="stat-card held">
+        <div class="stat-num" id="viewStatHeld">–</div>
+        <div class="stat-lbl">Held online</div>
+      </div>
+    </div>
+    <p class="stats-hint" id="viewStatsHint">Pick a date below to see class counts for that day.</p>
+    <div class="controls">
+      <div class="field combo-field">
+        <label for="filterFaculty">Filter by faculty</label>
+        <div class="combo-wrap">
+          <input type="text" id="filterFaculty" placeholder="All faculty" autocomplete="off">
+          <div class="combo-list" id="filterFacultyList"></div>
+        </div>
+      </div>
+      <div class="field">
+        <label for="filterDate">Filter by date</label>
+        <input type="date" id="filterDate">
+      </div>
+      <button class="ghost" id="clearFilters">Clear filters</button>
+      <button class="primary" id="refreshBtn">Refresh</button>
+      <button class="ghost" id="exportBtn">Export CSV</button>
+    </div>
+    <p class="note-shared" id="storageNote">Records are stored in shared storage for this tool, so every faculty member and administrator opening this page can see the same monitoring log.</p>
+    <div class="table-wrap">
+      <table class="records" id="recordsTable">
+        <thead>
+          <tr>
+            <th>Date</th><th>Section</th><th>Time</th><th>Subject</th><th>Faculty</th>
+            <th>Held on time</th><th>Students present</th><th>Link</th><th>Remarks</th><th>Logged at</th>
+          </tr>
+        </thead>
+        <tbody id="recordsBody"></tbody>
+      </table>
+    </div>
+    <p class="count-line" id="countLine"></p>
+  </section>
+
+  <!-- ADMIN PANEL -->
+  <section id="panelAdmin" class="panel">
+    <div id="adminGate" class="controls" style="align-items:flex-end;">
+      <div class="field">
+        <label for="adminPassword">Admin password</label>
+        <input type="password" id="adminPassword" placeholder="Enter password">
+      </div>
+      <button class="primary" id="adminUnlockBtn">Unlock</button>
+      <span id="adminGateMsg" class="admin-gate-msg"></span>
+    </div>
+
+    <div id="adminContent" style="display:none;">
+      <div class="stats-row" id="adminStatsRow">
+        <div class="stat-card scheduled">
+          <div class="stat-num" id="adminStatScheduled">–</div>
+          <div class="stat-lbl">Classes scheduled</div>
+        </div>
+        <div class="stat-card held">
+          <div class="stat-num" id="adminStatHeld">–</div>
+          <div class="stat-lbl">Held online</div>
+        </div>
+      </div>
+      <p class="stats-hint" id="adminStatsHint">Pick a date below to see class counts for that day.</p>
+      <div class="controls">
+        <div class="field combo-field">
+          <label for="adminFilterFaculty">Filter by faculty</label>
+          <div class="combo-wrap">
+            <input type="text" id="adminFilterFaculty" placeholder="All faculty" autocomplete="off">
+            <div class="combo-list" id="adminFilterFacultyList"></div>
+          </div>
+        </div>
+        <div class="field">
+          <label for="adminFilterDate">Filter by date</label>
+          <input type="date" id="adminFilterDate">
+        </div>
+        <button class="ghost" id="adminClearFilters">Clear filters</button>
+        <button class="primary" id="adminRefreshBtn">Refresh</button>
+      </div>
+      <p class="note-shared">Admin mode — edits and deletes save immediately to the shared database and cannot be undone.</p>
+      <div class="table-wrap">
+        <table class="records" id="adminTable">
+          <thead>
+            <tr>
+              <th>Date</th><th>Section</th><th>Time</th><th>Subject</th><th>Faculty</th>
+              <th>Held on time</th><th>Students present</th><th>Link</th><th>Remarks</th><th>Logged at</th><th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="adminBody"></tbody>
+        </table>
+      </div>
+      <p class="count-line" id="adminCountLine"></p>
+
+      <div class="admin-block">
+        <h3>Upload latest timetable</h3>
+        <p class="hint">Upload the newest timetable PDF to keep the schedule used by "Record a class" and the stat cards up to date. It's parsed automatically (best effort) — review the extracted rows below, fix anything that looks off, then it's saved for everyone. Processed entirely in your browser; nothing is uploaded anywhere except this app's shared database.</p>
+        <div id="scheduleDropzone">
+          <div class="big">Drop a timetable PDF here, or click to choose one</div>
+          <div class="small">One page per section, same grid layout as the EE timetable.</div>
+          <input type="file" id="scheduleFileInput" accept="application/pdf">
+        </div>
+        <div class="upload-status" id="scheduleUploadStatus"></div>
+
+        <div class="controls" style="margin-top:6px;">
+          <button class="ghost" id="scheduleAddRowBtn">+ Add entry</button>
+          <button class="primary" id="scheduleApplyBtn">Apply changes</button>
+          <button class="ghost" id="scheduleDeleteAllBtn" style="color:var(--red);border-color:var(--red);">Delete all entries</button>
+        </div>
+        <div class="table-wrap">
+          <table class="records edit-schedule-table" id="scheduleEditTable">
+            <thead>
+              <tr><th>Section</th><th>Day</th><th>Start</th><th>End</th><th>Subject</th><th>Faculty</th><th>Room</th><th></th></tr>
+            </thead>
+            <tbody id="scheduleEditBody"></tbody>
+          </table>
+        </div>
+        <p class="count-line" id="scheduleCountLine"></p>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<script>
+// ---------- Schedule data (from BEEE/BEET/BEEP/BEEV Fall-26/25/24/23 timetables) ----------
+// Fields: [section, day(1=Mon..5=Fri), start, end, subject, faculty, room]
+const SCHEDULE_BUILTIN = [
+["BEEE-F-26-A",1,"09:20","10:40","Calculus & Analytical Geometry","Ms Dr Ambreen (MATH)","B-110"],
+["BEEE-F-26-A",1,"12:00","13:20","Applied Physics","Dr. Rubina Nasir (Physics)","B-106"],
+["BEEE-F-26-A",1,"13:20","14:40","ICT Laboratory","CE Ms Zerkaish","Computer Lab-21"],
+["BEEE-F-26-A",2,"08:00","09:20","Applied Physics Laboratory","Ms. Sher Bano (Physics)","Applied Physics Lab (IAA)"],
+["BEEE-F-26-A",2,"10:40","12:00","Engineering Drawing","MTS Aleen Qureshi","Eng. Drawing Lab (IAA 4th Fl)"],
+["BEEE-F-26-A",2,"13:20","14:40","Electric Circuit Analysis","EE- Ms. Ambreen Ali Ch.","B-202"],
+["BEEE-F-26-A",2,"14:40","16:00","Applied Physics","Dr. Rubina Nasir (Physics)","B-107"],
+["BEEE-F-26-A",3,"08:00","09:20","Electric Circuit Analysis Laboratory","EE- Mr. Qasim","Electronics System Lab"],
+["BEEE-F-26-A",3,"12:00","13:20","ICT","EE- Dr. Sher Ali","B-105"],
+["BEEE-F-26-A",3,"13:20","14:40","Functional English","Ms Amna Khan (VFM)","B-202"],
+["BEEE-F-26-A",4,"09:20","10:40","Electric Circuit Analysis","EE- Ms. Ambreen Ali Ch.","B-202"],
+["BEEE-F-26-A",4,"10:40","12:00","Calculus & Analytical Geometry","Ms Dr Ambreen (MATH)","B-202"],
+["BEEE-F-26-A",4,"12:00","13:20","ICT","EE- Dr. Sher Ali","B-108"],
+["BEEE-F-26-A",4,"13:20","14:40","Functional English","Ms Amna Khan (VFM)","B-204"],
+["BEEE-F-26-A",4,"14:40","16:00","Advisory Class","EE- Ms. Hiba Hareem","B-109"],
+
+["BEEE-F-26-B",1,"09:20","10:40","Electric Circuit Analysis","EE- Mr. Sami Ullah","B-203"],
+["BEEE-F-26-B",1,"12:00","13:20","ICT","EE- Dr. Sher Ali","B-202"],
+["BEEE-F-26-B",1,"13:20","14:40","Applied Physics","Dr. Rubina Nasir (Physics)","B-203"],
+["BEEE-F-26-B",1,"14:40","16:00","Advisory Class","EE- Ms. Seema Tahir","B-106"],
+["BEEE-F-26-B",3,"09:20","10:40","Calculus & Analytical Geometry","Ms Dr Ambreen (MATH)","B-202"],
+["BEEE-F-26-B",3,"10:40","12:00","ICT","EE- Dr. Sher Ali","B-106"],
+["BEEE-F-26-B",3,"12:00","13:20","Functional English","Ms Amna Khan (VFM)","B-109"],
+["BEEE-F-26-B",3,"13:20","14:40","ICT Laboratory","CE Ms Ayesha Tahir Amin","Computer Lab-21"],
+["BEEE-F-26-B",4,"09:20","10:40","Calculus & Analytical Geometry","Ms Dr Ambreen (MATH)","B-105"],
+["BEEE-F-26-B",4,"10:40","12:00","Electric Circuit Analysis","EE- Mr. Sami Ullah","B-204"],
+["BEEE-F-26-B",4,"12:00","13:20","Electric Circuit Analysis Laboratory","EE- Mr. Sami Ullah","Digital Electronics Lab"],
+["BEEE-F-26-B",4,"14:40","16:00","Functional English","Ms Amna Khan (VFM)","B-204"],
+["BEEE-F-26-B",5,"08:00","09:20","Applied Physics Laboratory","Mr. Aqib Rauf (Physics)","Applied Physics Lab (IAA)"],
+["BEEE-F-26-B",5,"12:00","13:20","Applied Physics","Dr. Rubina Nasir (Physics)","B-105"],
+["BEEE-F-26-B",5,"13:20","14:40","Engineering Drawing","MTS Aleen Qureshi","Eng. Drawing Lab (IAA 4th Fl)"],
+
+["BEET-F-26-A",1,"09:20","10:40","ICT","EE Ms. Hira Sana","B-202"],
+["BEET-F-26-A",1,"10:40","12:00","Calculus & Analytical Geometry","Ms. Sabah Noor (MATH)","B-110"],
+["BEET-F-26-A",1,"12:00","13:20","Electric Circuit Analysis Laboratory","EE- Mr. Qasim","Electronics System Lab"],
+["BEET-F-26-A",1,"14:40","16:00","Advisory Class","EE- Muhammad Ali Raza","B-110"],
+["BEET-F-26-A",2,"09:20","10:40","Electric Circuit Analysis","EE- Dr. Qumrish","B-202"],
+["BEET-F-26-A",2,"10:40","12:00","Functional English","Ms. Khansa Riaz","B-109"],
+["BEET-F-26-A",2,"12:00","13:20","Calculus & Analytical Geometry","Ms. Sabah Noor (MATH)","B-202"],
+["BEET-F-26-A",2,"13:20","14:40","Applied Physics Laboratory","Ms. Sher Bano (Physics)","Applied Physics Lab (IAA)"],
+["BEET-F-26-A",3,"09:20","10:40","ICT Laboratory","ict lab faculity","Computer Lab-9"],
+["BEET-F-26-A",3,"12:00","13:20","Functional English","Ms. Khansa Riaz","B-110"],
+["BEET-F-26-A",3,"13:20","14:40","ICT","EE Ms. Hira Sana","B-110"],
+["BEET-F-26-A",3,"14:40","16:00","Applied Physics","Dr. Rubina Nasir (Physics)","B-105"],
+["BEET-F-26-A",5,"09:20","10:40","Engineering Drawing","Engr. Faizan Ahmad Siddiqui","Eng. Drawing Lab (IAA 4th Fl)"],
+["BEET-F-26-A",5,"10:40","12:00","Electric Circuit Analysis","EE- Dr. Qumrish","B-105"],
+["BEET-F-26-A",5,"13:20","14:40","Applied Physics","Dr. Rubina Nasir (Physics)","B-105"],
+
+["BEEP-F-26-A",1,"09:20","10:40","Electric Circuit Analysis Laboratory","EE Visiting Lab Engineer 1","Digital Electronics Lab"],
+["BEEP-F-26-A",1,"13:20","14:40","Functional English","Ms. Tahreem Ijaz (ENG)","B-110"],
+["BEEP-F-26-A",1,"14:40","16:00","Advisory Class","EE- Mr. Faizan Munir","B-105"],
+["BEEP-F-26-A",2,"09:20","10:40","Applied Physics","Ms. Romana Ghazal (Physics)","B-106"],
+["BEEP-F-26-A",2,"10:40","12:00","Electric Circuit Analysis","EE- Mr. Sami Ullah","B-106"],
+["BEEP-F-26-A",2,"12:00","13:20","ICT","EE- Dr. Sher Ali","B-108"],
+["BEEP-F-26-A",2,"13:20","14:40","Engineering Drawing","MTS Aleen Qureshi","Eng. Drawing Lab (IAA 4th Fl)"],
+["BEEP-F-26-A",3,"08:00","09:20","Calculus & Analytical Geometry","Dr. Samina (Math)","B-110"],
+["BEEP-F-26-A",3,"09:20","10:40","Electric Circuit Analysis","EE- Mr. Sami Ullah","B-109"],
+["BEEP-F-26-A",3,"10:40","12:00","Functional English","Ms. Tahreem Ijaz (ENG)","B-109"],
+["BEEP-F-26-A",3,"13:20","14:40","ICT","EE- Dr. Sher Ali","B-106"],
+["BEEP-F-26-A",5,"08:00","09:20","Calculus & Analytical Geometry","Dr. Samina (Math)","B-109"],
+["BEEP-F-26-A",5,"09:20","10:40","Applied Physics","Ms. Romana Ghazal (Physics)","B-107"],
+["BEEP-F-26-A",5,"10:40","12:00","Applied Physics Laboratory","Ms. Romana Ghazal (Physics)","Applied Physics Lab (IAA)"],
+["BEEP-F-26-A",5,"13:20","14:40","ICT Laboratory","CE Maryam Sheikh","Computer Lab-9"],
+
+["BEEP-F-26-B",1,"12:00","13:20","Functional English","Ms. Tahreem Ijaz (ENG)","B-105"],
+["BEEP-F-26-B",1,"13:20","14:40","Electric Circuit Analysis Laboratory","EE- Ms. Ambreen Ali Ch.","Digital Electronics Lab"],
+["BEEP-F-26-B",2,"08:00","09:20","Electric Circuit Analysis","EE- Ms. Ambreen Ali Ch.","B-110"],
+["BEEP-F-26-B",2,"09:20","10:40","ICT","EE Ms. Hira Sana","B-109"],
+["BEEP-F-26-B",2,"10:40","12:00","Applied Physics Laboratory","Ms. Romana Ghazal (Physics)","Applied Physics Lab (IAA)"],
+["BEEP-F-26-B",2,"13:20","14:40","Applied Physics","Ms. Romana Ghazal (Physics)","B-108"],
+["BEEP-F-26-B",3,"09:20","10:40","Calculus & Analytical Geometry","Dr. Samina (Math)","B-108"],
+["BEEP-F-26-B",3,"10:40","12:00","ICT Laboratory","CE Ms Zerkaish","Computer Lab-9"],
+["BEEP-F-26-B",3,"13:20","14:40","Functional English","Ms. Tahreem Ijaz (ENG)","B-203"],
+["BEEP-F-26-B",3,"14:40","16:00","Electric Circuit Analysis","EE- Ms. Ambreen Ali Ch.","B-106"],
+["BEEP-F-26-B",5,"08:00","09:20","Advisory Class","EE- Dr. Qumrish","B-106"],
+["BEEP-F-26-B",5,"09:20","10:40","Calculus & Analytical Geometry","Dr. Samina (Math)","B-105"],
+["BEEP-F-26-B",5,"10:40","12:00","Engineering Drawing","MTS Aleen Qureshi","Eng. Drawing Lab (IAA 4th Fl)"],
+["BEEP-F-26-B",5,"13:20","14:40","Applied Physics","Ms. Romana Ghazal (Physics)","B-204"],
+["BEEP-F-26-B",5,"14:40","16:00","ICT","EE Ms. Hira Sana","B-204"],
+
+["BEEV-F-26-A",1,"09:20","10:40","Advisory Class","EE- Ms. Ambreen Ali Ch.","B-105"],
+["BEEV-F-26-A",1,"12:00","13:20","Calculus & Analytical Geometry","Ms. Sabah Noor (MATH)","B-107"],
+["BEEV-F-26-A",1,"13:20","14:40","Electric Circuit Analysis","EE- Mr. Faizan Munir","B-202"],
+["BEEV-F-26-A",2,"08:00","09:20","Engineering Drawing","Engr. Faizan Ahmad Siddiqui","Eng. Drawing Lab (IAA 4th Fl)"],
+["BEEV-F-26-A",2,"09:20","10:40","Calculus & Analytical Geometry","Ms. Sabah Noor (MATH)","B-202"],
+["BEEV-F-26-A",2,"10:40","12:00","Functional English","Ms. Khansa Riaz","B-105"],
+["BEEV-F-26-A",2,"12:00","13:20","ICT","EE Ms. Hira Sana","B-204"],
+["BEEV-F-26-A",2,"13:20","14:40","Applied Physics","Ms. Romana Ghazal (Physics)","B-202"],
+["BEEV-F-26-A",3,"09:20","10:40","Applied Physics","Ms. Romana Ghazal (Physics)","B-204"],
+["BEEV-F-26-A",3,"10:40","12:00","Electric Circuit Analysis","EE- Mr. Faizan Munir","B-202"],
+["BEEV-F-26-A",3,"12:00","13:20","ICT Laboratory","CE Ms Zerkaish","Computer Systems Design Lab"],
+["BEEV-F-26-A",5,"08:00","09:20","Electric Circuit Analysis Laboratory","EE- Mr. Qasim","Digital Electronics Lab"],
+["BEEV-F-26-A",5,"09:20","10:40","Functional English","Ms. Khansa Riaz","B-204"],
+["BEEV-F-26-A",5,"10:40","12:00","ICT","EE Ms. Hira Sana","B-110"],
+["BEEV-F-26-A",5,"13:20","14:40","Applied Physics Laboratory","Mr. Aqib Rauf (Physics)","Applied Physics Lab (IAA)"],
+
+["BEEE-F-25-A",1,"08:00","09:20","Data Structures and Algorithms Laboratory","CE Ms Ayesha Tahir Amin","Computer Lab-9"],
+["BEEE-F-25-A",1,"12:00","13:20","Complex Variables and Transforms","Ms. Dr Tehreem (MATH)","B-204"],
+["BEEE-F-25-A",1,"14:40","16:00","Digital Logic Design","EE- Mr. Hafiz Muhammad Talha","B-202"],
+["BEEE-F-25-A",2,"08:00","09:20","Data Structures and Algorithms","EE- Ms. Saba Mumtaz","B-106"],
+["BEEE-F-25-A",2,"09:20","10:40","Electronic Devices and Circuits Laboratory","EE Visiting Lab Engineer 2","Computer Lab-21"],
+["BEEE-F-25-A",2,"10:40","12:00","Complex Variables and Transforms","Ms. Dr Tehreem (MATH)","B-203"],
+["BEEE-F-25-A",2,"13:20","14:40","Digital Logic Design Laboratory","EE- Mr. Qasim","Control & Instrumentation Lab"],
+["BEEE-F-25-A",3,"08:00","09:20","Ethics","Mr. Raham Maula (VFM)","B-203"],
+["BEEE-F-25-A",3,"12:00","13:20","Electronic Devices and Circuits","EE- Dr. Qumrish","B-107"],
+["BEEE-F-25-A",3,"14:40","16:00","Occupational Health and Safety","Muhammad Ammar Arshad (MTS)","B-202"],
+["BEEE-F-25-A",4,"09:20","10:40","Electronic Devices and Circuits","EE- Dr. Qumrish","B-109"],
+["BEEE-F-25-A",4,"10:40","12:00","Ethics","Mr. Raham Maula (VFM)","B-203"],
+["BEEE-F-25-A",4,"12:00","13:20","Digital Logic Design","EE- Mr. Hafiz Muhammad Talha","B-109"],
+["BEEE-F-25-A",4,"13:20","14:40","Data Structures and Algorithms","EE- Ms. Saba Mumtaz","B-105"],
+["BEEE-F-25-A",4,"14:40","16:00","Advisory Class","EE Ms. Anum Zehra","B-107"],
+
+["BEEE-F-25-B",2,"09:20","10:40","Digital Logic Design","EE- Dr. Shahzad Ahmad","B-110"],
+["BEEE-F-25-B",2,"10:40","12:00","Complex Variables and Transforms","Ms. Dr Tehreem (MATH)","B-204"],
+["BEEE-F-25-B",2,"13:20","14:40","Digital Logic Design Laboratory","EE- Mr. Hafiz Muhammad Talha","Communication Lab"],
+["BEEE-F-25-B",3,"08:00","09:20","Data Structures and Algorithms","EE- Ms. Saba Mumtaz","B-108"],
+["BEEE-F-25-B",3,"10:40","12:00","Electronic Devices and Circuits","EE- Ms. Madeeha Uzma","B-202"],
+["BEEE-F-25-B",3,"12:00","13:20","Complex Variables and Transforms","Ms. Dr Tehreem (MATH)","B-108"],
+["BEEE-F-25-B",3,"13:20","14:40","Electronic Devices and Circuits Laboratory","EE Visiting Lab Engineer 1","Digital Electronics Lab"],
+["BEEE-F-25-B",4,"08:00","09:20","Ethics","Mr. Raham Maula (VFM)","B-109"],
+["BEEE-F-25-B",4,"09:20","10:40","Electronic Devices and Circuits","EE- Ms. Madeeha Uzma","B-204"],
+["BEEE-F-25-B",4,"12:00","13:20","Advisory Class","EE- Dr. Imran Farid","B-106"],
+["BEEE-F-25-B",4,"13:20","14:40","Data Structures and Algorithms Laboratory","CE Ms Ayesha Tahir Amin","Computer Lab-9"],
+["BEEE-F-25-B",5,"08:00","09:20","Ethics","Mr. Raham Maula (VFM)","B-107"],
+["BEEE-F-25-B",5,"09:20","10:40","Data Structures and Algorithms","EE- Ms. Saba Mumtaz","B-110"],
+["BEEE-F-25-B",5,"10:40","12:00","Digital Logic Design","EE- Dr. Shahzad Ahmad","B-106"],
+["BEEE-F-25-B",5,"14:40","16:00","Occupational Health and Safety","Muhammad Ammar Arshad (MTS)","B-109"],
+
+["BEEP-F-25-A",2,"08:00","09:20","Electronic Devices and Circuits","EE- Mr. Mashood Ahmed","B-204"],
+["BEEP-F-25-A",2,"10:40","12:00","Digital Logic Design Laboratory","EE- Mr. Hafiz Muhammad Talha","Control & Instrumentation Lab"],
+["BEEP-F-25-A",2,"13:20","14:40","Data Structures and Algorithms","EE- Ms. Saba Mumtaz","B-105"],
+["BEEP-F-25-A",2,"14:40","16:00","Occupational Health and Safety","Muhammad Ammar Arshad (MTS)","B-108"],
+["BEEP-F-25-A",3,"09:20","10:40","Ethics","Mr. Raham Maula (VFM)","B-107"],
+["BEEP-F-25-A",3,"10:40","12:00","Electronic Devices and Circuits","EE- Mr. Mashood Ahmed","B-108"],
+["BEEP-F-25-A",3,"12:00","13:20","Project Management","Ms. Aqeela Anwar (VFM)","B-106"],
+["BEEP-F-25-A",4,"08:00","09:20","Data Structures and Algorithms Laboratory","CE Ms Javeria Razzaq","Computer Lab-9"],
+["BEEP-F-25-A",4,"10:40","12:00","Digital Logic Design","EE- Ms. Hiba Hareem","B-109"],
+["BEEP-F-25-A",4,"12:00","13:20","Ethics","Mr. Raham Maula (VFM)","B-204"],
+["BEEP-F-25-A",4,"13:20","14:40","Project Management","Ms. Aqeela Anwar (VFM)","B-107"],
+["BEEP-F-25-A",4,"14:40","16:00","Advisory Class","EE- Dr. Sher Ali","B-202"],
+["BEEP-F-25-A",5,"08:00","09:20","Data Structures and Algorithms","EE- Ms. Saba Mumtaz","B-105"],
+["BEEP-F-25-A",5,"09:20","10:40","Digital Logic Design","EE- Ms. Hiba Hareem","B-109"],
+["BEEP-F-25-A",5,"13:20","14:40","Electronic Devices and Circuits Laboratory","EE- Mr. Mashood Ahmed","Electronics System Lab"],
+
+["BEEP-F-25-B",2,"08:00","09:20","Occupational Health and Safety","Muhammad Ammar Arshad (MTS)","B-105"],
+["BEEP-F-25-B",2,"09:20","10:40","Digital Logic Design","EE- Ms. Ambreen Ali Ch.","B-105"],
+["BEEP-F-25-B",2,"10:40","12:00","Data Structures and Algorithms Laboratory","CE Ms Javeria Razzaq","Computer Lab-9"],
+["BEEP-F-25-B",2,"13:20","14:40","Advisory Class","EE- Dr. Syed Ahmed Pasha","B-110"],
+["BEEP-F-25-B",3,"08:00","09:20","Electronic Devices and Circuits","EE- Mr. Mashood Ahmed","B-202"],
+["BEEP-F-25-B",3,"09:20","10:40","Digital Logic Design","EE- Ms. Ambreen Ali Ch.","B-203"],
+["BEEP-F-25-B",3,"10:40","12:00","Ethics","Ms. Hadiqa Sohail (VFM)","B-107"],
+["BEEP-F-25-B",3,"12:00","13:20","Data Structures and Algorithms","EE- Ms. Saba Mumtaz","B-107"],
+["BEEP-F-25-B",3,"13:20","14:40","Digital Logic Design Laboratory","EE Visiting Lab Engineer 2","Control & Instrumentation Lab"],
+["BEEP-F-25-B",4,"08:00","09:20","Electronic Devices and Circuits","EE- Mr. Mashood Ahmed","B-107"],
+["BEEP-F-25-B",4,"10:40","12:00","Ethics","Ms. Hadiqa Sohail (VFM)","B-105"],
+["BEEP-F-25-B",4,"12:00","13:20","Data Structures and Algorithms","EE- Ms. Saba Mumtaz","B-107"],
+["BEEP-F-25-B",4,"14:40","16:00","Project Management","Ms. Aqeela Anwar (VFM)","B-110"],
+["BEEP-F-25-B",5,"10:40","12:00","Project Management","Ms. Aqeela Anwar (VFM)","B-110"],
+["BEEP-F-25-B",5,"13:20","14:40","Electronic Devices and Circuits Laboratory","EE- Ms. Laiba Rani","Digital Electronics Lab"],
+
+["BEEV-F-25-A",1,"09:20","10:40","Ethics","Ms. Hadiqa Sohail (VFM)","B-204"],
+["BEEV-F-25-A",1,"10:40","12:00","Data Structures and Algorithms Laboratory","CE (Faculty)","Computer Systems Design Lab"],
+["BEEV-F-25-A",1,"13:20","14:40","Electronic Devices and Circuits","EE- Ms. Madeeha Uzma","B-106"],
+["BEEV-F-25-A",1,"14:40","16:00","Advisory Class","EE- Dr. Ashfaq Ahmed","B-107"],
+["BEEV-F-25-A",3,"08:00","09:20","Digital Logic Design","EE- Ms. Hiba Hareem","B-106"],
+["BEEV-F-25-A",3,"09:20","10:40","Electronic Devices and Circuits","EE- Ms. Madeeha Uzma","B-105"],
+["BEEV-F-25-A",3,"10:40","12:00","Digital Logic Design Laboratory","EE Visiting Lab Engineer 2","Control & Instrumentation Lab"],
+["BEEV-F-25-A",3,"14:40","16:00","Pakistan Studies","Mr. Raham Maula (VFM)","B-109"],
+["BEEV-F-25-A",4,"08:00","09:20","Ethics","Ms. Hadiqa Sohail (VFM)","B-204"],
+["BEEV-F-25-A",4,"09:20","10:40","Digital Logic Design","EE- Ms. Hiba Hareem","B-107"],
+["BEEV-F-25-A",4,"12:00","13:20","Electronic Devices and Circuits Laboratory","EE- Ms. Madeeha Uzma","Communication Lab"],
+["BEEV-F-25-A",4,"14:40","16:00","Data Structures and Algorithms","CE Ms. Zoafshan","B-108"],
+["BEEV-F-25-A",5,"09:20","10:40","Data Structures and Algorithms","CE Ms. Zoafshan","B-106"],
+["BEEV-F-25-A",5,"10:40","12:00","Pakistan Studies","Mr. Raham Maula (VFM)","B-202"],
+["BEEV-F-25-A",5,"13:20","14:40","Occupational Health and Safety","Muhammad Ammar Arshad (MTS)","B-107"],
+
+["BEET-F-25-A",1,"08:00","09:20","Ethics","Ms. Hadiqa Sohail (VFM)","B-105"],
+["BEET-F-25-A",1,"10:40","12:00","Fehm-e-Quran II","Dr. Salma Razzaq (HUM)","B-202"],
+["BEET-F-25-A",1,"12:00","13:20","Electronic Devices and Circuits","EE- Ms. Madeeha Uzma","B-109"],
+["BEET-F-25-A",1,"13:20","14:40","Complex Variables and Transforms","Ms. Dr Tehreem (MATH)","B-204"],
+["BEET-F-25-A",1,"14:40","16:00","Digital Logic Design","EE- Mr. Sharoze Sohail","B-204"],
+["BEET-F-25-A",2,"09:20","10:40","Advisory Class","EE- Mr. Atique Ur Rehman","B-204"],
+["BEET-F-25-A",2,"10:40","12:00","Electronic Devices and Circuits","EE- Ms. Madeeha Uzma","B-108"],
+["BEET-F-25-A",2,"12:00","13:20","Fehm-e-Quran II","Dr. Salma Razzaq (HUM)","B-106"],
+["BEET-F-25-A",2,"13:20","14:40","Data Structures and Algorithms Laboratory","CE Ms Ayesha Tahir Amin","Computer Lab-9"],
+["BEET-F-25-A",3,"08:00","09:20","Ethics","Ms. Hadiqa Sohail (VFM)","B-204"],
+["BEET-F-25-A",3,"09:20","10:40","Complex Variables and Transforms","Ms. Dr Tehreem (MATH)","B-106"],
+["BEET-F-25-A",3,"10:40","12:00","Electronic Devices and Circuits Laboratory","EE- Ms. Lariab","Digital Electronics Lab"],
+["BEET-F-25-A",3,"13:20","14:40","Data Structures and Algorithms","CE Ms Sidrish Ehsan","B-108"],
+["BEET-F-25-A",4,"10:40","12:00","Data Structures and Algorithms","CE Ms Sidrish Ehsan","B-110"],
+["BEET-F-25-A",4,"12:00","13:20","Digital Logic Design","EE- Mr. Sharoze Sohail","B-110"],
+["BEET-F-25-A",4,"13:20","14:40","Digital Logic Design Laboratory","EE- Mr. Sharoze Sohail","Electronics System Lab"],
+
+["BEEE-F-24-A",1,"08:00","09:20","Microprocessors Interfacing and Applications","EE- Mr. Hussain Asif","B-204"],
+["BEEE-F-24-A",1,"10:40","12:00","Digital Signal Processing","EE- Dr. Syed Ahmed Pasha","B-108"],
+["BEEE-F-24-A",1,"13:20","14:40","Electrical Machines","EE- Ms. Seema Tahir","B-108"],
+["BEEE-F-24-A",1,"14:40","16:00","Civics and Community Engagements","Dr. Asim Muneeb Khan (VFM)","B-109"],
+["BEEE-F-24-A",2,"09:20","10:40","Laser & Its Applications","EE- Dr. Ahsan Sarwar Rana","B-107"],
+["BEEE-F-24-A",2,"10:40","12:00","Digital Signal Processing","EE- Dr. Syed Ahmed Pasha","B-110"],
+["BEEE-F-24-A",2,"12:00","13:20","Digital Signal Processing Laboratory","EE- Ms. Laiba Rani","Digital Signal Processing Lab"],
+["BEEE-F-24-A",2,"14:40","16:00","Civics and Community Engagements","Dr. Asim Muneeb Khan (VFM)","B-203"],
+["BEEE-F-24-A",3,"08:00","09:20","Microprocessors Interfacing and Applications","EE- Mr. Hussain Asif","B-105"],
+["BEEE-F-24-A",3,"10:40","12:00","Electrical Machines Laboratory","EE Ms. Anum Zehra","Electrical Machines & Power Electronics Lab"],
+["BEEE-F-24-A",4,"09:20","10:40","Electrical Machines","EE- Ms. Seema Tahir","B-202"],
+["BEEE-F-24-A",4,"10:40","12:00","Laser & Its Applications","EE- Dr. Ahsan Sarwar Rana","B-108"],
+["BEEE-F-24-A",4,"12:00","13:20","Microprocessors Interfacing and Applications Laboratory","EE- Mr. Hussain Asif","Embedded Systems & Design Lab"],
+["BEEE-F-24-A",4,"14:40","16:00","Advisory Class","Mr. Touseef Ur Rehman","B-106"],
+
+["BEEE-F-24-B",1,"09:20","10:40","Microprocessors Interfacing and Applications","EE- Mr. Hussain Asif","B-108"],
+["BEEE-F-24-B",1,"10:40","12:00","Electrical Machines","EE Ms. Hira Sana","B-107"],
+["BEEE-F-24-B",1,"12:00","13:20","Civics and Community Engagements","Ms. Javeria Khan (VFM)","B-203"],
+["BEEE-F-24-B",1,"13:20","14:40","Digital Signal Processing","EE- Dr. Syed Ahmed Pasha","B-107"],
+["BEEE-F-24-B",2,"08:00","09:20","Microprocessors Interfacing and Applications","EE- Mr. Hussain Asif","B-109"],
+["BEEE-F-24-B",2,"09:20","10:40","Digital Signal Processing","EE- Dr. Syed Ahmed Pasha","B-108"],
+["BEEE-F-24-B",2,"10:40","12:00","Laser & Its Applications","EE- Dr. Ahsan Sarwar Rana","B-105"],
+["BEEE-F-24-B",2,"12:00","13:20","Microprocessors Interfacing and Applications Laboratory","EE- Mr. Hussain Asif","Embedded Systems & Design Lab"],
+["BEEE-F-24-B",3,"08:00","09:20","Electrical Machines Laboratory","EE Ms. Anum Zehra","Electrical Machines & Power Electronics Lab"],
+["BEEE-F-24-B",3,"10:40","12:00","Electrical Machines","EE Ms. Hira Sana","B-110"],
+["BEEE-F-24-B",4,"08:00","09:20","Advisory Class","EE- Mr. Hussain Asif","B-202"],
+["BEEE-F-24-B",4,"09:20","10:40","Laser & Its Applications","EE- Dr. Ahsan Sarwar Rana","B-110"],
+["BEEE-F-24-B",4,"10:40","12:00","Digital Signal Processing Laboratory","EE- Ms. Laiba Rani","Digital Signal Processing Lab"],
+["BEEE-F-24-B",4,"12:00","13:20","Civics and Community Engagements","Ms. Javeria Khan (VFM)","B-110"],
+
+["BEEP-F-24-A",1,"08:00","09:20","Electrical Machines","EE Ms. Hira Sana","B-109"],
+["BEEP-F-24-A",1,"09:20","10:40","AI for Engineers","EE- Dr. Ashfaq Ahmed","B-109"],
+["BEEP-F-24-A",1,"10:40","12:00","Civics and Community Engagements","Ms. Javeria Khan (VFM)","B-105"],
+["BEEP-F-24-A",1,"12:00","13:20","Communication Systems Laboratory","EE Dr. Arslan","Communication Lab"],
+["BEEP-F-24-A",1,"14:40","16:00","Advisory Class","EE- Mr. Sami Ullah","B-108"],
+["BEEP-F-24-A",2,"12:00","13:20","Communication Systems","EE Dr. Arslan","B-110"],
+["BEEP-F-24-A",2,"13:20","14:40","AI for Engineers","EE- Dr. Ashfaq Ahmed","B-106"],
+["BEEP-F-24-A",2,"14:40","16:00","Microprocessors Interfacing and Applications","EE- Mr. Atique Ur Rehman","B-110"],
+["BEEP-F-24-A",3,"10:40","12:00","AI for Engineers Laboratory","CE Ms Ayesha Tahir Amin","Computer Systems Design Lab"],
+["BEEP-F-24-A",3,"13:20","14:40","Microprocessors Interfacing and Applications","EE- Mr. Atique Ur Rehman","B-105"],
+["BEEP-F-24-A",3,"14:40","16:00","Electrical Machines","EE Ms. Hira Sana","B-204"],
+["BEEP-F-24-A",4,"08:00","09:20","Communication Systems","EE Dr. Arslan","B-108"],
+["BEEP-F-24-A",4,"09:20","10:40","Microprocessors Interfacing and Applications Laboratory","EE- Mr. Atique Ur Rehman","Embedded Systems & Design Lab"],
+["BEEP-F-24-A",4,"12:00","13:20","Civics and Community Engagements","Ms. Javeria Khan (VFM)","B-105"],
+["BEEP-F-24-A",4,"13:20","14:40","Electrical Machines Laboratory","EE- Mr. Mubashir Rasool","Electrical Machines & Power Electronics Lab"],
+
+["BEET-F-24-A",1,"08:00","09:20","Communication Systems","EE- Dr. Waseem Khan","B-110"],
+["BEET-F-24-A",1,"09:20","10:40","Electrical Machines","EE- Ms. Seema Tahir","B-106"],
+["BEET-F-24-A",1,"10:40","12:00","Civics and Community Engagements","Ms. Hadiqa Sohail (VFM)","B-109"],
+["BEET-F-24-A",1,"12:00","13:20","Microprocessors Interfacing and Applications","EE- Muhammad Ali Raza","B-108"],
+["BEET-F-24-A",1,"13:20","14:40","Digital Signal Processing","EE- Dr. Imran Farid","B-105"],
+["BEET-F-24-A",2,"09:20","10:40","Microprocessors Interfacing and Applications Laboratory","EE- Muhammad Ali Raza","Embedded Systems & Design Lab"],
+["BEET-F-24-A",2,"12:00","13:20","Digital Signal Processing","EE- Dr. Imran Farid","B-204"],
+["BEET-F-24-A",2,"13:20","14:40","Advisory Class","EE- Dr. Sara SaEEd","B-107"],
+["BEET-F-24-A",3,"08:00","09:20","Electrical Machines","EE- Ms. Seema Tahir","B-107"],
+["BEET-F-24-A",3,"09:20","10:40","Communication Systems Lab","EE- Muhammad Aqib Javed","Communication Lab"],
+["BEET-F-24-A",3,"13:20","14:40","Digital Signal Processing Laboratory","EE- Ms. Laiba Rani","Digital Signal Processing Lab"],
+["BEET-F-24-A",4,"08:00","09:20","Communication Systems","EE- Dr. Waseem Khan","B-106"],
+["BEET-F-24-A",4,"09:20","10:40","Civics and Community Engagements","Ms. Hadiqa Sohail (VFM)","B-106"],
+["BEET-F-24-A",4,"10:40","12:00","Electrical Machines Laboratory","EE Ms. Anum Zehra","Electrical Machines & Power Electronics Lab"],
+["BEET-F-24-A",4,"13:20","14:40","Microprocessors Interfacing and Applications","EE- Muhammad Ali Raza","B-109"],
+
+["BEET-F-24-B",1,"08:00","09:20","Digital Signal Processing","EE- Ms. Hiba Hareem","B-202"],
+["BEET-F-24-B",1,"09:20","10:40","Microprocessors Interfacing and Applications Laboratory","EE- Muhammad Ali Raza","Embedded Systems & Design Lab"],
+["BEET-F-24-B",1,"10:40","12:00","Digital Signal Processing Laboratory","EE- Ms. Hiba Hareem","Digital Signal Processing Lab"],
+["BEET-F-24-B",1,"14:40","16:00","Communication Systems","EE- Dr. Waseem Khan","B-203"],
+["BEET-F-24-B",3,"09:20","10:40","Electrical Machines","EE- Ms. Seema Tahir","B-204"],
+["BEET-F-24-B",3,"10:40","12:00","Digital Signal Processing","EE- Ms. Hiba Hareem","B-105"],
+["BEET-F-24-B",3,"13:20","14:40","Microprocessors Interfacing and Applications","EE- Muhammad Ali Raza","B-109"],
+["BEET-F-24-B",3,"14:40","16:00","Civics and Community Engagements","Dr. Asim Muneeb Khan (VFM)","B-107"],
+["BEET-F-24-B",4,"08:00","09:20","Electrical Machines Laboratory","EE- Mr. Mubashir Rasool","Electrical Machines & Power Electronics Lab"],
+["BEET-F-24-B",4,"09:20","10:40","Communication Systems","EE- Dr. Waseem Khan","B-107"],
+["BEET-F-24-B",4,"10:40","12:00","Microprocessors Interfacing and Applications","EE- Muhammad Ali Raza","B-202"],
+["BEET-F-24-B",5,"08:00","09:20","Electrical Machines","EE- Ms. Seema Tahir","B-110"],
+["BEET-F-24-B",5,"09:20","10:40","Civics and Community Engagements","Dr. Asim Muneeb Khan (VFM)","B-202"],
+["BEET-F-24-B",5,"10:40","12:00","Advisory Class","EE- Ms. Madeeha Uzma","B-107"],
+["BEET-F-24-B",5,"13:20","14:40","Communication Systems Laboratory","EE- Ms. Lariab","Communication Lab"],
+
+["BEET-F-23-A",1,"08:00","09:20","Final Year Project II","EE Ms. Anum Zehra","B-106"],
+["BEET-F-23-A",1,"10:40","12:00","Wireless and Mobile Communication","EE- Dr. Imran Farid","B-106"],
+["BEET-F-23-A",1,"12:00","13:20","Transmission and Switching Systems","EE- Dr. Hafiz Ashiq Hussain","B-110"],
+["BEET-F-23-A",1,"13:20","14:40","Computer Communication Networks","EE- Mr. Sharoze Sohail","B-109"],
+["BEET-F-23-A",2,"08:00","09:20","Engineering Procurement & Contract Management","Air Cdr. Ahmed Arslan (VFM)","B-108"],
+["BEET-F-23-A",2,"09:20","10:40","Engineering Procurement & Contract Management","Air Cdr. Ahmed Arslan (VFM)","B-203"],
+["BEET-F-23-A",2,"10:40","12:00","Wireless and Mobile Communication","EE- Dr. Imran Farid","B-203"],
+["BEET-F-23-A",2,"12:00","13:20","RF Circuit Design","EE- Dr. Sara SaEEd","B-109"],
+["BEET-F-23-A",2,"13:20","14:40","Computer Communication Networks Laboratory","EE- Mr. Sharoze Sohail","Telecom Networks Lab"],
+["BEET-F-23-A",3,"09:20","10:40","Transmission and Switching Systems","EE- Dr. Hafiz Ashiq Hussain","B-110"],
+["BEET-F-23-A",3,"10:40","12:00","RF Circuit Design Laboratory","EE- Dr. Sara SaEEd","RF & Optical Lab"],
+["BEET-F-23-A",3,"14:40","16:00","Computer Communication Networks","EE- Mr. Sharoze Sohail","B-108"],
+["BEET-F-23-A",5,"09:20","10:40","Advisory Class","EE- Dr. Muhammad Zaheer","B-108"],
+["BEET-F-23-A",5,"10:40","12:00","RF Circuit Design","EE- Dr. Sara SaEEd","B-203"],
+["BEET-F-23-A",5,"13:20","14:40","Transmission and Switching Systems Laboratory","EE- Muhammad Aqib Javed","Telecom Networks Lab"],
+
+["BEEE-F-23-A",1,"09:20","10:40","Antenna and Wave Propagation","Mr. Touseef Ur Rehman","B-107"],
+["BEEE-F-23-A",1,"13:20","14:40","Antenna and Wave Propagation Laboratory","EE Mr. Hussnain","RF & Optical Lab"],
+["BEEE-F-23-A",2,"08:00","09:20","Antenna and Wave Propagation","Mr. Touseef Ur Rehman","B-202"],
+["BEEE-F-23-A",2,"10:40","12:00","Linear Integrated Circuit Design","EE- Dr. Shahzad Ahmad","B-107"],
+["BEEE-F-23-A",2,"13:20","14:40","FPGA Based Design","EE- Mr. Atique Ur Rehman","B-109"],
+["BEEE-F-23-A",2,"14:40","16:00","Final Year Project II","EE Ms. Anum Zehra","B-109"],
+["BEEE-F-23-A",3,"09:20","10:40","FPGA Based Design Laboratory","EE- Mr. Atique Ur Rehman","Embedded Systems & Design Lab"],
+["BEEE-F-23-A",3,"10:40","12:00","Linear Integrated Circuit Design","EE- Dr. Shahzad Ahmad","B-204"],
+["BEEE-F-23-A",3,"12:00","13:20","Engineering Management & Entrepreneurship","Ms. Aqeela Anwar (VFM)","B-204"],
+["BEEE-F-23-A",3,"13:20","14:40","FPGA Based Design","EE- Mr. Atique Ur Rehman","B-110"],
+["BEEE-F-23-A",5,"08:00","09:20","Linear Integrated Circuit Design Laboratory","EE- Dr. Shahzad Ahmad","Electronics System Lab"],
+["BEEE-F-23-A",5,"09:20","10:40","Community Service Learning","Ms. Javeria Khan (VFM)","B-108"],
+["BEEE-F-23-A",5,"13:20","14:40","Advisory Class","EE- Ms. Saba Mumtaz","B-106"],
+["BEEE-F-23-A",5,"14:40","16:00","Engineering Management & Entrepreneurship","Ms. Aqeela Anwar (VFM)","B-106"],
+
+["BEEP-F-23-A",2,"09:20","10:40","Analog and Digital Communication Laboratory","EE- Muhammad Aqib Javed","Communication Lab"],
+["BEEP-F-23-A",2,"12:00","13:20","Final Year Project-II","EE Ms. Anum Zehra","B-107"],
+["BEEP-F-23-A",2,"14:40","16:00","Power Transmission Systems","EE- Mr. Faizan Munir","B-204"],
+["BEEP-F-23-A",3,"08:00","09:20","Power System Analysis","EE- Dr. Ashfaq Ahmed","B-109"],
+["BEEP-F-23-A",3,"10:40","12:00","Power System Analysis Laboratory","EE- Mr. Mubashir Rasool","Power Systems Lab"],
+["BEEP-F-23-A",3,"13:20","14:40","Power Transmission Systems Laboratory","EE- Mr. Faizan Munir","Power Systems Lab"],
+["BEEP-F-23-A",4,"08:00","09:20","Power System Analysis","EE- Dr. Ashfaq Ahmed","B-105"],
+["BEEP-F-23-A",4,"10:40","12:00","Analog and Digital Communication","EE- Dr. Sher Ali","B-106"],
+["BEEP-F-23-A",4,"13:20","14:40","Advisory Class","EE- Mr. Mashood Ahmed","B-106"],
+["BEEP-F-23-A",4,"14:40","16:00","Power Transmission Systems","EE- Mr. Faizan Munir","B-105"],
+["BEEP-F-23-A",5,"08:00","09:20","Analog and Digital Communication","EE- Dr. Sher Ali","B-108"],
+["BEEP-F-23-A",5,"09:20","10:40","Engineering Economics","Ms. Aqeela Anwar (VFM)","B-204"],
+["BEEP-F-23-A",5,"12:00","13:20","Community Service Learning","Ms. Javeria Khan (VFM)","B-107"],
+["BEEP-F-23-A",5,"13:20","14:40","Engineering Economics","Ms. Aqeela Anwar (VFM)","B-108"]
+].map(r => ({section:r[0], day:r[1], start:r[2], end:r[3], subject:r[4], faculty:r[5], room:r[6]}));
+
+// SCHEDULE is the live, working timetable. It starts out as the baked-in
+// data above, but an admin can replace it by uploading a new timetable PDF
+// (see "Upload latest timetable" below) — that upload is saved to Firebase
+// so everyone sees the same up-to-date timetable, not just this browser.
+let SCHEDULE = SCHEDULE_BUILTIN.slice();
+
+const DAY_NAMES = {0:"Sunday",1:"Monday",2:"Tuesday",3:"Wednesday",4:"Thursday",5:"Friday",6:"Saturday"};
+
+// ---------- Build faculty list ----------
+let facultyList = [];
+function rebuildFacultyList(){
+  const facultySet = new Set(SCHEDULE.map(c => c.faculty));
+  facultyList = Array.from(facultySet).sort((a,b)=>a.localeCompare(b));
+}
+rebuildFacultyList();
+
+// ---------- Searchable faculty combo (search box + dropdown list) ----------
+// Backs the "Faculty member" / "Filter by faculty" fields everywhere they
+// appear. The input's own .value IS the selected faculty name (or '' for
+// "no selection"), so all existing code that reads facultySelect.value /
+// filterFaculty.value keeps working unchanged.
+function setupFacultyCombo(inputId, listId, blankLabel, onSelect){
+  const input = document.getElementById(inputId);
+  const list = document.getElementById(listId);
+  if(!input || !list) return;
+
+  function render(filterText){
+    const f = (filterText||'').trim().toLowerCase();
+    const items = [];
+    if(!f || blankLabel.toLowerCase().includes(f)) items.push({label: blankLabel, val: ''});
+    facultyList.forEach(name=>{ if(name.toLowerCase().includes(f)) items.push({label: name, val: name}); });
+    list.innerHTML = items.length
+      ? items.map(it=>`<div class="combo-item" data-val="${it.val.replace(/"/g,'&quot;')}">${it.label}</div>`).join('')
+      : '<div class="combo-empty">No match</div>';
+    list.classList.add('open');
+  }
+
+  input.addEventListener('focus', ()=> render(input.value));
+  input.addEventListener('input', ()=> render(input.value));
+  input.addEventListener('keydown', (e)=>{ if(e.key === 'Escape'){ list.classList.remove('open'); input.blur(); } });
+  input.addEventListener('blur', ()=>{
+    // delay so a click on a combo-item (which fires blur first) still registers
+    setTimeout(()=>{
+      list.classList.remove('open');
+      if(input.value && !facultyList.includes(input.value)){
+        input.value = '';
+        input.dispatchEvent(new Event('change'));
+      }
+    }, 150);
+  });
+  list.addEventListener('mousedown', (e)=>{
+    const item = e.target.closest('.combo-item');
+    if(!item) return;
+    e.preventDefault();
+    input.value = item.dataset.val;
+    list.classList.remove('open');
+    input.dispatchEvent(new Event('change'));
+    if(onSelect) onSelect(input.value);
+  });
+}
+setupFacultyCombo('facultySelect', 'facultySelectList', '— select your name —');
+setupFacultyCombo('filterFaculty', 'filterFacultyList', 'All faculty', ()=> loadRecordsTable());
+setupFacultyCombo('adminFilterFaculty', 'adminFilterFacultyList', 'All faculty', ()=> loadAdminTable());
+
+// default date = today
+const todayStr = new Date().toISOString().slice(0,10);
+document.getElementById('dateInput').value = todayStr;
+document.getElementById('filterDate').value = "";
+
+// ---------- Record storage (Firebase Realtime Database, shared) ----------
+// Same Firebase project used by the department's timetable tool, under its own path
+// so it doesn't collide with that tool's data. Falls back to localStorage
+// (this browser only) if the Firebase SDK can't load (e.g. offline).
+var firebaseConfig = {
+  apiKey:            "AIzaSyAW6Z6c1N5QVpB7iCWXhyjxHQImeCYRgxs",
+  authDomain:        "auecepco.firebaseapp.com",
+  databaseURL:       "https://auecepco-default-rtdb.firebaseio.com",
+  projectId:         "auecepco",
+  storageBucket:     "auecepco.firebasestorage.app",
+  messagingSenderId: "314187695897",
+  appId:             "1:314187695897:web:2718ba7cbe8bdf10bea788",
+  measurementId:     "G-C4MJY4WNVD"
+};
+const RECORDS_PATH = 'online_class_monitoring_records';
+const RECORDS_LOCAL_KEY = 'ocm_records_local_fallback';
+var fbDb = null;
+var usingFirebase = false;
+
+function initFirebase(){
+  if(typeof firebase === 'undefined'){
+    console.warn('Firebase SDK not loaded — records will save to this browser only.');
+    return false;
+  }
+  try{
+    if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+    fbDb = firebase.database();
+    return true;
+  }catch(e){
+    console.error('Firebase init failed:', e);
+    return false;
+  }
+}
+usingFirebase = initFirebase();
+document.getElementById('storageNote').textContent = usingFirebase
+  ? 'Records are stored shared live via Firebase, so every faculty member and administrator opening this page sees the same monitoring log.'
+  : 'Firebase unavailable — records are being saved to this browser only.';
+
+// Firebase RTDB keys can't contain . # $ [ ] / — our record keys are built
+// from date/section/time, so sanitize before using them as a path segment.
+function fbKey(k){ return k.replace(/[.#$\[\]/]/g, '_'); }
+
+function localRecordsLoad(){
+  try{ return JSON.parse(localStorage.getItem(RECORDS_LOCAL_KEY) || '{}'); }catch(e){ return {}; }
+}
+function localRecordsSave(all){
+  try{ localStorage.setItem(RECORDS_LOCAL_KEY, JSON.stringify(all)); }catch(e){ console.warn('localStorage save failed', e); }
+}
+
+async function getRecord(key){
+  const safeKey = fbKey(key);
+  if(usingFirebase){
+    const snap = await fbDb.ref(RECORDS_PATH + '/' + safeKey).once('value');
+    return snap.val();
+  }
+  const all = localRecordsLoad();
+  return all[safeKey] || null;
+}
+async function setRecord(key, record){
+  const safeKey = fbKey(key);
+  if(usingFirebase){
+    await fbDb.ref(RECORDS_PATH + '/' + safeKey).set(record);
+  } else {
+    const all = localRecordsLoad();
+    all[safeKey] = record;
+    localRecordsSave(all);
+  }
+  return true;
+}
+async function listRecords(){
+  if(usingFirebase){
+    const snap = await fbDb.ref(RECORDS_PATH).once('value');
+    const val = snap.val() || {};
+    return Object.values(val);
+  }
+  const all = localRecordsLoad();
+  return Object.values(all);
+}
+async function listRecordsWithKeys(){
+  if(usingFirebase){
+    const snap = await fbDb.ref(RECORDS_PATH).once('value');
+    const val = snap.val() || {};
+    return Object.keys(val).map(k => Object.assign({_key: k}, val[k]));
+  }
+  const all = localRecordsLoad();
+  return Object.keys(all).map(k => Object.assign({_key: k}, all[k]));
+}
+async function deleteRecordByKey(safeKey){
+  if(usingFirebase){
+    await fbDb.ref(RECORDS_PATH + '/' + safeKey).remove();
+  } else {
+    const all = localRecordsLoad();
+    delete all[safeKey];
+    localRecordsSave(all);
+  }
+}
+
+// ---------- Tabs ----------
+const tabBtnRecord = document.getElementById('tabBtnRecord');
+const tabBtnView = document.getElementById('tabBtnView');
+const tabBtnAdmin = document.getElementById('tabBtnAdmin');
+const panelRecord = document.getElementById('panelRecord');
+const panelView = document.getElementById('panelView');
+const panelAdmin = document.getElementById('panelAdmin');
+
+function activateTab(name){
+  const map = { record: [tabBtnRecord, panelRecord], view: [tabBtnView, panelView], admin: [tabBtnAdmin, panelAdmin] };
+  Object.keys(map).forEach(k=>{
+    const [btn, panel] = map[k];
+    if(k === name){ btn.classList.add('active'); panel.classList.add('active'); }
+    else { btn.classList.remove('active'); panel.classList.remove('active'); }
+  });
+}
+
+tabBtnRecord.addEventListener('click', ()=> activateTab('record'));
+tabBtnView.addEventListener('click', ()=>{ activateTab('view'); loadRecordsTable(); });
+tabBtnAdmin.addEventListener('click', ()=>{
+  activateTab('admin');
+  if(adminUnlocked){
+    document.getElementById('adminGate').style.display = 'none';
+    document.getElementById('adminContent').style.display = 'block';
+    loadAdminTable();
+  } else {
+    document.getElementById('adminGate').style.display = 'flex';
+    document.getElementById('adminContent').style.display = 'none';
+    document.getElementById('adminPassword').value = '';
+    document.getElementById('adminGateMsg').textContent = '';
+  }
+});
+
+// ---------- Admin auth ----------
+const ADMIN_PASSWORD = 'ol2026';
+let adminUnlocked = false;
+
+function tryAdminUnlock(){
+  const pass = document.getElementById('adminPassword').value;
+  const msg = document.getElementById('adminGateMsg');
+  if(pass === ADMIN_PASSWORD){
+    adminUnlocked = true;
+    document.getElementById('adminGate').style.display = 'none';
+    document.getElementById('adminContent').style.display = 'block';
+    msg.textContent = '';
+    loadAdminTable();
+  } else {
+    msg.textContent = 'Incorrect password.';
+  }
+}
+document.getElementById('adminUnlockBtn').addEventListener('click', tryAdminUnlock);
+document.getElementById('adminPassword').addEventListener('keydown', (e)=>{
+  if(e.key === 'Enter'){ e.preventDefault(); tryAdminUnlock(); }
+});
+
+// ---------- Record key helper ----------
+function recordKey(dateStr, section, start){
+  return `record::${dateStr}::${section}::${start}`;
+}
+
+// ---------- Render classes for a faculty + date ----------
+async function showClasses(){
+  const fac = document.getElementById('facultySelect').value;
+  const dateStr = document.getElementById('dateInput').value;
+  const heading = document.getElementById('dayHeading');
+  const list = document.getElementById('classList');
+  list.innerHTML = "";
+  heading.innerHTML = "";
+
+  if(!fac || !dateStr){
+    list.innerHTML = '<p class="empty-note">Select your name and a date to see your scheduled classes.</p>';
+    return;
+  }
+
+  const d = new Date(dateStr + "T00:00:00");
+  const weekday = d.getDay();
+  heading.innerHTML = `<div class="day-heading">${DAY_NAMES[weekday]}, ${dateStr}</div>`;
+
+  const classes = SCHEDULE.filter(c => c.faculty === fac && c.day === weekday)
+                           .sort((a,b)=> a.start.localeCompare(b.start));
+
+  if(classes.length === 0){
+    list.innerHTML = '<p class="empty-note">No classes scheduled for this faculty member on this day.</p>';
+    return;
+  }
+
+  for(const c of classes){
+    const card = document.createElement('div');
+    card.className = "class-card";
+    const key = recordKey(dateStr, c.section, c.start);
+
+    card.innerHTML = `
+      <div class="meta">
+        <div>
+          <h3>${c.subject}</h3>
+          <div class="sub">${c.section} &nbsp;·&nbsp; Room/Venue: ${c.room}</div>
+        </div>
+        <div class="time-badge">${c.start} – ${c.end}</div>
+      </div>
+      <div class="grid2">
+        <div class="field">
+          <label>Was the online class held on scheduled time?</label>
+          <div class="radio-row">
+            <label><input type="radio" name="held-${key}" value="yes"> Yes</label>
+            <label><input type="radio" name="held-${key}" value="no"> No</label>
+          </div>
+        </div>
+        <div class="field">
+          <label>Number of students present</label>
+          <input type="number" min="0" class="students-input" placeholder="e.g. 32">
+        </div>
+        <div class="field" style="grid-column: 1 / -1;">
+          <label>Link for online class</label>
+          <input type="url" class="link-input" placeholder="https://meet.google.com/... or Zoom/Teams link">
+        </div>
+        <div class="field" style="grid-column: 1 / -1;">
+          <label>Remarks</label>
+          <textarea class="remarks-input" placeholder="Any observations, issues, or notes"></textarea>
+        </div>
+      </div>
+      <div class="card-footer">
+        <button class="primary save-btn">Save record</button>
+        <span class="save-msg"></span>
+      </div>
+    `;
+    list.appendChild(card);
+
+    // prefill if a record already exists
+    try{
+      const rec = await getRecord(key);
+      if(rec){
+        if(rec.held === 'yes' || rec.held === 'no'){
+          card.querySelector(`input[name="held-${key}"][value="${rec.held}"]`).checked = true;
+          card.classList.add(rec.held === 'yes' ? 'status-yes' : 'status-no');
+        }
+        card.querySelector('.students-input').value = rec.students ?? '';
+        card.querySelector('.link-input').value = rec.link ?? '';
+        card.querySelector('.remarks-input').value = rec.remarks ?? '';
+      }
+    }catch(e){ /* no existing record, ignore */ }
+
+    // held-on-time radio -> live border color
+    card.querySelectorAll(`input[name="held-${key}"]`).forEach(r=>{
+      r.addEventListener('change', ()=>{
+        card.classList.remove('status-yes','status-no');
+        card.classList.add(r.value === 'yes' ? 'status-yes' : 'status-no');
+      });
+    });
+
+    // save
+    card.querySelector('.save-btn').addEventListener('click', async ()=>{
+      const heldEl = card.querySelector(`input[name="held-${key}"]:checked`);
+      const msgEl = card.querySelector('.save-msg');
+      if(!heldEl){
+        msgEl.style.color = "var(--red)";
+        msgEl.textContent = "Please select Yes or No before saving.";
+        return;
+      }
+      const record = {
+        date: dateStr,
+        weekday: DAY_NAMES[weekday],
+        section: c.section,
+        start: c.start,
+        end: c.end,
+        subject: c.subject,
+        faculty: fac,
+        room: c.room,
+        held: heldEl.value,
+        students: card.querySelector('.students-input').value,
+        link: card.querySelector('.link-input').value,
+        remarks: card.querySelector('.remarks-input').value,
+        loggedAt: new Date().toISOString()
+      };
+      try{
+        await setRecord(key, record);
+        msgEl.style.color = "var(--green)";
+        msgEl.textContent = "Saved.";
+      }catch(e){
+        msgEl.style.color = "var(--red)";
+        msgEl.textContent = "Error saving record.";
+      }
+      setTimeout(()=>{ msgEl.textContent = ""; }, 3500);
+    });
+  }
+}
+
+document.getElementById('loadBtn').addEventListener('click', showClasses);
+
+// ---------- View all records ----------
+// ---------- Stat cards (scheduled / held online for a specific day) ----------
+function weekdayForDateStr(dateStr){
+  if(!dateStr) return null;
+  const d = new Date(dateStr + "T00:00:00");
+  return isNaN(d.getTime()) ? null : d.getDay();
+}
+function scheduledCountFor(dateStr, facFilter){
+  const wd = weekdayForDateStr(dateStr);
+  if(wd === null) return null;
+  return SCHEDULE.filter(c => c.day === wd && (!facFilter || c.faculty === facFilter)).length;
+}
+function renderStatCards(prefix, dateStr, facFilter, recordsForDay){
+  const scheduled = scheduledCountFor(dateStr, facFilter);
+  const held = (recordsForDay || []).filter(r => r.held === 'yes').length;
+  const hint = document.getElementById(prefix + 'StatsHint');
+  document.getElementById(prefix + 'StatScheduled').textContent = scheduled === null ? '–' : scheduled;
+  document.getElementById(prefix + 'StatHeld').textContent = scheduled === null ? '–' : held;
+  if(hint) hint.style.display = scheduled === null ? 'block' : 'none';
+}
+
+async function loadRecordsTable(){
+  const body = document.getElementById('recordsBody');
+  const countLine = document.getElementById('countLine');
+  body.innerHTML = '<tr><td colspan="10">Loading…</td></tr>';
+
+  const facFilter = document.getElementById('filterFaculty').value;
+  const dateFilter = document.getElementById('filterDate').value;
+
+  let records = [];
+  try{
+    records = await listRecords();
+  }catch(e){
+    console.error(e);
+    body.innerHTML = '<tr><td colspan="10">No records found yet.</td></tr>';
+    countLine.textContent = "";
+    renderStatCards('view', dateFilter, facFilter, []);
+    return;
+  }
+
+  const filtered = records.filter(r=>{
+    if(facFilter && r.faculty !== facFilter) return false;
+    if(dateFilter && r.date !== dateFilter) return false;
+    return true;
+  });
+
+  renderStatCards('view', dateFilter, facFilter, filtered);
+
+  if(records.length === 0){
+    body.innerHTML = '<tr><td colspan="10">No records saved yet.</td></tr>';
+    countLine.textContent = "";
+    return;
+  }
+
+  records.sort((a,b)=> (b.date+b.start).localeCompare(a.date+a.start));
+  filtered.sort((a,b)=> (b.date+b.start).localeCompare(a.date+a.start));
+
+  if(filtered.length === 0){
+    body.innerHTML = '<tr><td colspan="10">No records match the current filters.</td></tr>';
+    countLine.textContent = `0 of ${records.length} total record(s).`;
+    return;
+  }
+
+  body.innerHTML = filtered.map(r=>{
+    const heldTag = r.held === 'yes' ? '<span class="tag-yes">Yes</span>' : '<span class="tag-no">No</span>';
+    const linkCell = r.link ? `<span class="link-cell"><a href="${r.link}" target="_blank" rel="noopener">Open link</a></span>` : '—';
+    const loggedAt = r.loggedAt ? new Date(r.loggedAt).toLocaleString() : '';
+    return `<tr>
+      <td>${r.date} <div style="color:var(--slate);font-size:.75rem;">${r.weekday||''}</div></td>
+      <td>${r.section}</td>
+      <td>${r.start}–${r.end}</td>
+      <td>${r.subject}</td>
+      <td>${r.faculty}</td>
+      <td>${heldTag}</td>
+      <td>${r.students || '—'}</td>
+      <td>${linkCell}</td>
+      <td>${r.remarks ? r.remarks.replace(/</g,'&lt;') : '—'}</td>
+      <td>${loggedAt}</td>
+    </tr>`;
+  }).join('');
+
+  countLine.textContent = `${filtered.length} of ${records.length} total record(s).`;
+  window._currentFilteredRecords = filtered;
+}
+
+document.getElementById('refreshBtn').addEventListener('click', loadRecordsTable);
+document.getElementById('filterFaculty').addEventListener('change', loadRecordsTable);
+document.getElementById('filterDate').addEventListener('change', loadRecordsTable);
+document.getElementById('clearFilters').addEventListener('click', ()=>{
+  document.getElementById('filterFaculty').value = "";
+  document.getElementById('filterDate').value = "";
+  loadRecordsTable();
+});
+
+document.getElementById('exportBtn').addEventListener('click', ()=>{
+  const rows = window._currentFilteredRecords || [];
+  if(rows.length === 0){ alert("No records to export."); return; }
+  const headers = ["Date","Weekday","Section","Start","End","Subject","Faculty","Room","Held on time","Students present","Link","Remarks","Logged at"];
+  const csvRows = [headers.join(",")];
+  rows.forEach(r=>{
+    const line = [r.date, r.weekday, r.section, r.start, r.end, r.subject, r.faculty, r.room, r.held, r.students, r.link, (r.remarks||'').replace(/,/g,';').replace(/\n/g,' '), r.loggedAt]
+      .map(v => `"${String(v ?? '').replace(/"/g,'""')}"`).join(",");
+    csvRows.push(line);
+  });
+  const blob = new Blob([csvRows.join("\n")], {type:"text/csv"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `online_class_records_${todayStr}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+});
+
+// ---------- Admin: view / edit / delete any record ----------
+window._adminRecords = [];
+
+async function loadAdminTable(){
+  const body = document.getElementById('adminBody');
+  const countLine = document.getElementById('adminCountLine');
+  body.innerHTML = '<tr><td colspan="11">Loading…</td></tr>';
+
+  const facFilter = document.getElementById('adminFilterFaculty').value;
+  const dateFilter = document.getElementById('adminFilterDate').value;
+
+  let records = [];
+  try{
+    records = await listRecordsWithKeys();
+  }catch(e){
+    console.error(e);
+    body.innerHTML = '<tr><td colspan="11">Could not load records.</td></tr>';
+    countLine.textContent = "";
+    renderStatCards('admin', dateFilter, facFilter, []);
+    return;
+  }
+
+  records.sort((a,b)=> (b.date+b.start).localeCompare(a.date+a.start));
+
+  const filtered = records.filter(r=>{
+    if(facFilter && r.faculty !== facFilter) return false;
+    if(dateFilter && r.date !== dateFilter) return false;
+    return true;
+  });
+
+  window._adminRecords = filtered;
+  renderStatCards('admin', dateFilter, facFilter, filtered);
+
+  if(filtered.length === 0){
+    body.innerHTML = '<tr><td colspan="11">No records match the current filters.</td></tr>';
+    countLine.textContent = `0 of ${records.length} total record(s).`;
+    return;
+  }
+
+  body.innerHTML = filtered.map(renderAdminRowView).join('');
+  countLine.textContent = `${filtered.length} of ${records.length} total record(s).`;
+
+  body.querySelectorAll('.admin-edit-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=> enterAdminEditMode(btn.dataset.key));
+  });
+  body.querySelectorAll('.admin-delete-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=> handleAdminDelete(btn.dataset.key));
+  });
+}
+
+function renderAdminRowView(r){
+  const heldTag = r.held === 'yes' ? '<span class="tag-yes">Yes</span>' : '<span class="tag-no">No</span>';
+  const linkCell = r.link ? `<span class="link-cell"><a href="${r.link}" target="_blank" rel="noopener">Open link</a></span>` : '—';
+  const loggedAt = r.loggedAt ? new Date(r.loggedAt).toLocaleString() : '';
+  return `<tr data-key="${r._key}">
+    <td>${r.date} <div style="color:var(--slate);font-size:.75rem;">${r.weekday||''}</div></td>
+    <td>${r.section}</td>
+    <td>${r.start}–${r.end}</td>
+    <td>${r.subject}</td>
+    <td>${r.faculty}</td>
+    <td>${heldTag}</td>
+    <td>${r.students || '—'}</td>
+    <td>${linkCell}</td>
+    <td>${r.remarks ? r.remarks.replace(/</g,'&lt;') : '—'}</td>
+    <td>${loggedAt}</td>
+    <td>
+      <button type="button" class="row-btn edit admin-edit-btn" data-key="${r._key}">Edit</button>
+      <button type="button" class="row-btn delete admin-delete-btn" data-key="${r._key}">Delete</button>
+    </td>
+  </tr>`;
+}
+
+function esc(v){ return String(v ?? '').replace(/"/g,'&quot;'); }
+
+function enterAdminEditMode(key){
+  const rec = window._adminRecords.find(r=> r._key === key);
+  const row = document.querySelector(`#adminBody tr[data-key="${CSS.escape(key)}"]`);
+  if(!rec || !row) return;
+
+  row.innerHTML = `
+    <td><input type="date" class="e-date" value="${esc(rec.date)}"></td>
+    <td><input type="text" class="e-section" value="${esc(rec.section)}"></td>
+    <td>
+      <input type="text" class="e-start" value="${esc(rec.start)}" style="width:64px;">–<input type="text" class="e-end" value="${esc(rec.end)}" style="width:64px;">
+    </td>
+    <td><input type="text" class="e-subject" value="${esc(rec.subject)}"></td>
+    <td><input type="text" class="e-faculty" value="${esc(rec.faculty)}"></td>
+    <td>
+      <select class="e-held">
+        <option value="yes" ${rec.held==='yes'?'selected':''}>Yes</option>
+        <option value="no" ${rec.held==='no'?'selected':''}>No</option>
+      </select>
+    </td>
+    <td><input type="number" min="0" class="e-students" value="${esc(rec.students)}"></td>
+    <td><input type="url" class="e-link" value="${esc(rec.link)}"></td>
+    <td><textarea class="e-remarks">${rec.remarks ? String(rec.remarks).replace(/</g,'&lt;') : ''}</textarea></td>
+    <td>${rec.loggedAt ? new Date(rec.loggedAt).toLocaleString() : ''}</td>
+    <td>
+      <button type="button" class="row-btn save e-save-btn">Save</button>
+      <button type="button" class="row-btn cancel e-cancel-btn">Cancel</button>
+    </td>
+  `;
+
+  row.querySelector('.e-cancel-btn').addEventListener('click', loadAdminTable);
+  row.querySelector('.e-save-btn').addEventListener('click', async ()=>{
+    const updated = {
+      date: row.querySelector('.e-date').value,
+      section: row.querySelector('.e-section').value.trim(),
+      start: row.querySelector('.e-start').value.trim(),
+      end: row.querySelector('.e-end').value.trim(),
+      subject: row.querySelector('.e-subject').value.trim(),
+      faculty: row.querySelector('.e-faculty').value.trim(),
+      held: row.querySelector('.e-held').value,
+      students: row.querySelector('.e-students').value,
+      link: row.querySelector('.e-link').value.trim(),
+      remarks: row.querySelector('.e-remarks').value,
+      loggedAt: rec.loggedAt || new Date().toISOString()
+    };
+    if(!updated.date || !updated.section || !updated.start){
+      alert('Date, section, and start time are required.');
+      return;
+    }
+    const d = new Date(updated.date + "T00:00:00");
+    updated.weekday = isNaN(d) ? (rec.weekday || '') : DAY_NAMES[d.getDay()];
+
+    try{
+      const newKey = fbKey(recordKey(updated.date, updated.section, updated.start));
+      if(newKey !== rec._key){
+        await deleteRecordByKey(rec._key);
+      }
+      await setRecord(newKey, updated);
+      loadAdminTable();
+    }catch(e){
+      alert('Could not save changes: ' + e.message);
+    }
+  });
+}
+
+async function handleAdminDelete(key){
+  const rec = window._adminRecords.find(r=> r._key === key);
+  const label = rec ? `${rec.date} · ${rec.section} · ${rec.start}–${rec.end} (${rec.faculty})` : key;
+  if(!confirm(`Delete this record?\n\n${label}\n\nThis cannot be undone.`)) return;
+  try{
+    await deleteRecordByKey(key);
+    loadAdminTable();
+  }catch(e){
+    alert('Could not delete record: ' + e.message);
+  }
+}
+
+document.getElementById('adminRefreshBtn').addEventListener('click', loadAdminTable);
+document.getElementById('adminFilterDate').addEventListener('change', loadAdminTable);
+document.getElementById('adminClearFilters').addEventListener('click', ()=>{
+  document.getElementById('adminFilterFaculty').value = "";
+  document.getElementById('adminFilterDate').value = "";
+  loadAdminTable();
+});
+
+// ---------- Admin: upload latest timetable (PDF) ----------
+// Same grid-based extraction approach as the EE timetable tool (tt.html):
+// each PDF page is one section's weekly grid, with day-name row labels and
+// "HH:MM-HH:MM" time-slot column headers.
+const TT_DAYS = ['Mo','Tu','We','Th','Fr'];
+const TT_DAY_NUM = {Mo:1, Tu:2, We:3, Th:4, Fr:5};
+const TT_SLOTS = ['08:00-09:20','09:20-10:40','10:40-12:00','12:00-13:20','13:20-14:40','14:40-16:00'];
+
+// Parse one PDF page's text items (assumed to be one section's weekly grid)
+// into raw {s,d,t,n,su,te,r,ty} entries (section, day-abbr, slot index,
+// span, subject, teacher, room, type). Ported as-is from the timetable
+// tool's parser, which already handles merged/spanning lab cells, wrapped
+// teacher names, and shrunk subject text.
+function parseSchedulePage(items){
+  const dayItems = items.filter(it=>TT_DAYS.includes(it.text));
+  if(dayItems.length < 3) return null;
+
+  const timeRe = /^\d{2}:\d{2}-\d{2}:\d{2}$/;
+  const timeItems = items.filter(it=>timeRe.test(it.text)).sort((a,b)=>a.x-b.x);
+  if(timeItems.length < 3) return null;
+
+  const footerWords = ['air university','timetable generated','asc timetables'];
+  const candidates = items.filter(it=>{
+    const low = it.text.toLowerCase();
+    return !TT_DAYS.includes(it.text) && !timeRe.test(it.text) && !footerWords.some(f=>low.includes(f));
+  });
+  let sectionTitle = 'SECTION';
+  let maxH = 0;
+  candidates.forEach(it=>{ if(it.h>maxH){ maxH=it.h; sectionTitle=it.text; } });
+
+  const rows = dayItems.map(it=>({day:it.text, y:it.y})).sort((a,b)=>b.y-a.y);
+
+  const colCenters = timeItems.map(it=>it.x + it.w/2);
+  const colBoundaries = [];
+  for(let i=0;i<colCenters.length-1;i++) colBoundaries.push((colCenters[i]+colCenters[i+1])/2);
+
+  function colIndex(x){
+    let idx = 0;
+    for(let i=0;i<colBoundaries.length;i++){ if(x >= colBoundaries[i]) idx = i+1; }
+    return Math.min(idx, colCenters.length-1);
+  }
+  function rowIndex(y){
+    let best=0, bestDist=Infinity;
+    rows.forEach((r,i)=>{ const d=Math.abs(r.y-y); if(d<bestDist){bestDist=d; best=i;} });
+    return best;
+  }
+
+  const excludeSet = new Set([...dayItems, ...timeItems]);
+  const headerY = Math.max(...timeItems.map(it=>it.y));
+  const rowGap = rows.length>1 ? (rows[0].y - rows[rows.length-1].y)/(rows.length-1) : 90;
+  const bodyItems = items.filter(it=>{
+    if(excludeSet.has(it)) return false;
+    const low = it.text.toLowerCase();
+    if(footerWords.some(f=>low.includes(f))) return false;
+    if(it.text === sectionTitle) return false;
+    const minY = Math.min(...rows.map(r=>r.y)) - rowGap;
+    const maxY = headerY - 10;
+    if(it.y < minY || it.y > maxY) return false;
+    return true;
+  });
+
+  if(bodyItems.length===0) return [];
+
+  const bigThreshold = 8.8;
+
+  const cellMap = {};
+  bodyItems.forEach(it=>{
+    const ri = rowIndex(it.y);
+    const ci = colIndex(it.x);
+    const key = ri+'-'+ci;
+    if(!cellMap[key]) cellMap[key] = {items:[], row:ri, col:ci};
+    cellMap[key].items.push(it);
+  });
+
+  const rowAnchors = {};
+  Object.values(cellMap).forEach(c=>{
+    if(c.items.some(it=>it.h >= bigThreshold)){
+      (rowAnchors[c.row] = rowAnchors[c.row] || []).push(c.col);
+    }
+  });
+  Object.keys(rowAnchors).forEach(r=>rowAnchors[r].sort((a,b)=>a-b));
+
+  const reach = {};
+  const orphanKeys = [];
+  Object.values(cellMap).forEach(c=>{
+    if(c.items.some(it=>it.h >= bigThreshold)) return;
+    const anchors = rowAnchors[c.row] || [];
+    let target = null;
+    for(let i=anchors.length-1;i>=0;i--){ if(anchors[i] < c.col){ target=anchors[i]; break; } }
+    if(target===null && anchors.length) target = anchors.find(a=>a>c.col);
+    if(target===null) return;
+    const targetKey = c.row+'-'+target;
+    cellMap[targetKey].items.push(...c.items);
+    reach[targetKey] = Math.max(reach[targetKey]||target, c.col);
+    orphanKeys.push(c.row+'-'+c.col);
+  });
+  orphanKeys.forEach(k=>delete cellMap[k]);
+
+  function looksLikeRoom(text){
+    const t = (text||'').trim();
+    if(!t) return false;
+    if(/lab|block|hall|auditorium/i.test(t)) return true;
+    if(/^[A-Za-z]{0,4}[\s-]?\d{2,4}[A-Za-z]?$/.test(t)) return true;
+    return false;
+  }
+  const entries = [];
+  Object.entries(cellMap).forEach(([key, cellObj])=>{
+    if(!cellObj.items.length) return;
+    const its = cellObj.items.slice().sort((a,b)=> b.y-a.y || a.x-b.x);
+    const subjItems = its.filter(i=>i.h >= bigThreshold).sort((a,b)=>b.y-a.y);
+    const others = its.filter(i=>i.h < bigThreshold);
+    others.sort((a,b)=>b.y-a.y);
+    const lineGroups = [];
+    others.forEach(it=>{
+      let grp = lineGroups.find(g=> Math.abs(g.y - it.y) < 4.5);
+      if(!grp){ grp = {y: it.y, items: []}; lineGroups.push(grp); }
+      grp.items.push(it);
+    });
+    lineGroups.forEach(g=> g.items.sort((a,b)=>a.x-b.x));
+    lineGroups.sort((a,b)=> b.y - a.y);
+    const lineText = g => g.items.map(i=>i.text).join(' ').replace(/\s+/g,' ').trim();
+
+    let teacher = '', roomFinal = '';
+    if(lineGroups.length >= 2){
+      teacher = lineGroups.slice(0, -1).map(lineText).join(' ').replace(/\s+/g,' ').trim();
+      roomFinal = lineText(lineGroups[lineGroups.length-1]);
+    } else if(lineGroups.length === 1){
+      const text = lineText(lineGroups[0]);
+      if(looksLikeRoom(text)) roomFinal = text;
+      else teacher = text;
+    }
+    const subject = subjItems.map(i=>i.text).join(' ').replace(/\s+/g,' ').trim();
+    if(!subject) return;
+
+    let span = 1;
+    const rightEdge = Math.max(...subjItems.map(i=>i.x+i.w));
+    for(let b=cellObj.col;b<colBoundaries.length;b++){
+      if(rightEdge > colBoundaries[b] + 15) span++;
+      else break;
+    }
+    span = Math.min(span, colCenters.length - cellObj.col);
+    if(reach[key]!==undefined) span = Math.max(span, reach[key]-cellObj.col+1);
+
+    const type = /laborator|\blab\b/i.test(subject) ? 'lab' : 'lecture';
+    entries.push({
+      s: sectionTitle, d: rows[cellObj.row].day, t: cellObj.col, n: span,
+      su: subject, te: teacher || '', r: roomFinal || '', ty: type
+    });
+  });
+
+  return entries;
+}
+
+// Convert the parser's raw {s,d,t,n,su,te,r} entries into the SCHEDULE row
+// shape this app uses: {section, day(1=Mon..5=Fri), start, end, subject, faculty, room}.
+function ttEntriesToScheduleRows(entries){
+  return entries.map(e=>{
+    const startSlot = TT_SLOTS[e.t];
+    const endSlot = TT_SLOTS[Math.min(e.t + e.n - 1, TT_SLOTS.length - 1)];
+    return {
+      section: e.s,
+      day: TT_DAY_NUM[e.d] || 1,
+      start: startSlot ? startSlot.split('-')[0] : '',
+      end: endSlot ? endSlot.split('-')[1] : '',
+      subject: e.su,
+      faculty: e.te || '',
+      room: e.r || ''
+    };
+  });
+}
+
+const scheduleDropzone = document.getElementById('scheduleDropzone');
+const scheduleFileInput = document.getElementById('scheduleFileInput');
+
+function setScheduleUploadStatus(msg, err){
+  const el = document.getElementById('scheduleUploadStatus');
+  el.textContent = msg;
+  el.className = 'upload-status' + (err ? ' err' : '');
+}
+
+scheduleDropzone.addEventListener('click', ()=> scheduleFileInput.click());
+scheduleDropzone.addEventListener('dragover', e=>{ e.preventDefault(); scheduleDropzone.classList.add('drag'); });
+scheduleDropzone.addEventListener('dragleave', ()=> scheduleDropzone.classList.remove('drag'));
+scheduleDropzone.addEventListener('drop', e=>{
+  e.preventDefault();
+  scheduleDropzone.classList.remove('drag');
+  if(e.dataTransfer.files.length) handleTimetablePdf(e.dataTransfer.files[0]);
+});
+scheduleFileInput.addEventListener('change', e=>{
+  if(e.target.files.length) handleTimetablePdf(e.target.files[0]);
+});
+
+async function handleTimetablePdf(file){
+  setScheduleUploadStatus('Reading PDF…');
+  try{
+    const buf = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({data:buf}).promise;
+    let newTtEntries = [];
+    for(let p=1;p<=pdf.numPages;p++){
+      const page = await pdf.getPage(p);
+      const content = await page.getTextContent();
+      const items = content.items.filter(it=>it.str && it.str.trim().length).map(it=>({
+        text: it.str.trim(), x: it.transform[4], y: it.transform[5], h: Math.abs(it.transform[3]), w: it.width
+      }));
+      const parsed = parseSchedulePage(items);
+      if(parsed) newTtEntries = newTtEntries.concat(parsed);
+    }
+    if(newTtEntries.length === 0){
+      setScheduleUploadStatus('Could not detect a timetable grid in this PDF. You can still add entries manually below.', true);
+    } else {
+      SCHEDULE = ttEntriesToScheduleRows(newTtEntries);
+      rebuildFacultyList();
+      saveSchedule();
+      setScheduleUploadStatus(`Extracted ${SCHEDULE.length} class entries from ${pdf.numPages} page(s). Review the rows below, fix anything that looks wrong — changes save automatically.`);
+      refreshAllForNewSchedule();
+    }
+    renderScheduleEditTable();
+  }catch(err){
+    console.error(err);
+    setScheduleUploadStatus('Could not read that PDF: ' + err.message, true);
+  }
+}
+
+// ---------- Schedule review/edit table ----------
+function scheduleEscapeAttr(s){ return (s||'').replace(/"/g,'&quot;'); }
+
+function renderScheduleEditTable(){
+  const body = document.getElementById('scheduleEditBody');
+  const countLine = document.getElementById('scheduleCountLine');
+  body.innerHTML = '';
+  SCHEDULE.forEach((row, idx)=> body.appendChild(makeScheduleEditRow(row, idx)));
+  countLine.textContent = `${SCHEDULE.length} class entr${SCHEDULE.length===1?'y':'ies'} in the current timetable.`;
+}
+function makeScheduleEditRow(row, idx){
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td><input type="text" value="${scheduleEscapeAttr(row.section)}" data-f="section"></td>
+    <td>
+      <select data-f="day">
+        ${[1,2,3,4,5].map(d=>`<option value="${d}" ${d===row.day?'selected':''}>${DAY_NAMES[d]}</option>`).join('')}
+      </select>
+    </td>
+    <td><input type="text" value="${scheduleEscapeAttr(row.start)}" data-f="start" style="width:70px;"></td>
+    <td><input type="text" value="${scheduleEscapeAttr(row.end)}" data-f="end" style="width:70px;"></td>
+    <td><input type="text" value="${scheduleEscapeAttr(row.subject)}" data-f="subject"></td>
+    <td><input type="text" value="${scheduleEscapeAttr(row.faculty)}" data-f="faculty"></td>
+    <td><input type="text" value="${scheduleEscapeAttr(row.room)}" data-f="room"></td>
+    <td><button type="button" class="row-btn delete" data-del="${idx}">✕</button></td>
+  `;
+  tr.querySelectorAll('[data-f]').forEach(inp=>{
+    inp.addEventListener('change', ()=>{
+      const f = inp.dataset.f;
+      row[f] = f === 'day' ? parseInt(inp.value, 10) : inp.value;
+      rebuildFacultyList();
+      saveSchedule();
+      refreshAllForNewSchedule();
+    });
+  });
+  tr.querySelector('[data-del]').addEventListener('click', ()=>{
+    const i = SCHEDULE.indexOf(row);
+    if(i>-1) SCHEDULE.splice(i,1);
+    rebuildFacultyList();
+    renderScheduleEditTable();
+    saveSchedule();
+    refreshAllForNewSchedule();
+  });
+  return tr;
+}
+
+document.getElementById('scheduleAddRowBtn').addEventListener('click', ()=>{
+  SCHEDULE.push({section: SCHEDULE[0]?.section || 'NEW-SECTION', day: 1, start:'08:00', end:'09:20', subject:'New subject', faculty:'', room:''});
+  renderScheduleEditTable();
+  rebuildFacultyList();
+  saveSchedule();
+});
+document.getElementById('scheduleApplyBtn').addEventListener('click', ()=>{
+  rebuildFacultyList();
+  saveSchedule();
+  refreshAllForNewSchedule();
+  setScheduleUploadStatus('Changes applied and saved.');
+});
+document.getElementById('scheduleDeleteAllBtn').addEventListener('click', ()=>{
+  if(!confirm('Delete ALL timetable entries? This cannot be undone.')) return;
+  SCHEDULE = [];
+  rebuildFacultyList();
+  renderScheduleEditTable();
+  saveSchedule();
+  refreshAllForNewSchedule();
+  setScheduleUploadStatus('All timetable entries deleted.');
+});
+
+// Refresh whichever views currently depend on SCHEDULE (called after upload,
+// manual edits, or a Firebase update from another admin).
+function refreshAllForNewSchedule(){
+  showClasses();
+  if(panelView.classList.contains('active')) loadRecordsTable();
+  if(panelAdmin.classList.contains('active') && adminUnlocked) loadAdminTable();
+}
+
+// ---------- Schedule persistence (Firebase Realtime Database, shared) ----------
+const SCHEDULE_PATH = 'online_class_monitoring_schedule';
+const SCHEDULE_LOCAL_KEY = 'ocm_schedule_local_fallback';
+
+function saveSchedule(){
+  if(usingFirebase){
+    fbDb.ref(SCHEDULE_PATH).set({items: SCHEDULE, savedAt: Date.now()}).catch(e=>{
+      console.error(e);
+      alert('Could not save the timetable to the shared database: ' + e.message);
+    });
+  } else {
+    try{ localStorage.setItem(SCHEDULE_LOCAL_KEY, JSON.stringify(SCHEDULE)); }catch(e){ console.warn('localStorage save failed', e); }
+  }
+}
+function attachScheduleListener(){
+  fbDb.ref(SCHEDULE_PATH).on('value', function(snap){
+    const val = snap.val();
+    if(val === null){
+      // nothing saved yet for this tool — seed it with the baked-in timetable
+      fbDb.ref(SCHEDULE_PATH).set({items: SCHEDULE, savedAt: Date.now()});
+      return;
+    }
+    SCHEDULE = val.items || [];
+    rebuildFacultyList();
+    try{ localStorage.setItem(SCHEDULE_LOCAL_KEY, JSON.stringify(SCHEDULE)); }catch(e){ console.warn('localStorage cache write failed', e); }
+    renderScheduleEditTable();
+    refreshAllForNewSchedule();
+  }, function(err){
+    console.error('Firebase schedule listener error:', err);
+  });
+}
+function loadScheduleLocalFallback(){
+  try{
+    const raw = localStorage.getItem(SCHEDULE_LOCAL_KEY);
+    if(raw) SCHEDULE = JSON.parse(raw);
+  }catch(e){ console.warn('localStorage load failed', e); }
+  rebuildFacultyList();
+  renderScheduleEditTable();
+  refreshAllForNewSchedule();
+}
+function initScheduleSystem(){
+  if(usingFirebase){
+    attachScheduleListener();
+  } else {
+    loadScheduleLocalFallback();
+  }
+}
+initScheduleSystem();
+
+// initial state
+showClasses();
+</script>
+</body>
+</html>
