@@ -241,6 +241,7 @@ body.boot header, body.boot main{opacity:0;}
      container, one section per page, and hide the normal single-view UI. */
   body.printing-all .view{display:none !important;}
   body.printing-all #allSectionsPrint{display:block !important;}
+  body.printing-all #allTeachersPrint{display:block !important;}
   .print-section-block{page-break-inside:avoid;page-break-after:always;}
   .print-section-block:last-child{page-break-after:auto;}
   .print-section-heading{
@@ -249,6 +250,7 @@ body.boot header, body.boot main{opacity:0;}
   }
 }
 #allSectionsPrint{display:none;}
+#allTeachersPrint{display:none;}
 </style>
 </head>
 <body class="boot">
@@ -285,6 +287,9 @@ body.boot header, body.boot main{opacity:0;}
 
   <!-- Populated only when "Print all sections" is used; otherwise empty/hidden -->
   <div id="allSectionsPrint"></div>
+
+  <!-- Populated only when "Print all teachers" is used; otherwise empty/hidden -->
+  <div id="allTeachersPrint"></div>
 
   <!-- GRID VIEW -->
   <section class="view active" id="view-grid">
@@ -340,8 +345,24 @@ body.boot header, body.boot main{opacity:0;}
           <select id="teacher-select"><option value="">All teachers</option></select>
         </div>
         <div class="field-wrap no-print">
+          <label class="field">Browse</label>
+          <div class="pager">
+            <button class="pager-btn" id="prevTeacherBtn" title="Previous teacher" aria-label="Previous teacher">
+              <svg viewBox="0 0 24 24" width="18" height="18"><path d="M15 5 8 12l7 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+            </button>
+            <span id="teacherPageLabel" class="pager-label"></span>
+            <button class="pager-btn" id="nextTeacherBtn" title="Next teacher" aria-label="Next teacher">
+              <svg viewBox="0 0 24 24" width="18" height="18"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+            </button>
+          </div>
+        </div>
+        <div class="field-wrap no-print">
           <label class="field">&nbsp;</label>
           <button class="btn secondary small" id="printTeacherBtn">🖨 Print this schedule</button>
+        </div>
+        <div class="field-wrap no-print">
+          <label class="field">&nbsp;</label>
+          <button class="btn secondary small" id="printAllTeachersBtn">🖨 Print all teachers</button>
         </div>
       </div>
       <div class="legend no-print">
@@ -917,6 +938,7 @@ function printAllSections(){
 window.addEventListener('afterprint', ()=>{
   document.body.classList.remove('printing-all');
   document.getElementById('allSectionsPrint').innerHTML = '';
+  document.getElementById('allTeachersPrint').innerHTML = '';
 });
 document.getElementById('printAllSectionsBtn').addEventListener('click', printAllSections);
 function escapeHtml(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
@@ -981,21 +1003,7 @@ function renderTeacherSearchResults(query){
   html += '</tbody></table>';
   document.getElementById('teacherResults').innerHTML = html;
 }
-function renderTeacher(){
-  const sel = document.getElementById('teacher-select');
-  if(!sel.value){
-    if(teacherSearchQuery){
-      renderTeacherSearchResults(teacherSearchQuery);
-      return;
-    }
-    document.getElementById('teacherPrintTitle').textContent = 'All Teachers — Full Schedule';
-    renderAllTeachers();
-    return;
-  }
-  const val = sel.value;
-  document.getElementById('teacherPrintTitle').textContent = val;
-  const entries = DATA.filter(e=>e.te===val);
-
+function buildTeacherTable(entries){
   const cell = {}; const consumed = new Set();
   entries.forEach(e=>{
     cell[e.d+'-'+e.t]=e;
@@ -1024,8 +1032,43 @@ function renderTeacher(){
     html += '</tr>';
   });
   html += '</tbody></table>';
-  document.getElementById('teacherResults').innerHTML = html;
+  return html;
 }
+function renderTeacher(){
+  const sel = document.getElementById('teacher-select');
+  const list = teachers();
+  if(!sel.value){
+    document.getElementById('teacherPageLabel').textContent = '';
+    if(teacherSearchQuery){
+      renderTeacherSearchResults(teacherSearchQuery);
+      return;
+    }
+    document.getElementById('teacherPrintTitle').textContent = 'All Teachers — Full Schedule';
+    renderAllTeachers();
+    return;
+  }
+  const val = sel.value;
+  const idx = list.indexOf(val);
+  document.getElementById('teacherPrintTitle').textContent = val;
+  document.getElementById('teacherPageLabel').textContent = list.length ? `Teacher ${idx+1} of ${list.length}` : '';
+  const entries = DATA.filter(e=>e.te===val);
+  document.getElementById('teacherResults').innerHTML = buildTeacherTable(entries);
+}
+function stepTeacher(delta){
+  const list = teachers();
+  if(!list.length) return;
+  const sel = document.getElementById('teacher-select');
+  let idx = list.indexOf(sel.value);
+  idx = (idx + delta + list.length) % list.length;
+  sel.value = list[idx];
+  document.getElementById('teacherSearchInput').value = sel.value;
+  teacherSearchQuery = '';
+  const errEl = document.getElementById('teacherSearchErr');
+  if(errEl) errEl.style.display = 'none';
+  renderTeacher();
+}
+document.getElementById('prevTeacherBtn').addEventListener('click', ()=>stepTeacher(-1));
+document.getElementById('nextTeacherBtn').addEventListener('click', ()=>stepTeacher(1));
 function renderAllTeachers(){
   const list = teachers();
   let html = `<p class="hint no-print">Showing all ${list.length} teachers. Pick one above to see just their week, or scroll through everyone below.</p>`;
@@ -1039,6 +1082,21 @@ function renderAllTeachers(){
   document.getElementById('teacherResults').innerHTML = html;
 }
 document.getElementById('printTeacherBtn').addEventListener('click', ()=>window.print());
+
+function printAllTeachers(){
+  const list = teachers();
+  const container = document.getElementById('allTeachersPrint');
+  container.innerHTML = list.map(t=>{
+    const entries = DATA.filter(e=>e.te===t);
+    return `<div class="print-section-block">
+        <h2 class="print-section-heading">${escapeHtml(t)}</h2>
+        ${buildTeacherTable(entries)}
+      </div>`;
+  }).join('');
+  document.body.classList.add('printing-all');
+  window.print();
+}
+document.getElementById('printAllTeachersBtn').addEventListener('click', printAllTeachers);
 
 // ---------- SEARCH VIEW ----------
 function goToTeacherPage(teacherName){
