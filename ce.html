@@ -347,6 +347,18 @@ body.boot header, body.boot main{opacity:0;}
           <select id="teacher-select"><option value="">All teachers</option></select>
         </div>
         <div class="field-wrap no-print">
+          <label class="field">Browse</label>
+          <div class="pager">
+            <button class="pager-btn" id="prevTeacherBtn" title="Previous teacher" aria-label="Previous teacher">
+              <svg viewBox="0 0 24 24" width="18" height="18"><path d="M15 5 8 12l7 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+            </button>
+            <span id="teacherPageLabel" class="pager-label"></span>
+            <button class="pager-btn" id="nextTeacherBtn" title="Next teacher" aria-label="Next teacher">
+              <svg viewBox="0 0 24 24" width="18" height="18"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+            </button>
+          </div>
+        </div>
+        <div class="field-wrap no-print">
           <label class="field">&nbsp;</label>
           <button class="btn secondary small" id="printTeacherBtn">🖨 Print this schedule</button>
         </div>
@@ -354,9 +366,8 @@ body.boot header, body.boot main{opacity:0;}
       <div class="legend no-print">
         <span><span class="dot" style="background:var(--lecture)"></span> Lecture</span>
         <span><span class="dot" style="background:var(--lab)"></span> Lab</span>
-        <span><span class="dot" style="background:#8fcf95"></span> Free</span>
       </div>
-      <h2 id="teacherPrintTitle" class="print-only" style="margin:6px 0 12px;color:var(--navy);">All Teachers — Full Schedule</h2>
+      <h2 id="teacherPrintTitle" style="margin:6px 0 12px;color:var(--navy);">All Teachers — Full Schedule</h2>
       <div id="teacherResults"><p class="hint no-print">Showing all 0 teachers. Pick one above to see just their week, or scroll through everyone below.</p><table class="list"><thead><tr><th>Teacher</th><th>Day</th><th>Time</th><th>Subject</th><th>Section</th><th>Room</th><th>Type</th></tr></thead><tbody></tbody></table></div>
     </div>
   </section>
@@ -938,6 +949,29 @@ function populateTeacherSelect(){
     renderTeacher();
   });
 }
+function stepTeacher(delta){
+  const list = teachers();
+  if(!list.length) return;
+  const sel = document.getElementById('teacher-select');
+  let idx = list.indexOf(sel.value);
+  if(idx === -1){ idx = delta > 0 ? -1 : 0; }
+  idx = (idx + delta + list.length) % list.length;
+  sel.value = list[idx];
+  document.getElementById('teacherSearchInput').value = sel.value;
+  teacherSearchQuery = '';
+  renderTeacher();
+}
+document.getElementById('prevTeacherBtn').addEventListener('click', ()=>stepTeacher(-1));
+document.getElementById('nextTeacherBtn').addEventListener('click', ()=>stepTeacher(1));
+function updateTeacherPageLabel(){
+  const list = teachers();
+  const sel = document.getElementById('teacher-select');
+  const label = document.getElementById('teacherPageLabel');
+  if(!label) return;
+  if(!list.length){ label.textContent = ''; return; }
+  const idx = list.indexOf(sel.value);
+  label.textContent = idx === -1 ? 'All teachers' : `Teacher ${idx+1} of ${list.length}`;
+}
 let teacherSearchQuery = ''; // substring search with 2+ matches — used only when no single teacher is selected
 function setupTeacherSearchInput(){
   const input = document.getElementById('teacherSearchInput');
@@ -990,6 +1024,7 @@ function renderTeacherSearchResults(query){
 }
 function renderTeacher(){
   const sel = document.getElementById('teacher-select');
+  updateTeacherPageLabel();
   if(!sel.value){
     if(teacherSearchQuery){
       renderTeacherSearchResults(teacherSearchQuery);
@@ -1025,7 +1060,7 @@ function renderTeacher(){
             <div class="rm">${escapeHtml(e.r)}</div>
           </div></td>`;
       } else {
-        html += `<td class="slotcell" style="background:var(--free);"><div style="text-align:center;color:var(--free-ink);font-size:0.72rem;font-weight:700;padding-top:20px;">Free</div></td>`;
+        html += `<td class="slotcell"></td>`;
       }
     }
     html += '</tr>';
