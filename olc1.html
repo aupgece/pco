@@ -459,7 +459,7 @@
         <thead>
           <tr>
             <th>Date</th><th>Section</th><th>Time</th><th>Subject</th><th>Faculty</th>
-            <th>Held on time</th><th>Students present</th><th>Link</th><th>Remarks</th><th>Logged at</th>
+            <th>Held on time</th><th>GCR uploaded</th><th>GCR code</th><th>Students present</th><th>Link</th><th>Remarks/Comments</th><th>Logged at</th>
           </tr>
         </thead>
         <tbody id="recordsBodyEE"></tbody>
@@ -503,7 +503,7 @@
         <thead>
           <tr>
             <th>Date</th><th>Section</th><th>Time</th><th>Subject</th><th>Faculty</th>
-            <th>Held on time</th><th>Students present</th><th>Link</th><th>Remarks</th><th>Logged at</th>
+            <th>Held on time</th><th>GCR uploaded</th><th>GCR code</th><th>Students present</th><th>Link</th><th>Remarks/Comments</th><th>Logged at</th>
           </tr>
         </thead>
         <tbody id="recordsBodyCE"></tbody>
@@ -556,7 +556,7 @@
           <thead>
             <tr>
               <th>Dept</th><th>Date</th><th>Section</th><th>Time</th><th>Subject</th><th>Faculty</th>
-              <th>Held on time</th><th>Students present</th><th>Link</th><th>Remarks</th><th>Logged at</th><th>Actions</th>
+              <th>Held on time</th><th>GCR uploaded</th><th>GCR code</th><th>Students present</th><th>Link</th><th>Remarks/Comments</th><th>Logged at</th><th>Actions</th>
             </tr>
           </thead>
           <tbody id="adminBody"></tbody>
@@ -1344,7 +1344,7 @@ async function showClasses(){
       </div>
       <div class="grid2">
         <div class="field">
-          <label>Was the online class held on scheduled time?</label>
+          <label>Online class held on scheduled time?</label>
           <div class="radio-row">
             <label><input type="radio" name="held-${key}" value="yes"> Yes</label>
             <label><input type="radio" name="held-${key}" value="no"> No</label>
@@ -1355,16 +1355,28 @@ async function showClasses(){
           <input type="number" min="0" class="students-input" placeholder="e.g. 32">
         </div>
         <div class="field" style="grid-column: 1 / -1;">
+          <label>Lectures uploaded on GCR</label>
+          <div class="radio-row">
+            <label><input type="radio" name="gcr-${key}" value="yes"> Yes</label>
+            <label><input type="radio" name="gcr-${key}" value="no"> No</label>
+            <label><input type="radio" name="gcr-${key}" value="not-active"> GCR not yet active</label>
+          </div>
+        </div>
+        <div class="field">
+          <label>GCR code</label>
+          <input type="text" class="gcrcode-input" placeholder="e.g. ab12cd3">
+        </div>
+        <div class="field">
           <label>Link for online class</label>
           <input type="url" class="link-input" placeholder="https://meet.google.com/... or Zoom/Teams link">
         </div>
         <div class="field" style="grid-column: 1 / -1;">
-          <label>Remarks</label>
+          <label>Remarks/Comments</label>
           <textarea class="remarks-input" placeholder="Any observations, issues, or notes"></textarea>
         </div>
       </div>
       <div class="card-footer">
-        <button class="primary save-btn">Save record</button>
+        <button class="primary save-btn">Submit record</button>
         <span class="save-msg"></span>
       </div>
     `;
@@ -1379,6 +1391,11 @@ async function showClasses(){
           card.classList.add(rec.held === 'yes' ? 'status-yes' : 'status-no');
         }
         card.querySelector('.students-input').value = rec.students ?? '';
+        if(rec.gcrUploaded === 'yes' || rec.gcrUploaded === 'no' || rec.gcrUploaded === 'not-active'){
+          const gEl = card.querySelector(`input[name="gcr-${key}"][value="${rec.gcrUploaded}"]`);
+          if(gEl) gEl.checked = true;
+        }
+        card.querySelector('.gcrcode-input').value = rec.gcrCode ?? '';
         card.querySelector('.link-input').value = rec.link ?? '';
         card.querySelector('.remarks-input').value = rec.remarks ?? '';
       }
@@ -1413,6 +1430,8 @@ async function showClasses(){
         room: c.room,
         held: heldEl.value,
         students: card.querySelector('.students-input').value,
+        gcrUploaded: (card.querySelector(`input[name="gcr-${key}"]:checked`) || {}).value || '',
+        gcrCode: card.querySelector('.gcrcode-input').value,
         link: card.querySelector('.link-input').value,
         remarks: card.querySelector('.remarks-input').value,
         loggedAt: new Date().toISOString()
@@ -1458,7 +1477,7 @@ async function loadRecordsTable(dept){
   const P = dept; // 'EE' or 'CE'
   const body = document.getElementById('recordsBody' + P);
   const countLine = document.getElementById('countLine' + P);
-  body.innerHTML = '<tr><td colspan="10">Loading…</td></tr>';
+  body.innerHTML = '<tr><td colspan="12">Loading…</td></tr>';
 
   const facFilter = document.getElementById('filterFaculty' + P).value;
   const dateFilter = document.getElementById('filterDate' + P).value;
@@ -1468,7 +1487,7 @@ async function loadRecordsTable(dept){
     allRecords = await listRecords();
   }catch(e){
     console.error(e);
-    body.innerHTML = '<tr><td colspan="10">No records found yet.</td></tr>';
+    body.innerHTML = '<tr><td colspan="12">No records found yet.</td></tr>';
     countLine.textContent = "";
     renderStatCards('view' + P, dateFilter, facFilter, [], getSchedule(P));
     return;
@@ -1488,7 +1507,7 @@ async function loadRecordsTable(dept){
   renderStatCards('view' + P, dateFilter, facFilter, filtered, getSchedule(P));
 
   if(records.length === 0){
-    body.innerHTML = '<tr><td colspan="10">No records saved yet.</td></tr>';
+    body.innerHTML = '<tr><td colspan="12">No records saved yet.</td></tr>';
     countLine.textContent = "";
     return;
   }
@@ -1497,13 +1516,16 @@ async function loadRecordsTable(dept){
   filtered.sort((a,b)=> (b.date+b.start).localeCompare(a.date+a.start));
 
   if(filtered.length === 0){
-    body.innerHTML = '<tr><td colspan="10">No records match the current filters.</td></tr>';
+    body.innerHTML = '<tr><td colspan="12">No records match the current filters.</td></tr>';
     countLine.textContent = `0 of ${records.length} total record(s).`;
     return;
   }
 
   body.innerHTML = filtered.map(r=>{
     const heldTag = r.held === 'yes' ? '<span class="tag-yes">Yes</span>' : '<span class="tag-no">No</span>';
+    const gcrTag = r.gcrUploaded === 'yes' ? '<span class="tag-yes">Yes</span>'
+      : r.gcrUploaded === 'no' ? '<span class="tag-no">No</span>'
+      : r.gcrUploaded === 'not-active' ? 'GCR not yet active' : '—';
     const linkCell = r.link ? `<span class="link-cell"><a href="${r.link}" target="_blank" rel="noopener">Open link</a></span>` : '—';
     const loggedAt = r.loggedAt ? new Date(r.loggedAt).toLocaleString() : '';
     return `<tr>
@@ -1513,6 +1535,8 @@ async function loadRecordsTable(dept){
       <td>${r.subject}</td>
       <td>${r.faculty}</td>
       <td>${heldTag}</td>
+      <td>${gcrTag}</td>
+      <td>${r.gcrCode ? String(r.gcrCode).replace(/</g,'&lt;') : '—'}</td>
       <td>${r.students || '—'}</td>
       <td>${linkCell}</td>
       <td>${r.remarks ? r.remarks.replace(/</g,'&lt;') : '—'}</td>
@@ -1545,10 +1569,10 @@ document.getElementById('clearFiltersCE').addEventListener('click', ()=>{
 function exportRecordsCsv(dept){
   const rows = window['_currentFilteredRecords' + dept] || [];
   if(rows.length === 0){ alert("No records to export."); return; }
-  const headers = ["Date","Weekday","Dept","Section","Start","End","Subject","Faculty","Room","Held on time","Students present","Link","Remarks","Logged at"];
+  const headers = ["Date","Weekday","Dept","Section","Start","End","Subject","Faculty","Room","Held on time","GCR uploaded","GCR code","Students present","Link","Remarks/Comments","Logged at"];
   const csvRows = [headers.join(",")];
   rows.forEach(r=>{
-    const line = [r.date, r.weekday, r.dept||'EE', r.section, r.start, r.end, r.subject, r.faculty, r.room, r.held, r.students, r.link, (r.remarks||'').replace(/,/g,';').replace(/\n/g,' '), r.loggedAt]
+    const line = [r.date, r.weekday, r.dept||'EE', r.section, r.start, r.end, r.subject, r.faculty, r.room, r.held, r.gcrUploaded, r.gcrCode, r.students, r.link, (r.remarks||'').replace(/,/g,';').replace(/\n/g,' '), r.loggedAt]
       .map(v => `"${String(v ?? '').replace(/"/g,'""')}"`).join(",");
     csvRows.push(line);
   });
@@ -1568,7 +1592,7 @@ window._adminRecords = [];
 async function loadAdminTable(){
   const body = document.getElementById('adminBody');
   const countLine = document.getElementById('adminCountLine');
-  body.innerHTML = '<tr><td colspan="12">Loading…</td></tr>';
+  body.innerHTML = '<tr><td colspan="14">Loading…</td></tr>';
 
   const facFilter = document.getElementById('adminFilterFaculty').value;
   const dateFilter = document.getElementById('adminFilterDate').value;
@@ -1579,7 +1603,7 @@ async function loadAdminTable(){
     records = await listRecordsWithKeys();
   }catch(e){
     console.error(e);
-    body.innerHTML = '<tr><td colspan="12">Could not load records.</td></tr>';
+    body.innerHTML = '<tr><td colspan="14">Could not load records.</td></tr>';
     countLine.textContent = "";
     renderStatCards('admin', dateFilter, facFilter, [], allSchedule());
     return;
@@ -1597,7 +1621,7 @@ async function loadAdminTable(){
   renderStatCards('admin', dateFilter, facFilter, filtered, allSchedule());
 
   if(filtered.length === 0){
-    body.innerHTML = '<tr><td colspan="12">No records match the current filters.</td></tr>';
+    body.innerHTML = '<tr><td colspan="14">No records match the current filters.</td></tr>';
     countLine.textContent = `0 of ${records.length} total record(s).`;
     return;
   }
@@ -1615,6 +1639,9 @@ async function loadAdminTable(){
 
 function renderAdminRowView(r){
   const heldTag = r.held === 'yes' ? '<span class="tag-yes">Yes</span>' : '<span class="tag-no">No</span>';
+  const gcrTag = r.gcrUploaded === 'yes' ? '<span class="tag-yes">Yes</span>'
+    : r.gcrUploaded === 'no' ? '<span class="tag-no">No</span>'
+    : r.gcrUploaded === 'not-active' ? 'GCR not yet active' : '—';
   const linkCell = r.link ? `<span class="link-cell"><a href="${r.link}" target="_blank" rel="noopener">Open link</a></span>` : '—';
   const loggedAt = r.loggedAt ? new Date(r.loggedAt).toLocaleString() : '';
   return `<tr data-key="${r._key}">
@@ -1625,6 +1652,8 @@ function renderAdminRowView(r){
     <td>${r.subject}</td>
     <td>${r.faculty}</td>
     <td>${heldTag}</td>
+    <td>${gcrTag}</td>
+    <td>${r.gcrCode ? String(r.gcrCode).replace(/</g,'&lt;') : '—'}</td>
     <td>${r.students || '—'}</td>
     <td>${linkCell}</td>
     <td>${r.remarks ? r.remarks.replace(/</g,'&lt;') : '—'}</td>
@@ -1663,6 +1692,15 @@ function enterAdminEditMode(key){
         <option value="no" ${rec.held==='no'?'selected':''}>No</option>
       </select>
     </td>
+    <td>
+      <select class="e-gcr">
+        <option value="" ${!rec.gcrUploaded?'selected':''}>—</option>
+        <option value="yes" ${rec.gcrUploaded==='yes'?'selected':''}>Yes</option>
+        <option value="no" ${rec.gcrUploaded==='no'?'selected':''}>No</option>
+        <option value="not-active" ${rec.gcrUploaded==='not-active'?'selected':''}>GCR not yet active</option>
+      </select>
+    </td>
+    <td><input type="text" class="e-gcrcode" value="${esc(rec.gcrCode)}"></td>
     <td><input type="number" min="0" class="e-students" value="${esc(rec.students)}"></td>
     <td><input type="url" class="e-link" value="${esc(rec.link)}"></td>
     <td><textarea class="e-remarks">${rec.remarks ? String(rec.remarks).replace(/</g,'&lt;') : ''}</textarea></td>
@@ -1684,6 +1722,8 @@ function enterAdminEditMode(key){
       subject: row.querySelector('.e-subject').value.trim(),
       faculty: row.querySelector('.e-faculty').value.trim(),
       held: row.querySelector('.e-held').value,
+      gcrUploaded: row.querySelector('.e-gcr').value,
+      gcrCode: row.querySelector('.e-gcrcode').value.trim(),
       students: row.querySelector('.e-students').value,
       link: row.querySelector('.e-link').value.trim(),
       remarks: row.querySelector('.e-remarks').value,
