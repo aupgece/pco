@@ -382,6 +382,8 @@
   .upload-status.err{ color: var(--red); }
   table.edit-schedule-table td{ vertical-align: middle; }
   table.edit-schedule-table select{ min-width: 0; width:100%; padding:5px 6px; font-size:.82rem; }
+  .manual-toggle-wrap{ margin-top: 22px; }
+  .manual-card{ margin-top: 14px; }
 </style>
 </head>
 <body>
@@ -422,6 +424,86 @@
 
     <div id="dayHeading"></div>
     <div id="classList"></div>
+
+    <div class="manual-toggle-wrap">
+      <button type="button" class="ghost" id="manualToggleBtn">My name or schedule isn't listed — submit manually</button>
+    </div>
+    <div id="manualForm" class="class-card manual-card" style="display:none;">
+      <div class="meta">
+        <div>
+          <h3>Manual submission</h3>
+          <div class="sub">For faculty whose name or class isn't in the timetable list.</div>
+        </div>
+      </div>
+      <div class="grid2">
+        <div class="field">
+          <label for="manualFaculty">Faculty name</label>
+          <input type="text" id="manualFaculty" placeholder="Your full name">
+        </div>
+        <div class="field">
+          <label for="manualDept">Department</label>
+          <select id="manualDept">
+            <option value="EE">EE</option>
+            <option value="CE">CE</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="manualDate">Date</label>
+          <input type="date" id="manualDate">
+        </div>
+        <div class="field">
+          <label for="manualSection">Section</label>
+          <input type="text" id="manualSection" placeholder="e.g. BEE-5A">
+        </div>
+        <div class="field">
+          <label for="manualSubject">Subject</label>
+          <input type="text" id="manualSubject" placeholder="Subject / course title">
+        </div>
+        <div class="field">
+          <label for="manualStart">Start time</label>
+          <input type="text" id="manualStart" placeholder="e.g. 08:00">
+        </div>
+        <div class="field">
+          <label for="manualEnd">End time</label>
+          <input type="text" id="manualEnd" placeholder="e.g. 09:20">
+        </div>
+        <div class="field">
+          <label>Online class held on scheduled time?</label>
+          <div class="radio-row">
+            <label><input type="radio" name="manual-held" value="yes"> Yes</label>
+            <label><input type="radio" name="manual-held" value="no"> No</label>
+          </div>
+        </div>
+        <div class="field">
+          <label for="manualStudents">Number of students present</label>
+          <input type="number" min="0" id="manualStudents" placeholder="e.g. 32">
+        </div>
+        <div class="field" style="grid-column: 1 / -1;">
+          <label>Lectures uploaded on GCR</label>
+          <div class="radio-row">
+            <label><input type="radio" name="manual-gcr" value="yes"> Yes</label>
+            <label><input type="radio" name="manual-gcr" value="no"> No</label>
+            <label><input type="radio" name="manual-gcr" value="not-active"> GCR not yet active</label>
+          </div>
+        </div>
+        <div class="field">
+          <label for="manualGcrCode">GCR code</label>
+          <input type="text" id="manualGcrCode" placeholder="e.g. ab12cd3">
+        </div>
+        <div class="field">
+          <label for="manualLink">Link for online class</label>
+          <input type="url" id="manualLink" placeholder="https://meet.google.com/... or Zoom/Teams link">
+        </div>
+        <div class="field" style="grid-column: 1 / -1;">
+          <label for="manualRemarks">Remarks/Comments</label>
+          <textarea id="manualRemarks" placeholder="Any observations, issues, or notes"></textarea>
+        </div>
+      </div>
+      <div class="card-footer">
+        <button class="primary" id="manualSubmitBtn">Submit record</button>
+        <span class="save-msg" id="manualSaveMsg"></span>
+      </div>
+    </div>
   </section>
 
   <!-- VIEW PANEL — EE -->
@@ -1450,6 +1532,83 @@ async function showClasses(){
 }
 
 document.getElementById('loadBtn').addEventListener('click', showClasses);
+
+// ---------- Manual submission (faculty/class not in the timetable list) ----------
+(function setupManualForm(){
+  const toggleBtn = document.getElementById('manualToggleBtn');
+  const form = document.getElementById('manualForm');
+  const dateEl = document.getElementById('manualDate');
+  dateEl.value = todayStr;
+
+  toggleBtn.addEventListener('click', ()=>{
+    const showing = form.style.display !== 'none';
+    form.style.display = showing ? 'none' : 'block';
+    toggleBtn.textContent = showing
+      ? "My name or schedule isn't listed — submit manually"
+      : 'Hide manual submission form';
+    if(!showing) form.scrollIntoView({behavior:'smooth', block:'nearest'});
+  });
+
+  document.getElementById('manualSubmitBtn').addEventListener('click', async ()=>{
+    const msgEl = document.getElementById('manualSaveMsg');
+    const faculty = document.getElementById('manualFaculty').value.trim();
+    const dept = document.getElementById('manualDept').value;
+    const dateStr = dateEl.value;
+    const section = document.getElementById('manualSection').value.trim();
+    const subject = document.getElementById('manualSubject').value.trim();
+    const start = document.getElementById('manualStart').value.trim();
+    const end = document.getElementById('manualEnd').value.trim();
+    const heldEl = form.querySelector('input[name="manual-held"]:checked');
+
+    if(!faculty || !dateStr || !subject){
+      msgEl.style.color = "var(--red)";
+      msgEl.textContent = "Please fill in at least faculty name, date, and subject.";
+      return;
+    }
+    if(!heldEl){
+      msgEl.style.color = "var(--red)";
+      msgEl.textContent = "Please select Yes or No for 'held on scheduled time'.";
+      return;
+    }
+
+    const d = new Date(dateStr + "T00:00:00");
+    const weekday = isNaN(d.getTime()) ? null : d.getDay();
+    const key = recordKey(dateStr, section || ('manual-' + faculty), start || Date.now().toString());
+
+    const record = {
+      date: dateStr,
+      weekday: weekday !== null ? DAY_NAMES[weekday] : '',
+      dept: dept,
+      section: section,
+      start: start,
+      end: end,
+      subject: subject,
+      faculty: faculty,
+      held: heldEl.value,
+      students: document.getElementById('manualStudents').value,
+      gcrUploaded: (form.querySelector('input[name="manual-gcr"]:checked') || {}).value || '',
+      gcrCode: document.getElementById('manualGcrCode').value,
+      link: document.getElementById('manualLink').value,
+      remarks: document.getElementById('manualRemarks').value,
+      loggedAt: new Date().toISOString(),
+      manual: true
+    };
+
+    try{
+      await setRecord(key, record);
+      msgEl.style.color = "var(--green)";
+      msgEl.textContent = "Saved.";
+      form.querySelectorAll('input[type=text], input[type=number], input[type=url], textarea').forEach(el=> el.value = '');
+      form.querySelectorAll('input[type=radio]:checked').forEach(el=> el.checked = false);
+      dateEl.value = todayStr;
+      document.getElementById('manualDept').value = 'EE';
+    }catch(e){
+      msgEl.style.color = "var(--red)";
+      msgEl.textContent = "Error saving record.";
+    }
+    setTimeout(()=>{ msgEl.textContent = ""; }, 3500);
+  });
+})();
 
 // ---------- View all records ----------
 // ---------- Stat cards (scheduled / held online for a specific day) ----------
