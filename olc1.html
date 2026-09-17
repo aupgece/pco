@@ -36,7 +36,7 @@
     border-bottom: 4px solid var(--amber);
   }
   header.top .wrap{
-    max-width: 1080px;
+    max-width: min(1800px, 97vw);
     margin: 0 auto;
     display:flex;
     justify-content: space-between;
@@ -57,7 +57,7 @@
     color: #cdd8e2;
   }
   nav.tabs{
-    max-width: 1080px;
+    max-width: min(1800px, 97vw);
     margin: 0 auto;
     display:flex;
     gap: 2px;
@@ -81,7 +81,7 @@
     font-weight: 600;
   }
   main{
-    max-width: 1080px;
+    max-width: min(1800px, 97vw);
     margin: 0 auto;
     padding: 28px 24px 60px;
   }
@@ -240,6 +240,59 @@
   .tag-no{ color: var(--red); font-weight:700; }
   .table-wrap{ overflow-x:auto; max-height: 560px; overflow-y:auto; border:1px solid var(--line); }
   .link-cell a{ color: var(--navy); }
+
+  /* ---- Compact admin/records tables so the full width fits without side-scrolling ---- */
+  #adminTable{ table-layout: fixed; width:100%; font-size: .78rem; }
+  #adminTable th, #adminTable td{ padding: 6px 7px; word-wrap: break-word; overflow-wrap: anywhere; }
+  #adminTable col.c-sel{ width: 34px; }
+  #adminTable col.c-dept{ width: 46px; }
+  #adminTable col.c-date{ width: 92px; }
+  #adminTable col.c-section{ width: 92px; }
+  #adminTable col.c-time{ width: 96px; }
+  #adminTable col.c-subject{ width: 15%; }
+  #adminTable col.c-faculty{ width: 12%; }
+  #adminTable col.c-held{ width: 58px; }
+  #adminTable col.c-gcr{ width: 74px; }
+  #adminTable col.c-gcrcode{ width: 88px; }
+  #adminTable col.c-students{ width: 62px; }
+  #adminTable col.c-link{ width: 66px; }
+  #adminTable col.c-remarks{ width: 14%; }
+  #adminTable col.c-logged{ width: 108px; }
+  #adminTable col.c-actions{ width: 78px; }
+  #adminTable .row-btn{ padding: 4px 7px; font-size: .72rem; }
+  #adminTable td:first-child, #adminTable th:first-child{ text-align:center; }
+  #adminTable input[type=checkbox]{ width:16px; height:16px; cursor:pointer; }
+  tr.row-selected > td{ background: #fdf3e6 !important; }
+
+  /* ---- Bulk delete bar ---- */
+  .bulk-bar{
+    display:flex;
+    align-items:center;
+    gap: 14px;
+    flex-wrap: wrap;
+    background: var(--paper-2);
+    border: 1px solid var(--line);
+    border-bottom: none;
+    padding: 10px 14px;
+    margin-top: 14px;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: .82rem;
+  }
+  .bulk-bar .sel-count{ color: var(--slate); }
+  .bulk-bar label.sel-all{ display:flex; align-items:center; gap:7px; cursor:pointer; }
+  .bulk-bar input[type=checkbox]{ width:16px; height:16px; cursor:pointer; }
+  button.danger{
+    font-family: Arial, Helvetica, sans-serif;
+    background: var(--red);
+    color:#fff;
+    border:none;
+    padding: 8px 14px;
+    font-size: .84rem;
+    cursor:pointer;
+  }
+  button.danger:disabled{ background:#cbb9b4; cursor: not-allowed; }
+  .bulk-bar + .table-wrap{ margin-top: 0; }
+  .bulk-bar + .table-wrap table.records{ margin-top: 0; }
   .note-shared{
     font-family: Arial, Helvetica, sans-serif;
     font-size: .78rem;
@@ -633,10 +686,22 @@
         <button class="primary" id="adminRefreshBtn">Refresh</button>
       </div>
       <p class="note-shared">Admin mode — edits and deletes save immediately to the shared database and cannot be undone.</p>
+      <div class="bulk-bar">
+        <label class="sel-all"><input type="checkbox" id="adminSelectAll"> Select all shown</label>
+        <span class="sel-count" id="adminSelCount">0 selected</span>
+        <button type="button" class="danger" id="adminDeleteSelectedBtn" disabled>Delete selected</button>
+        <button type="button" class="ghost" id="adminClearSelBtn">Clear selection</button>
+      </div>
       <div class="table-wrap">
         <table class="records" id="adminTable">
+          <colgroup>
+            <col class="c-sel"><col class="c-dept"><col class="c-date"><col class="c-section"><col class="c-time">
+            <col class="c-subject"><col class="c-faculty"><col class="c-held"><col class="c-gcr"><col class="c-gcrcode">
+            <col class="c-students"><col class="c-link"><col class="c-remarks"><col class="c-logged"><col class="c-actions">
+          </colgroup>
           <thead>
             <tr>
+              <th><input type="checkbox" id="adminSelectAllHead" title="Select all shown"></th>
               <th>Dept</th><th>Date</th><th>Section</th><th>Time</th><th>Subject</th><th>Faculty</th>
               <th>Held on time</th><th>GCR uploaded</th><th>GCR code</th><th>Students present</th><th>Link</th><th>Remarks/Comments</th><th>Logged at</th><th>Actions</th>
             </tr>
@@ -1751,7 +1816,7 @@ window._adminRecords = [];
 async function loadAdminTable(){
   const body = document.getElementById('adminBody');
   const countLine = document.getElementById('adminCountLine');
-  body.innerHTML = '<tr><td colspan="14">Loading…</td></tr>';
+  body.innerHTML = '<tr><td colspan="15">Loading…</td></tr>';
 
   const facFilter = document.getElementById('adminFilterFaculty').value;
   const dateFilter = document.getElementById('adminFilterDate').value;
@@ -1762,7 +1827,7 @@ async function loadAdminTable(){
     records = await listRecordsWithKeys();
   }catch(e){
     console.error(e);
-    body.innerHTML = '<tr><td colspan="14">Could not load records.</td></tr>';
+    body.innerHTML = '<tr><td colspan="15">Could not load records.</td></tr>';
     countLine.textContent = "";
     renderStatCards('admin', dateFilter, facFilter, [], allSchedule());
     return;
@@ -1780,7 +1845,7 @@ async function loadAdminTable(){
   renderStatCards('admin', dateFilter, facFilter, filtered, allSchedule());
 
   if(filtered.length === 0){
-    body.innerHTML = '<tr><td colspan="14">No records match the current filters.</td></tr>';
+    body.innerHTML = '<tr><td colspan="15">No records match the current filters.</td></tr>';
     countLine.textContent = `0 of ${records.length} total record(s).`;
     return;
   }
@@ -1794,6 +1859,78 @@ async function loadAdminTable(){
   body.querySelectorAll('.admin-delete-btn').forEach(btn=>{
     btn.addEventListener('click', ()=> handleAdminDelete(btn.dataset.key));
   });
+  body.querySelectorAll('.admin-row-check').forEach(cb=>{
+    cb.checked = adminSelectedKeys.has(cb.dataset.key);
+    cb.closest('tr').classList.toggle('row-selected', cb.checked);
+    cb.addEventListener('change', ()=>{
+      if(cb.checked) adminSelectedKeys.add(cb.dataset.key);
+      else adminSelectedKeys.delete(cb.dataset.key);
+      cb.closest('tr').classList.toggle('row-selected', cb.checked);
+      updateAdminSelectionUI();
+    });
+  });
+  updateAdminSelectionUI();
+}
+
+// ---------- Admin: multi-select + bulk delete ----------
+const adminSelectedKeys = new Set();
+
+function adminVisibleKeys(){
+  return (window._adminRecords || []).map(r=> r._key);
+}
+
+function updateAdminSelectionUI(){
+  // Drop any selections that are no longer visible under the current filters,
+  // so "Delete selected" never removes something the admin can't see.
+  const visible = new Set(adminVisibleKeys());
+  Array.from(adminSelectedKeys).forEach(k=>{ if(!visible.has(k)) adminSelectedKeys.delete(k); });
+
+  const n = adminSelectedKeys.size;
+  const countEl = document.getElementById('adminSelCount');
+  const delBtn = document.getElementById('adminDeleteSelectedBtn');
+  countEl.textContent = n === 0 ? '0 selected' : `${n} record${n===1?'':'s'} selected`;
+  delBtn.disabled = n === 0;
+  delBtn.textContent = n === 0 ? 'Delete selected' : `Delete selected (${n})`;
+
+  const allChecked = visible.size > 0 && n === visible.size;
+  const some = n > 0 && !allChecked;
+  ['adminSelectAll','adminSelectAllHead'].forEach(id=>{
+    const box = document.getElementById(id);
+    if(box){ box.checked = allChecked; box.indeterminate = some; }
+  });
+}
+
+function setAdminSelectAll(checked){
+  if(checked) adminVisibleKeys().forEach(k=> adminSelectedKeys.add(k));
+  else adminSelectedKeys.clear();
+  document.querySelectorAll('#adminBody .admin-row-check').forEach(cb=>{
+    cb.checked = checked;
+    cb.closest('tr').classList.toggle('row-selected', checked);
+  });
+  updateAdminSelectionUI();
+}
+
+async function handleAdminDeleteSelected(){
+  const keys = Array.from(adminSelectedKeys);
+  if(keys.length === 0) return;
+
+  const preview = keys.slice(0, 8).map(k=>{
+    const r = (window._adminRecords || []).find(x=> x._key === k);
+    return r ? `• ${r.date} · ${r.section} · ${r.start}–${r.end} (${r.faculty})` : `• ${k}`;
+  }).join('\n');
+  const more = keys.length > 8 ? `\n…and ${keys.length - 8} more` : '';
+  if(!confirm(`Delete ${keys.length} record${keys.length===1?'':'s'}?\n\n${preview}${more}\n\nThis cannot be undone.`)) return;
+
+  const btn = document.getElementById('adminDeleteSelectedBtn');
+  btn.disabled = true;
+  btn.textContent = 'Deleting…';
+  const failed = [];
+  for(const k of keys){
+    try{ await deleteRecordByKey(k); adminSelectedKeys.delete(k); }
+    catch(e){ console.error(e); failed.push(k); }
+  }
+  await loadAdminTable();
+  if(failed.length) alert(`${failed.length} record(s) could not be deleted. Please refresh and try again.`);
 }
 
 function renderAdminRowView(r){
@@ -1804,6 +1941,7 @@ function renderAdminRowView(r){
   const linkCell = r.link ? `<span class="link-cell"><a href="${r.link}" target="_blank" rel="noopener">Open link</a></span>` : '—';
   const loggedAt = r.loggedAt ? new Date(r.loggedAt).toLocaleString() : '';
   return `<tr data-key="${r._key}">
+    <td><input type="checkbox" class="admin-row-check" data-key="${r._key}"></td>
     <td>${r.dept || 'EE'}</td>
     <td>${r.date} <div style="color:var(--slate);font-size:.75rem;">${r.weekday||''}</div></td>
     <td>${r.section}</td>
@@ -1832,6 +1970,7 @@ function enterAdminEditMode(key){
   if(!rec || !row) return;
 
   row.innerHTML = `
+    <td></td>
     <td>
       <select class="e-dept">
         <option value="EE" ${(rec.dept||'EE')==='EE'?'selected':''}>EE</option>
@@ -1914,11 +2053,18 @@ async function handleAdminDelete(key){
   if(!confirm(`Delete this record?\n\n${label}\n\nThis cannot be undone.`)) return;
   try{
     await deleteRecordByKey(key);
+    adminSelectedKeys.delete(key);
     loadAdminTable();
   }catch(e){
     alert('Could not delete record: ' + e.message);
   }
 }
+
+['adminSelectAll','adminSelectAllHead'].forEach(id=>{
+  document.getElementById(id).addEventListener('change', e=> setAdminSelectAll(e.target.checked));
+});
+document.getElementById('adminDeleteSelectedBtn').addEventListener('click', handleAdminDeleteSelected);
+document.getElementById('adminClearSelBtn').addEventListener('click', ()=> setAdminSelectAll(false));
 
 document.getElementById('adminRefreshBtn').addEventListener('click', loadAdminTable);
 document.getElementById('adminFilterDate').addEventListener('change', loadAdminTable);
