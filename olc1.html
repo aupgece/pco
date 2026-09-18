@@ -303,6 +303,13 @@
     margin: -6px 0 14px;
   }
   .edit-hint.found{ color: var(--green); font-weight:600; }
+  .select-line{
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--navy);
+    margin: 0 0 14px;
+  }
   .present-notice{
     font-family: Arial, Helvetica, sans-serif;
     font-size: .95rem;
@@ -588,6 +595,7 @@
 
   <!-- RECORD PANEL -->
   <section id="panelRecord" class="panel active">
+    <p class="select-line">Select your name and a date to see your scheduled classes.</p>
     <div class="controls">
       <div class="field combo-field">
         <label for="facultySelect">Faculty member</label>
@@ -603,7 +611,8 @@
     </div>
 
     <div class="present-notice" id="presentNotice">
-      Please mention the number of students present during or after the conduct of the online class. Records without it are marked as incomplete.
+      Please mention the number of students present during or after the conduct of the online class. Records without it are marked as incomplete.<br>
+      To edit a submitted record, select your name and the date again.
     </div>
 
     <div id="dayHeading"></div>
@@ -1600,7 +1609,7 @@ async function showClasses(){
   heading.innerHTML = "";
 
   if(!fac || !dateStr){
-    list.innerHTML = '<p class="empty-note">Select your name and a date to see your scheduled classes.</p>';
+    list.innerHTML = '';
     return;
   }
 
