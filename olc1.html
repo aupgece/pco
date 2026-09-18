@@ -283,6 +283,26 @@
   table.records tbody tr:hover{ background: #f1eee4; }
   .tag-yes{ color: var(--green); font-weight:700; }
   .tag-no{ color: var(--red); font-weight:700; }
+  .recorded-badge{
+    display:inline-block;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: .78rem;
+    font-weight: 700;
+    color: var(--navy);
+    background: #eef1e4;
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    padding: 3px 12px;
+    margin-left: 8px;
+    vertical-align: middle;
+  }
+  .edit-hint{
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: .85rem;
+    color: var(--slate);
+    margin: -6px 0 14px;
+  }
+  .edit-hint.found{ color: var(--green); font-weight:600; }
   .table-wrap{ overflow-x:auto; max-height: 560px; overflow-y:auto; border:1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow-sm); -webkit-overflow-scrolling: touch; }
   #adminTable th{ position: static; }
   .link-cell a{ color: var(--navy); font-weight:600; }
@@ -574,6 +594,7 @@
           <div class="sub">For faculty whose name or class isn't in the timetable list.</div>
         </div>
       </div>
+      <p class="edit-hint" id="manualEditHint">Fill in your name, date, section and start time first — if you already submitted this class, it will load automatically so you can correct the enrolled/present numbers.</p>
       <div class="grid2">
         <div class="field">
           <label for="manualFaculty">Faculty name</label>
@@ -648,6 +669,7 @@
       </div>
       <div class="card-footer">
         <button class="primary" id="manualSubmitBtn">Submit record</button>
+        <button type="button" class="ghost" id="manualClearBtn">Clear form (start a new entry)</button>
         <span class="save-msg" id="manualSaveMsg"></span>
       </div>
     </div>
@@ -1578,7 +1600,7 @@ async function showClasses(){
     card.innerHTML = `
       <div class="meta">
         <div>
-          <h3>${c.subject}</h3>
+          <h3>${c.subject}<span class="recorded-badge" style="display:none;">Already submitted — edit below</span></h3>
           <div class="sub"><strong>${c.dept || 'EE'}</strong> &nbsp;·&nbsp; ${c.section} &nbsp;·&nbsp; Room/Venue: ${c.room}</div>
         </div>
         <div class="time-badge">${c.start} – ${c.end}</div>
@@ -1649,6 +1671,8 @@ async function showClasses(){
         card.querySelector('.gcrcode-input').value = rec.gcrCode ?? '';
         card.querySelector('.link-input').value = rec.link ?? '';
         card.querySelector('.remarks-input').value = rec.remarks ?? '';
+        card.querySelector('.recorded-badge').style.display = 'inline-block';
+        card.querySelector('.save-btn').textContent = 'Update record';
       }
     }catch(e){ /* no existing record, ignore */ }
 
@@ -1710,6 +1734,8 @@ async function showClasses(){
         await setRecord(key, record);
         msgEl.style.color = "var(--green)";
         msgEl.textContent = "Saved automatically.";
+        card.querySelector('.recorded-badge').style.display = 'inline-block';
+        card.querySelector('.save-btn').textContent = 'Update record';
       }catch(e){
         msgEl.style.color = "var(--red)";
         msgEl.textContent = "Error saving record.";
@@ -1745,7 +1771,15 @@ document.getElementById('dateInput').addEventListener('change', showClasses);
   const toggleBtn = document.getElementById('manualToggleBtn');
   const form = document.getElementById('manualForm');
   const dateEl = document.getElementById('manualDate');
+  const submitBtn = document.getElementById('manualSubmitBtn');
+  const clearBtn = document.getElementById('manualClearBtn');
+  const hintEl = document.getElementById('manualEditHint');
   dateEl.value = todayStr;
+
+  // Tracks the record currently loaded into the form for editing (if any),
+  // so re-submitting the same identity (faculty/date/section/start) updates
+  // that record instead of silently creating a duplicate.
+  let loadedKey = null;
 
   toggleBtn.addEventListener('click', ()=>{
     const showing = form.style.display !== 'none';
@@ -1766,7 +1800,92 @@ document.getElementById('dateInput').addEventListener('change', showClasses);
   document.getElementById('manualEnrolled').addEventListener('input', recalcManualAbsent);
   document.getElementById('manualStudents').addEventListener('input', recalcManualAbsent);
 
-  document.getElementById('manualSubmitBtn').addEventListener('click', async ()=>{
+  function currentIdentity(){
+    return {
+      faculty: document.getElementById('manualFaculty').value.trim(),
+      dateStr: dateEl.value,
+      section: document.getElementById('manualSection').value.trim(),
+      start: document.getElementById('manualStart').value.trim()
+    };
+  }
+
+  function clearVolatileFields(){
+    // Wipes only the "how did the class go" fields, never the identity
+    // fields the person is still typing (faculty/date/section/start/subject).
+    form.querySelectorAll('input[name="manual-held"]:checked, input[name="manual-gcr"]:checked').forEach(el=> el.checked = false);
+    document.getElementById('manualEnrolled').value = '';
+    document.getElementById('manualStudents').value = '';
+    document.getElementById('manualAbsent').value = '';
+    document.getElementById('manualGcrCode').value = '';
+    document.getElementById('manualLink').value = '';
+    document.getElementById('manualRemarks').value = '';
+  }
+
+  // Looks up whether this faculty/date/section/start combination was already
+  // submitted, and if so loads it into the form so the enrolled/present
+  // counts (or anything else) can be corrected in place, user-friendly style —
+  // no need to hunt through the Admin tab just to fix a headcount.
+  async function tryLoadManualRecord(){
+    const {faculty, dateStr, section, start} = currentIdentity();
+    if(!faculty || !dateStr || !start){
+      if(loadedKey){ loadedKey = null; clearVolatileFields(); }
+      submitBtn.textContent = 'Submit record';
+      hintEl.classList.remove('found');
+      hintEl.textContent = 'Fill in your name, date, section and start time first — if you already submitted this class, it will load automatically so you can correct the enrolled/present numbers.';
+      return;
+    }
+    const key = recordKey(dateStr, section || ('manual-' + faculty), start);
+    let rec = null;
+    try{ rec = await getRecord(key); }catch(e){ /* not found */ }
+
+    if(rec){
+      loadedKey = key;
+      document.getElementById('manualDept').value = rec.dept || 'EE';
+      document.getElementById('manualSubject').value = rec.subject || '';
+      document.getElementById('manualEnd').value = rec.end || '';
+      if(rec.held === 'yes' || rec.held === 'no'){
+        const el = form.querySelector(`input[name="manual-held"][value="${rec.held}"]`);
+        if(el) el.checked = true;
+      }
+      document.getElementById('manualEnrolled').value = rec.totalEnrolled ?? '';
+      document.getElementById('manualStudents').value = rec.students ?? '';
+      document.getElementById('manualAbsent').value = rec.absent ?? '';
+      if(rec.gcrUploaded){
+        const gEl = form.querySelector(`input[name="manual-gcr"][value="${rec.gcrUploaded}"]`);
+        if(gEl) gEl.checked = true;
+      }
+      document.getElementById('manualGcrCode').value = rec.gcrCode || '';
+      document.getElementById('manualLink').value = rec.link || '';
+      document.getElementById('manualRemarks').value = rec.remarks || '';
+      submitBtn.textContent = 'Update record';
+      hintEl.classList.add('found');
+      hintEl.textContent = 'Already submitted — loaded below. Edit the enrolled/present numbers (or anything else) and click "Update record" to save the change.';
+    } else {
+      if(loadedKey){ clearVolatileFields(); }
+      loadedKey = null;
+      submitBtn.textContent = 'Submit record';
+      hintEl.classList.remove('found');
+      hintEl.textContent = "No existing submission found for this name/date/section/start — this will be saved as a new record.";
+    }
+  }
+  ['manualFaculty','manualSection','manualStart','manualDate'].forEach(id=>{
+    document.getElementById(id).addEventListener('change', tryLoadManualRecord);
+    document.getElementById(id).addEventListener('blur', tryLoadManualRecord);
+  });
+
+  clearBtn.addEventListener('click', ()=>{
+    form.querySelectorAll('input[type=text], input[type=number], input[type=url], textarea').forEach(el=> el.value = '');
+    form.querySelectorAll('input[type=radio]:checked').forEach(el=> el.checked = false);
+    dateEl.value = todayStr;
+    document.getElementById('manualDept').value = 'EE';
+    loadedKey = null;
+    submitBtn.textContent = 'Submit record';
+    hintEl.classList.remove('found');
+    hintEl.textContent = 'Fill in your name, date, section and start time first — if you already submitted this class, it will load automatically so you can correct the enrolled/present numbers.';
+    document.getElementById('manualSaveMsg').textContent = '';
+  });
+
+  submitBtn.addEventListener('click', async ()=>{
     const msgEl = document.getElementById('manualSaveMsg');
     const faculty = document.getElementById('manualFaculty').value.trim();
     const dept = document.getElementById('manualDept').value;
@@ -1790,7 +1909,11 @@ document.getElementById('dateInput').addEventListener('change', showClasses);
 
     const d = new Date(dateStr + "T00:00:00");
     const weekday = isNaN(d.getTime()) ? null : d.getDay();
-    const key = recordKey(dateStr, section || ('manual-' + faculty), start || Date.now().toString());
+    // If we loaded an existing record above, reuse its exact key so this
+    // submission updates it in place rather than creating a duplicate. Start
+    // time is otherwise required for a stable, re-findable key.
+    const key = loadedKey || recordKey(dateStr, section || ('manual-' + faculty), start || Date.now().toString());
+    const isUpdate = !!loadedKey;
 
     const record = {
       date: dateStr,
@@ -1815,17 +1938,15 @@ document.getElementById('dateInput').addEventListener('change', showClasses);
 
     try{
       await setRecord(key, record);
+      loadedKey = key;
+      submitBtn.textContent = 'Update record';
       msgEl.style.color = "var(--green)";
-      msgEl.textContent = "Saved.";
-      form.querySelectorAll('input[type=text], input[type=number], input[type=url], textarea').forEach(el=> el.value = '');
-      form.querySelectorAll('input[type=radio]:checked').forEach(el=> el.checked = false);
-      dateEl.value = todayStr;
-      document.getElementById('manualDept').value = 'EE';
+      msgEl.textContent = isUpdate ? "Updated." : "Saved. You can keep editing the fields above (e.g. enrolled/present) and press \u201cUpdate record\u201d again any time — or use \u201cClear form\u201d to start a new entry.";
     }catch(e){
       msgEl.style.color = "var(--red)";
       msgEl.textContent = "Error saving record.";
     }
-    setTimeout(()=>{ msgEl.textContent = ""; }, 3500);
+    setTimeout(()=>{ msgEl.textContent = ""; }, isUpdate ? 3500 : 6000);
   });
 })();
 
