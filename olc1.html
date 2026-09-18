@@ -283,29 +283,34 @@
   table.records tbody tr:hover{ background: #f1eee4; }
   .tag-yes{ color: var(--green); font-weight:700; }
   .tag-no{ color: var(--red); font-weight:700; }
-  .table-wrap{ overflow-x:auto; max-height: 560px; overflow-y:auto; border:1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow-sm); }
+  .table-wrap{ overflow-x:auto; max-height: 560px; overflow-y:auto; border:1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow-sm); -webkit-overflow-scrolling: touch; }
+  #adminTable th{ position: static; }
   .link-cell a{ color: var(--navy); font-weight:600; }
 
   /* ---- Compact admin/records tables so the full width fits without side-scrolling ---- */
-  #adminTable{ table-layout: fixed; width:100%; font-size: .82rem; }
-  #adminTable th, #adminTable td{ padding: 8px 8px; word-wrap: break-word; overflow-wrap: anywhere; }
-  #adminTable col.c-sel{ width: 38px; }
-  #adminTable col.c-dept{ width: 50px; }
-  #adminTable col.c-date{ width: 96px; }
-  #adminTable col.c-section{ width: 96px; }
-  #adminTable col.c-time{ width: 92px; }
-  #adminTable col.c-subject{ width: 13%; }
-  #adminTable col.c-faculty{ width: 11%; }
-  #adminTable col.c-held{ width: 62px; }
-  #adminTable col.c-gcr{ width: 78px; }
-  #adminTable col.c-gcrcode{ width: 82px; }
-  #adminTable col.c-enrolled{ width: 62px; }
-  #adminTable col.c-students{ width: 62px; }
-  #adminTable col.c-absent{ width: 62px; }
-  #adminTable col.c-link{ width: 70px; }
-  #adminTable col.c-remarks{ width: 12%; }
-  #adminTable col.c-logged{ width: 104px; }
-  #adminTable col.c-actions{ width: 86px; }
+  /* Fixed pixel widths for EVERY column + a min-width on the table. Percentage
+     columns used to collapse to ~0px on phones (text stacked one letter per line and
+     overlapped the neighbouring column). Now the table keeps its natural width and the
+     .table-wrap container scrolls sideways on small screens instead. */
+  #adminTable{ table-layout: fixed; width:100%; min-width: 1700px; font-size: .82rem; }
+  #adminTable th, #adminTable td{ padding: 8px 8px; word-wrap: break-word; overflow-wrap: break-word; word-break: normal; }
+  #adminTable col.c-sel{ width: 40px; }
+  #adminTable col.c-dept{ width: 60px; }
+  #adminTable col.c-date{ width: 116px; }
+  #adminTable col.c-section{ width: 100px; }
+  #adminTable col.c-time{ width: 130px; }
+  #adminTable col.c-subject{ width: 150px; }
+  #adminTable col.c-faculty{ width: 130px; }
+  #adminTable col.c-held{ width: 76px; }
+  #adminTable col.c-gcr{ width: 100px; }
+  #adminTable col.c-gcrcode{ width: 96px; }
+  #adminTable col.c-enrolled{ width: 76px; }
+  #adminTable col.c-students{ width: 76px; }
+  #adminTable col.c-absent{ width: 76px; }
+  #adminTable col.c-link{ width: 110px; }
+  #adminTable col.c-remarks{ width: 150px; }
+  #adminTable col.c-logged{ width: 110px; }
+  #adminTable col.c-actions{ width: 104px; }
   #adminTable .row-btn{ padding: 5px 8px; font-size: .76rem; }
   #adminTable td:first-child, #adminTable th:first-child{ text-align:center; }
   #adminTable input[type=checkbox]{ width:17px; height:17px; cursor:pointer; }
@@ -509,6 +514,16 @@
   table.edit-schedule-table select{ min-width: 0; width:100%; padding:6px 7px; font-size:.88rem; }
   .manual-toggle-wrap{ margin-top: 26px; }
   .manual-card{ margin-top: 16px; }
+  /* ---- Small-screen tweaks ---- */
+  @media (max-width: 640px){
+    header.top{ padding: 24px 16px 18px; }
+    nav.tabs{ padding: 0 16px; }
+    main{ padding: 22px 14px 60px; }
+    .controls{ padding: 16px; gap: 14px; }
+    .controls .field{ flex: 1 1 100%; }
+    select, input[type=date], input[type=text], input[type=number], input[type=url]{ min-width: 0; width: 100%; }
+    .bulk-bar{ padding: 12px 14px; gap: 10px; }
+  }
 </style>
 </head>
 <body>
@@ -1957,7 +1972,7 @@ window._adminRecords = [];
 async function loadAdminTable(){
   const body = document.getElementById('adminBody');
   const countLine = document.getElementById('adminCountLine');
-  body.innerHTML = '<tr><td colspan="15">Loading…</td></tr>';
+  body.innerHTML = '<tr><td colspan="17">Loading…</td></tr>';
 
   const facFilter = document.getElementById('adminFilterFaculty').value;
   const dateFilter = document.getElementById('adminFilterDate').value;
@@ -1968,7 +1983,7 @@ async function loadAdminTable(){
     records = await listRecordsWithKeys();
   }catch(e){
     console.error(e);
-    body.innerHTML = '<tr><td colspan="15">Could not load records.</td></tr>';
+    body.innerHTML = '<tr><td colspan="17">Could not load records.</td></tr>';
     countLine.textContent = "";
     renderStatCards('admin', dateFilter, facFilter, [], allSchedule());
     return;
@@ -1986,7 +2001,7 @@ async function loadAdminTable(){
   renderStatCards('admin', dateFilter, facFilter, filtered, allSchedule());
 
   if(filtered.length === 0){
-    body.innerHTML = '<tr><td colspan="15">No records match the current filters.</td></tr>';
+    body.innerHTML = '<tr><td colspan="17">No records match the current filters.</td></tr>';
     countLine.textContent = `0 of ${records.length} total record(s).`;
     return;
   }
@@ -2123,7 +2138,7 @@ function enterAdminEditMode(key){
     <td><input type="date" class="e-date" value="${esc(rec.date)}"></td>
     <td><input type="text" class="e-section" value="${esc(rec.section)}"></td>
     <td>
-      <input type="text" class="e-start" value="${esc(rec.start)}" style="width:64px;">–<input type="text" class="e-end" value="${esc(rec.end)}" style="width:64px;">
+      <input type="text" class="e-start" value="${esc(rec.start)}" style="width:calc(50% - 7px);">–<input type="text" class="e-end" value="${esc(rec.end)}" style="width:calc(50% - 7px);">
     </td>
     <td><input type="text" class="e-subject" value="${esc(rec.subject)}"></td>
     <td><input type="text" class="e-faculty" value="${esc(rec.faculty)}"></td>
