@@ -611,7 +611,6 @@
     </div>
 
     <div class="present-notice" id="presentNotice">
-      Please mention the number of students present during or after the conduct of the online class. Records without it are marked as incomplete.<br>
       To edit a submitted record, select your name and the date again.
     </div>
 
@@ -860,6 +859,50 @@
         </table>
       </div>
       <p class="count-line" id="adminCountLine"></p>
+
+      <div class="admin-block">
+        <h3>Non-compliance report — faculty who did not initiate online classes</h3>
+        <p class="hint">Scans the timetable against submitted records over a date range and lists every scheduled class that has either no record at all ("No record submitted" — the faculty member never logged it) or a record marked "Held on scheduled time: No". Use this to follow up with faculty who did not initiate/effect their online classes.</p>
+        <div class="controls">
+          <div class="field">
+            <label for="reportFromDate">From date</label>
+            <input type="date" id="reportFromDate">
+          </div>
+          <div class="field">
+            <label for="reportToDate">To date</label>
+            <input type="date" id="reportToDate">
+          </div>
+          <div class="field">
+            <label for="reportDept">Department</label>
+            <select id="reportDept">
+              <option value="">All departments</option>
+              <option value="EE">EE</option>
+              <option value="CE">CE</option>
+            </select>
+          </div>
+          <div class="field combo-field">
+            <label for="reportFaculty">Faculty</label>
+            <div class="combo-wrap">
+              <input type="text" id="reportFaculty" placeholder="All faculty" autocomplete="off">
+              <div class="combo-list" id="reportFacultyList"></div>
+            </div>
+          </div>
+          <button class="primary" id="reportGenerateBtn">Generate report</button>
+          <button class="ghost" id="reportExportBtn">Export CSV</button>
+        </div>
+        <p class="upload-status" id="reportStatus"></p>
+        <div class="table-wrap">
+          <table class="records" id="reportTable">
+            <thead>
+              <tr>
+                <th>Date</th><th>Weekday</th><th>Dept</th><th>Section</th><th>Time</th><th>Subject</th><th>Faculty</th><th>Reason</th>
+              </tr>
+            </thead>
+            <tbody id="reportBody"></tbody>
+          </table>
+        </div>
+        <p class="count-line" id="reportCountLine"></p>
+      </div>
 
       <div class="admin-block">
         <h3>Upload latest EE timetable</h3>
@@ -2148,6 +2191,132 @@ function exportRecordsCsv(dept){
 }
 document.getElementById('exportBtnEE').addEventListener('click', ()=> exportRecordsCsv('EE'));
 document.getElementById('exportBtnCE').addEventListener('click', ()=> exportRecordsCsv('CE'));
+
+// ---------- Admin: non-compliance report (faculty who did not initiate online classes) ----------
+window._nonComplianceRows = [];
+setupFacultyCombo('reportFaculty', 'reportFacultyList', 'All faculty', ()=> facultyList, ()=>{});
+
+async function generateNonComplianceReport(){
+  const statusEl = document.getElementById('reportStatus');
+  const fromStr = document.getElementById('reportFromDate').value;
+  const toStr = document.getElementById('reportToDate').value;
+  const deptSel = document.getElementById('reportDept').value;
+  const facFilterVal = document.getElementById('reportFaculty').value;
+
+  if(!fromStr || !toStr){
+    statusEl.className = 'upload-status err';
+    statusEl.textContent = 'Pick both a "From date" and a "To date".';
+    return;
+  }
+  const from = new Date(fromStr + 'T00:00:00');
+  const to = new Date(toStr + 'T00:00:00');
+  if(isNaN(from.getTime()) || isNaN(to.getTime()) || from > to){
+    statusEl.className = 'upload-status err';
+    statusEl.textContent = 'The "From date" must be on or before the "To date".';
+    return;
+  }
+  // Cap the scan to a reasonable span so a mis-picked date range can't hang the browser.
+  const MAX_DAYS = 366;
+  const spanDays = Math.round((to - from) / 86400000) + 1;
+  if(spanDays > MAX_DAYS){
+    statusEl.className = 'upload-status err';
+    statusEl.textContent = `That range is ${spanDays} days — please pick a range of ${MAX_DAYS} days or fewer.`;
+    return;
+  }
+
+  statusEl.className = 'upload-status';
+  statusEl.textContent = 'Generating…';
+
+  let allRecords = [];
+  try{ allRecords = await listRecords(); }
+  catch(e){ console.error(e); statusEl.className = 'upload-status err'; statusEl.textContent = 'Could not load records.'; return; }
+
+  // Index existing records by their record key so each scheduled class can be
+  // looked up in O(1) rather than re-scanning the full record list per class.
+  const recordByKey = {};
+  allRecords.forEach(r=>{
+    if(!r || !r.date || !r.section || !r.start) return;
+    recordByKey[fbKey(recordKey(r.date, r.section, r.start))] = r;
+  });
+
+  const facKey = facFilterVal ? normFacultyKey(facFilterVal) : null;
+  const rows = [];
+  const cursor = new Date(from);
+  while(cursor <= to){
+    const dateStr = cursor.toISOString().slice(0,10);
+    const wd = cursor.getDay();
+    const classesToday = allSchedule().filter(c=>{
+      if(c.day !== wd) return false;
+      if(deptSel && (c.dept || 'EE') !== deptSel) return false;
+      if(facKey && normFacultyKey(c.faculty) !== facKey) return false;
+      return true;
+    });
+    classesToday.forEach(c=>{
+      const rec = recordByKey[fbKey(recordKey(dateStr, c.section, c.start))];
+      if(!rec){
+        rows.push({date: dateStr, weekday: DAY_NAMES[wd], dept: c.dept || 'EE', section: c.section, start: c.start, end: c.end, subject: c.subject, faculty: c.faculty, reason: 'No record submitted'});
+      } else if(rec.held === 'no'){
+        rows.push({date: dateStr, weekday: DAY_NAMES[wd], dept: c.dept || 'EE', section: c.section, start: c.start, end: c.end, subject: c.subject, faculty: c.faculty, reason: rec.remarks ? `Marked not held — ${rec.remarks}` : 'Marked not held'});
+      }
+    });
+    cursor.setDate(cursor.getDate() + 1);
+  }
+  rows.sort((a,b)=> (a.date + a.start).localeCompare(b.date + b.start) || a.faculty.localeCompare(b.faculty));
+
+  window._nonComplianceRows = rows;
+  renderNonComplianceReport(rows, fromStr, toStr);
+}
+
+function renderNonComplianceReport(rows, fromStr, toStr){
+  const body = document.getElementById('reportBody');
+  const countLine = document.getElementById('reportCountLine');
+  const statusEl = document.getElementById('reportStatus');
+
+  if(rows.length === 0){
+    body.innerHTML = '<tr><td colspan="8">No missed or non-initiated online classes found for this range/filters.</td></tr>';
+    countLine.textContent = '';
+    statusEl.className = 'upload-status';
+    statusEl.textContent = `Checked ${fromStr} to ${toStr}.`;
+    return;
+  }
+
+  body.innerHTML = rows.map(r=>`<tr>
+    <td>${r.date}</td>
+    <td>${r.weekday}</td>
+    <td>${r.dept}</td>
+    <td>${r.section}</td>
+    <td>${r.start}–${r.end}</td>
+    <td>${r.subject}</td>
+    <td>${r.faculty}</td>
+    <td><span class="tag-no">${r.reason.replace(/</g,'&lt;')}</span></td>
+  </tr>`).join('');
+
+  const facultyCount = new Set(rows.map(r=> normFacultyKey(r.faculty))).size;
+  countLine.textContent = `${rows.length} non-initiated/non-held class${rows.length===1?'':'es'} across ${facultyCount} faculty member${facultyCount===1?'':'s'}, ${fromStr} to ${toStr}.`;
+  statusEl.className = 'upload-status';
+  statusEl.textContent = `Checked ${fromStr} to ${toStr}.`;
+}
+
+function exportNonComplianceCsv(){
+  const rows = window._nonComplianceRows || [];
+  if(rows.length === 0){ alert('Generate a report first (or nothing was found for the current range/filters).'); return; }
+  const headers = ["Date","Weekday","Dept","Section","Start","End","Subject","Faculty","Reason"];
+  const csvRows = [headers.join(",")];
+  rows.forEach(r=>{
+    const line = [r.date, r.weekday, r.dept, r.section, r.start, r.end, r.subject, r.faculty, r.reason]
+      .map(v => `"${String(v ?? '').replace(/"/g,'""')}"`).join(",");
+    csvRows.push(line);
+  });
+  const blob = new Blob([csvRows.join("\n")], {type:"text/csv"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `online_class_non_compliance_${todayStr}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+document.getElementById('reportGenerateBtn').addEventListener('click', generateNonComplianceReport);
+document.getElementById('reportExportBtn').addEventListener('click', exportNonComplianceCsv);
 
 // ---------- Admin: view / edit / delete any record ----------
 window._adminRecords = [];
