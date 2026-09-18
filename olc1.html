@@ -542,7 +542,6 @@
         <label for="dateInput">Date/Day of Online Class as per Timetable</label>
         <input type="date" id="dateInput">
       </div>
-      <button class="primary" id="loadBtn">Show my classes</button>
     </div>
 
     <div id="dayHeading"></div>
@@ -1341,7 +1340,7 @@ function setupFacultyCombo(inputId, listId, blankLabel, getList, onSelect){
     if(onSelect) onSelect(input.value);
   });
 }
-setupFacultyCombo('facultySelect', 'facultySelectList', '— select your name —', ()=> facultyList);
+setupFacultyCombo('facultySelect', 'facultySelectList', '— select your name —', ()=> facultyList, ()=> showClasses());
 setupFacultyCombo('filterFacultyEE', 'filterFacultyListEE', 'All EE faculty', ()=> facultyListEE, ()=> loadRecordsTable('EE'));
 setupFacultyCombo('filterFacultyCE', 'filterFacultyListCE', 'All CE faculty', ()=> facultyListCE, ()=> loadRecordsTable('CE'));
 setupFacultyCombo('adminFilterFaculty', 'adminFilterFacultyList', 'All faculty', ()=> facultyList, ()=> loadAdminTable());
@@ -1593,7 +1592,7 @@ async function showClasses(){
         </div>
       </div>
       <div class="card-footer">
-        <button class="primary save-btn">Submit record</button>
+        <button class="primary save-btn">Submit now</button>
         <span class="save-msg"></span>
       </div>
     `;
@@ -1618,21 +1617,23 @@ async function showClasses(){
       }
     }catch(e){ /* no existing record, ignore */ }
 
-    // held-on-time radio -> live border color
+    // held-on-time radio -> live border color + save
     card.querySelectorAll(`input[name="held-${key}"]`).forEach(r=>{
       r.addEventListener('change', ()=>{
         card.classList.remove('status-yes','status-no');
         card.classList.add(r.value === 'yes' ? 'status-yes' : 'status-no');
+        saveCardNow();
       });
     });
 
-    // save
-    card.querySelector('.save-btn').addEventListener('click', async ()=>{
+    const msgEl = card.querySelector('.save-msg');
+    let autoSaveTimer = null;
+
+    async function saveCardNow(){
       const heldEl = card.querySelector(`input[name="held-${key}"]:checked`);
-      const msgEl = card.querySelector('.save-msg');
       if(!heldEl){
         msgEl.style.color = "var(--red)";
-        msgEl.textContent = "Please select Yes or No before saving.";
+        msgEl.textContent = "Select Yes or No to save.";
         return;
       }
       const record = {
@@ -1653,20 +1654,39 @@ async function showClasses(){
         remarks: card.querySelector('.remarks-input').value,
         loggedAt: new Date().toISOString()
       };
+      msgEl.style.color = "var(--slate)";
+      msgEl.textContent = "Saving…";
       try{
         await setRecord(key, record);
         msgEl.style.color = "var(--green)";
-        msgEl.textContent = "Saved.";
+        msgEl.textContent = "Saved automatically.";
       }catch(e){
         msgEl.style.color = "var(--red)";
         msgEl.textContent = "Error saving record.";
       }
-      setTimeout(()=>{ msgEl.textContent = ""; }, 3500);
-    });
+      setTimeout(()=>{ if(msgEl.textContent !== "Saving…") msgEl.textContent = ""; }, 3500);
+    }
+
+    // Every other field auto-saves too, so filling the card in is normally
+    // all it takes — the button below stays as a manual "save now" option.
+    function saveCardDebounced(){
+      msgEl.style.color = "var(--slate)";
+      msgEl.textContent = "Typing…";
+      clearTimeout(autoSaveTimer);
+      autoSaveTimer = setTimeout(saveCardNow, 700);
+    }
+    card.querySelectorAll(`input[name="gcr-${key}"]`).forEach(r=> r.addEventListener('change', saveCardNow));
+    card.querySelector('.students-input').addEventListener('input', saveCardDebounced);
+    card.querySelector('.gcrcode-input').addEventListener('input', saveCardDebounced);
+    card.querySelector('.link-input').addEventListener('input', saveCardDebounced);
+    card.querySelector('.remarks-input').addEventListener('input', saveCardDebounced);
+
+    // save (manual "save now" button — auto-save above already covers most cases)
+    card.querySelector('.save-btn').addEventListener('click', ()=>{ clearTimeout(autoSaveTimer); saveCardNow(); });
   }
 }
 
-document.getElementById('loadBtn').addEventListener('click', showClasses);
+document.getElementById('dateInput').addEventListener('change', showClasses);
 
 // ---------- Manual submission (faculty/class not in the timetable list) ----------
 (function setupManualForm(){
