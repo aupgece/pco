@@ -293,16 +293,18 @@
   #adminTable col.c-dept{ width: 50px; }
   #adminTable col.c-date{ width: 96px; }
   #adminTable col.c-section{ width: 96px; }
-  #adminTable col.c-time{ width: 100px; }
-  #adminTable col.c-subject{ width: 15%; }
-  #adminTable col.c-faculty{ width: 12%; }
+  #adminTable col.c-time{ width: 92px; }
+  #adminTable col.c-subject{ width: 13%; }
+  #adminTable col.c-faculty{ width: 11%; }
   #adminTable col.c-held{ width: 62px; }
   #adminTable col.c-gcr{ width: 78px; }
-  #adminTable col.c-gcrcode{ width: 90px; }
-  #adminTable col.c-students{ width: 66px; }
+  #adminTable col.c-gcrcode{ width: 82px; }
+  #adminTable col.c-enrolled{ width: 62px; }
+  #adminTable col.c-students{ width: 62px; }
+  #adminTable col.c-absent{ width: 62px; }
   #adminTable col.c-link{ width: 70px; }
-  #adminTable col.c-remarks{ width: 14%; }
-  #adminTable col.c-logged{ width: 112px; }
+  #adminTable col.c-remarks{ width: 12%; }
+  #adminTable col.c-logged{ width: 104px; }
   #adminTable col.c-actions{ width: 86px; }
   #adminTable .row-btn{ padding: 5px 8px; font-size: .76rem; }
   #adminTable td:first-child, #adminTable th:first-child{ text-align:center; }
@@ -597,8 +599,16 @@
           </div>
         </div>
         <div class="field">
-          <label for="manualStudents">Number of students present</label>
+          <label for="manualEnrolled">Total students enrolled</label>
+          <input type="number" min="0" id="manualEnrolled" placeholder="e.g. 40">
+        </div>
+        <div class="field">
+          <label for="manualStudents">Students present</label>
           <input type="number" min="0" id="manualStudents" placeholder="e.g. 32">
+        </div>
+        <div class="field">
+          <label for="manualAbsent">Students absent</label>
+          <input type="number" min="0" id="manualAbsent" placeholder="Auto-calculated">
         </div>
         <div class="field" style="grid-column: 1 / -1;">
           <label>Lectures uploaded on GCR</label>
@@ -663,7 +673,7 @@
         <thead>
           <tr>
             <th>Date</th><th>Section</th><th>Time</th><th>Subject</th><th>Faculty</th>
-            <th>Held on time</th><th>GCR uploaded</th><th>GCR code</th><th>Students present</th><th>Link</th><th>Remarks/Comments</th><th>Logged at</th>
+            <th>Held on time</th><th>GCR uploaded</th><th>GCR code</th><th>Enrolled</th><th>Present</th><th>Absent</th><th>Link</th><th>Remarks/Comments</th><th>Logged at</th>
           </tr>
         </thead>
         <tbody id="recordsBodyEE"></tbody>
@@ -707,7 +717,7 @@
         <thead>
           <tr>
             <th>Date</th><th>Section</th><th>Time</th><th>Subject</th><th>Faculty</th>
-            <th>Held on time</th><th>GCR uploaded</th><th>GCR code</th><th>Students present</th><th>Link</th><th>Remarks/Comments</th><th>Logged at</th>
+            <th>Held on time</th><th>GCR uploaded</th><th>GCR code</th><th>Enrolled</th><th>Present</th><th>Absent</th><th>Link</th><th>Remarks/Comments</th><th>Logged at</th>
           </tr>
         </thead>
         <tbody id="recordsBodyCE"></tbody>
@@ -766,13 +776,13 @@
           <colgroup>
             <col class="c-sel"><col class="c-dept"><col class="c-date"><col class="c-section"><col class="c-time">
             <col class="c-subject"><col class="c-faculty"><col class="c-held"><col class="c-gcr"><col class="c-gcrcode">
-            <col class="c-students"><col class="c-link"><col class="c-remarks"><col class="c-logged"><col class="c-actions">
+            <col class="c-enrolled"><col class="c-students"><col class="c-absent"><col class="c-link"><col class="c-remarks"><col class="c-logged"><col class="c-actions">
           </colgroup>
           <thead>
             <tr>
               <th><input type="checkbox" id="adminSelectAllHead" title="Select all shown"></th>
               <th>Dept</th><th>Date</th><th>Section</th><th>Time</th><th>Subject</th><th>Faculty</th>
-              <th>Held on time</th><th>GCR uploaded</th><th>GCR code</th><th>Students present</th><th>Link</th><th>Remarks/Comments</th><th>Logged at</th><th>Actions</th>
+              <th>Held on time</th><th>GCR uploaded</th><th>GCR code</th><th>Enrolled</th><th>Present</th><th>Absent</th><th>Link</th><th>Remarks/Comments</th><th>Logged at</th><th>Actions</th>
             </tr>
           </thead>
           <tbody id="adminBody"></tbody>
@@ -1567,8 +1577,16 @@ async function showClasses(){
           </div>
         </div>
         <div class="field">
-          <label>Number of students present</label>
+          <label>Total students enrolled</label>
+          <input type="number" min="0" class="enrolled-input" placeholder="e.g. 40">
+        </div>
+        <div class="field">
+          <label>Students present</label>
           <input type="number" min="0" class="students-input" placeholder="e.g. 32">
+        </div>
+        <div class="field">
+          <label>Students absent</label>
+          <input type="number" min="0" class="absent-input" placeholder="Auto-calculated">
         </div>
         <div class="field" style="grid-column: 1 / -1;">
           <label>Lectures uploaded on GCR</label>
@@ -1606,7 +1624,9 @@ async function showClasses(){
           card.querySelector(`input[name="held-${key}"][value="${rec.held}"]`).checked = true;
           card.classList.add(rec.held === 'yes' ? 'status-yes' : 'status-no');
         }
+        card.querySelector('.enrolled-input').value = rec.totalEnrolled ?? '';
         card.querySelector('.students-input').value = rec.students ?? '';
+        card.querySelector('.absent-input').value = rec.absent ?? '';
         if(rec.gcrUploaded === 'yes' || rec.gcrUploaded === 'no' || rec.gcrUploaded === 'not-active'){
           const gEl = card.querySelector(`input[name="gcr-${key}"][value="${rec.gcrUploaded}"]`);
           if(gEl) gEl.checked = true;
@@ -1629,6 +1649,19 @@ async function showClasses(){
     const msgEl = card.querySelector('.save-msg');
     let autoSaveTimer = null;
 
+    // Absent auto-fills as Enrolled − Present whenever both are numbers;
+    // still a plain input, so it can be corrected by hand if needed.
+    function recalcAbsent(){
+      const enrolledEl = card.querySelector('.enrolled-input');
+      const presentEl = card.querySelector('.students-input');
+      const absentEl = card.querySelector('.absent-input');
+      const enrolled = parseInt(enrolledEl.value, 10);
+      const present = parseInt(presentEl.value, 10);
+      if(!isNaN(enrolled) && !isNaN(present)){
+        absentEl.value = Math.max(0, enrolled - present);
+      }
+    }
+
     async function saveCardNow(){
       const heldEl = card.querySelector(`input[name="held-${key}"]:checked`);
       if(!heldEl){
@@ -1647,7 +1680,9 @@ async function showClasses(){
         faculty: fac,
         room: c.room,
         held: heldEl.value,
+        totalEnrolled: card.querySelector('.enrolled-input').value,
         students: card.querySelector('.students-input').value,
+        absent: card.querySelector('.absent-input').value,
         gcrUploaded: (card.querySelector(`input[name="gcr-${key}"]:checked`) || {}).value || '',
         gcrCode: card.querySelector('.gcrcode-input').value,
         link: card.querySelector('.link-input').value,
@@ -1676,7 +1711,9 @@ async function showClasses(){
       autoSaveTimer = setTimeout(saveCardNow, 700);
     }
     card.querySelectorAll(`input[name="gcr-${key}"]`).forEach(r=> r.addEventListener('change', saveCardNow));
-    card.querySelector('.students-input').addEventListener('input', saveCardDebounced);
+    card.querySelector('.enrolled-input').addEventListener('input', ()=>{ recalcAbsent(); saveCardDebounced(); });
+    card.querySelector('.students-input').addEventListener('input', ()=>{ recalcAbsent(); saveCardDebounced(); });
+    card.querySelector('.absent-input').addEventListener('input', saveCardDebounced);
     card.querySelector('.gcrcode-input').addEventListener('input', saveCardDebounced);
     card.querySelector('.link-input').addEventListener('input', saveCardDebounced);
     card.querySelector('.remarks-input').addEventListener('input', saveCardDebounced);
@@ -1703,6 +1740,16 @@ document.getElementById('dateInput').addEventListener('change', showClasses);
       : 'Hide manual submission form';
     if(!showing) form.scrollIntoView({behavior:'smooth', block:'nearest'});
   });
+
+  function recalcManualAbsent(){
+    const enrolled = parseInt(document.getElementById('manualEnrolled').value, 10);
+    const present = parseInt(document.getElementById('manualStudents').value, 10);
+    if(!isNaN(enrolled) && !isNaN(present)){
+      document.getElementById('manualAbsent').value = Math.max(0, enrolled - present);
+    }
+  }
+  document.getElementById('manualEnrolled').addEventListener('input', recalcManualAbsent);
+  document.getElementById('manualStudents').addEventListener('input', recalcManualAbsent);
 
   document.getElementById('manualSubmitBtn').addEventListener('click', async ()=>{
     const msgEl = document.getElementById('manualSaveMsg');
@@ -1740,7 +1787,9 @@ document.getElementById('dateInput').addEventListener('change', showClasses);
       subject: subject,
       faculty: faculty,
       held: heldEl.value,
+      totalEnrolled: document.getElementById('manualEnrolled').value,
       students: document.getElementById('manualStudents').value,
+      absent: document.getElementById('manualAbsent').value,
       gcrUploaded: (form.querySelector('input[name="manual-gcr"]:checked') || {}).value || '',
       gcrCode: document.getElementById('manualGcrCode').value,
       link: document.getElementById('manualLink').value,
@@ -1791,7 +1840,7 @@ async function loadRecordsTable(dept){
   const P = dept; // 'EE' or 'CE'
   const body = document.getElementById('recordsBody' + P);
   const countLine = document.getElementById('countLine' + P);
-  body.innerHTML = '<tr><td colspan="12">Loading…</td></tr>';
+  body.innerHTML = '<tr><td colspan="14">Loading…</td></tr>';
 
   const facFilter = document.getElementById('filterFaculty' + P).value;
   const dateFilter = document.getElementById('filterDate' + P).value;
@@ -1801,7 +1850,7 @@ async function loadRecordsTable(dept){
     allRecords = await listRecords();
   }catch(e){
     console.error(e);
-    body.innerHTML = '<tr><td colspan="12">No records found yet.</td></tr>';
+    body.innerHTML = '<tr><td colspan="14">No records found yet.</td></tr>';
     countLine.textContent = "";
     renderStatCards('view' + P, dateFilter, facFilter, [], getSchedule(P));
     return;
@@ -1821,7 +1870,7 @@ async function loadRecordsTable(dept){
   renderStatCards('view' + P, dateFilter, facFilter, filtered, getSchedule(P));
 
   if(records.length === 0){
-    body.innerHTML = '<tr><td colspan="12">No records saved yet.</td></tr>';
+    body.innerHTML = '<tr><td colspan="14">No records saved yet.</td></tr>';
     countLine.textContent = "";
     return;
   }
@@ -1830,7 +1879,7 @@ async function loadRecordsTable(dept){
   filtered.sort((a,b)=> (b.date+b.start).localeCompare(a.date+a.start));
 
   if(filtered.length === 0){
-    body.innerHTML = '<tr><td colspan="12">No records match the current filters.</td></tr>';
+    body.innerHTML = '<tr><td colspan="14">No records match the current filters.</td></tr>';
     countLine.textContent = `0 of ${records.length} total record(s).`;
     return;
   }
@@ -1851,7 +1900,9 @@ async function loadRecordsTable(dept){
       <td>${heldTag}</td>
       <td>${gcrTag}</td>
       <td>${r.gcrCode ? String(r.gcrCode).replace(/</g,'&lt;') : '—'}</td>
+      <td>${r.totalEnrolled || '—'}</td>
       <td>${r.students || '—'}</td>
+      <td>${r.absent || '—'}</td>
       <td>${linkCell}</td>
       <td>${r.remarks ? r.remarks.replace(/</g,'&lt;') : '—'}</td>
       <td>${loggedAt}</td>
@@ -1883,10 +1934,10 @@ document.getElementById('clearFiltersCE').addEventListener('click', ()=>{
 function exportRecordsCsv(dept){
   const rows = window['_currentFilteredRecords' + dept] || [];
   if(rows.length === 0){ alert("No records to export."); return; }
-  const headers = ["Date","Weekday","Dept","Section","Start","End","Subject","Faculty","Room","Held on time","GCR uploaded","GCR code","Students present","Link","Remarks/Comments","Logged at"];
+  const headers = ["Date","Weekday","Dept","Section","Start","End","Subject","Faculty","Room","Held on time","GCR uploaded","GCR code","Total enrolled","Students present","Students absent","Link","Remarks/Comments","Logged at"];
   const csvRows = [headers.join(",")];
   rows.forEach(r=>{
-    const line = [r.date, r.weekday, r.dept||'EE', r.section, r.start, r.end, r.subject, r.faculty, r.room, r.held, r.gcrUploaded, r.gcrCode, r.students, r.link, (r.remarks||'').replace(/,/g,';').replace(/\n/g,' '), r.loggedAt]
+    const line = [r.date, r.weekday, r.dept||'EE', r.section, r.start, r.end, r.subject, r.faculty, r.room, r.held, r.gcrUploaded, r.gcrCode, r.totalEnrolled, r.students, r.absent, r.link, (r.remarks||'').replace(/,/g,';').replace(/\n/g,' '), r.loggedAt]
       .map(v => `"${String(v ?? '').replace(/"/g,'""')}"`).join(",");
     csvRows.push(line);
   });
@@ -2041,7 +2092,9 @@ function renderAdminRowView(r){
     <td>${heldTag}</td>
     <td>${gcrTag}</td>
     <td>${r.gcrCode ? String(r.gcrCode).replace(/</g,'&lt;') : '—'}</td>
+    <td>${r.totalEnrolled || '—'}</td>
     <td>${r.students || '—'}</td>
+    <td>${r.absent || '—'}</td>
     <td>${linkCell}</td>
     <td>${r.remarks ? r.remarks.replace(/</g,'&lt;') : '—'}</td>
     <td>${loggedAt}</td>
@@ -2089,7 +2142,9 @@ function enterAdminEditMode(key){
       </select>
     </td>
     <td><input type="text" class="e-gcrcode" value="${esc(rec.gcrCode)}"></td>
+    <td><input type="number" min="0" class="e-enrolled" value="${esc(rec.totalEnrolled)}"></td>
     <td><input type="number" min="0" class="e-students" value="${esc(rec.students)}"></td>
+    <td><input type="number" min="0" class="e-absent" value="${esc(rec.absent)}"></td>
     <td><input type="url" class="e-link" value="${esc(rec.link)}"></td>
     <td><textarea class="e-remarks">${rec.remarks ? String(rec.remarks).replace(/</g,'&lt;') : ''}</textarea></td>
     <td>${rec.loggedAt ? new Date(rec.loggedAt).toLocaleString() : ''}</td>
@@ -2100,6 +2155,15 @@ function enterAdminEditMode(key){
   `;
 
   row.querySelector('.e-cancel-btn').addEventListener('click', loadAdminTable);
+  function recalcAdminEditAbsent(){
+    const enrolled = parseInt(row.querySelector('.e-enrolled').value, 10);
+    const present = parseInt(row.querySelector('.e-students').value, 10);
+    if(!isNaN(enrolled) && !isNaN(present)){
+      row.querySelector('.e-absent').value = Math.max(0, enrolled - present);
+    }
+  }
+  row.querySelector('.e-enrolled').addEventListener('input', recalcAdminEditAbsent);
+  row.querySelector('.e-students').addEventListener('input', recalcAdminEditAbsent);
   row.querySelector('.e-save-btn').addEventListener('click', async ()=>{
     const updated = {
       dept: row.querySelector('.e-dept').value,
@@ -2112,7 +2176,9 @@ function enterAdminEditMode(key){
       held: row.querySelector('.e-held').value,
       gcrUploaded: row.querySelector('.e-gcr').value,
       gcrCode: row.querySelector('.e-gcrcode').value.trim(),
+      totalEnrolled: row.querySelector('.e-enrolled').value,
       students: row.querySelector('.e-students').value,
+      absent: row.querySelector('.e-absent').value,
       link: row.querySelector('.e-link').value.trim(),
       remarks: row.querySelector('.e-remarks').value,
       loggedAt: rec.loggedAt || new Date().toISOString()
