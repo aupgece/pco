@@ -303,6 +303,27 @@
     margin: -6px 0 14px;
   }
   .edit-hint.found{ color: var(--green); font-weight:600; }
+  .present-notice{
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: .95rem;
+    background: #fbf1e4;
+    border: 1px solid var(--amber-2);
+    border-left: 5px solid var(--amber);
+    color: #5a3a17;
+    border-radius: var(--radius);
+    padding: 12px 16px;
+    margin: 0 0 18px;
+  }
+  .present-warn{
+    display:none;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: .82rem;
+    font-weight: 600;
+    color: var(--red);
+    margin-top: 2px;
+  }
+  .present-warn.show{ display:block; }
+  .missing-present{ color: var(--red); font-weight:600; font-size:.8em; }
   .table-wrap{ overflow-x:auto; max-height: 560px; overflow-y:auto; border:1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow-sm); -webkit-overflow-scrolling: touch; }
   #adminTable th{ position: static; }
   .link-cell a{ color: var(--navy); font-weight:600; }
@@ -579,6 +600,10 @@
         <label for="dateInput">Date/Day of the scheduled class, as per the timetable, to be conducted online.</label>
         <input type="date" id="dateInput">
       </div>
+    </div>
+
+    <div class="present-notice" id="presentNotice">
+      <strong>Reminder:</strong> Please mention the <strong>number of students present</strong> during or after the conduct of the online class (e.g. 32 out of 40). Records without it are marked as incomplete.
     </div>
 
     <div id="dayHeading"></div>
@@ -1671,7 +1696,9 @@ async function showClasses(){
         card.querySelector('.gcrcode-input').value = rec.gcrCode ?? '';
         card.querySelector('.link-input').value = rec.link ?? '';
         card.querySelector('.remarks-input').value = rec.remarks ?? '';
-        card.querySelector('.recorded-badge').style.display = 'inline-block';
+        const preBadge = card.querySelector('.recorded-badge');
+        preBadge.dataset.preexisting = '1';
+        preBadge.style.display = 'inline-block';
         card.querySelector('.save-btn').textContent = 'Update record';
       }
     }catch(e){ /* no existing record, ignore */ }
@@ -1681,12 +1708,23 @@ async function showClasses(){
       r.addEventListener('change', ()=>{
         card.classList.remove('status-yes','status-no');
         card.classList.add(r.value === 'yes' ? 'status-yes' : 'status-no');
-        saveCardNow();
+        checkPresent();  // no auto-save: record is saved only on "Submit now"
       });
     });
 
     const msgEl = card.querySelector('.save-msg');
     let autoSaveTimer = null;
+
+    // Show a red reminder under "Students present" when the class was held
+    // but the number of present students hasn't been entered yet.
+    const presentWarnEl = card.querySelector('.present-warn');
+    function checkPresent(){
+      const held = card.querySelector(`input[name="held-${key}"]:checked`);
+      const missing = held && held.value === 'yes' && card.querySelector('.students-input').value.trim() === '';
+      if(presentWarnEl) presentWarnEl.classList.toggle('show', !!missing);
+      return !!missing;
+    }
+    checkPresent();
 
     // Absent auto-fills as Enrolled − Present whenever both are numbers;
     // still a plain input, so it can be corrected by hand if needed.
@@ -1732,9 +1770,18 @@ async function showClasses(){
       msgEl.textContent = "Saving…";
       try{
         await setRecord(key, record);
-        msgEl.style.color = "var(--green)";
-        msgEl.textContent = "Saved automatically.";
-        card.querySelector('.recorded-badge').style.display = 'inline-block';
+        if(checkPresent()){
+          msgEl.style.color = "var(--red)";
+          msgEl.textContent = "Saved — but please also mention the number of students present.";
+        }else{
+          msgEl.style.color = "var(--green)";
+          msgEl.textContent = "Submitted successfully.";
+        }
+        const badge = card.querySelector('.recorded-badge');
+        // Only claim "already submitted" for records that existed on page load;
+        // one auto-saved just now (e.g. right after clicking Yes) is "Saved".
+        if(!badge.dataset.preexisting) badge.textContent = 'Submitted — you can still edit below';
+        badge.style.display = 'inline-block';
         card.querySelector('.save-btn').textContent = 'Update record';
       }catch(e){
         msgEl.style.color = "var(--red)";
@@ -1745,22 +1792,21 @@ async function showClasses(){
 
     // Every other field auto-saves too, so filling the card in is normally
     // all it takes — the button below stays as a manual "save now" option.
-    function saveCardDebounced(){
-      msgEl.style.color = "var(--slate)";
-      msgEl.textContent = "Typing…";
-      clearTimeout(autoSaveTimer);
-      autoSaveTimer = setTimeout(saveCardNow, 700);
-    }
-    card.querySelectorAll(`input[name="gcr-${key}"]`).forEach(r=> r.addEventListener('change', saveCardNow));
+    // Auto-save is turned off: nothing is stored until "Submit now" is clicked.
+    function saveCardDebounced(){ msgEl.textContent = ""; }
+    card.querySelectorAll(`input[name="gcr-${key}"]`).forEach(r=> r.addEventListener('change', saveCardDebounced));
     card.querySelector('.enrolled-input').addEventListener('input', ()=>{ recalcAbsent(); saveCardDebounced(); });
-    card.querySelector('.students-input').addEventListener('input', ()=>{ recalcAbsent(); saveCardDebounced(); });
+    card.querySelector('.students-input').addEventListener('input', ()=>{ recalcAbsent(); checkPresent(); saveCardDebounced(); });
     card.querySelector('.absent-input').addEventListener('input', saveCardDebounced);
     card.querySelector('.gcrcode-input').addEventListener('input', saveCardDebounced);
     card.querySelector('.link-input').addEventListener('input', saveCardDebounced);
     card.querySelector('.remarks-input').addEventListener('input', saveCardDebounced);
 
     // save (manual "save now" button — auto-save above already covers most cases)
-    card.querySelector('.save-btn').addEventListener('click', ()=>{ clearTimeout(autoSaveTimer); saveCardNow(); });
+    card.querySelector('.save-btn').addEventListener('click', ()=>{
+      clearTimeout(autoSaveTimer);
+      saveCardNow();
+    });
   }
 }
 
@@ -1799,6 +1845,7 @@ document.getElementById('dateInput').addEventListener('change', showClasses);
   }
   document.getElementById('manualEnrolled').addEventListener('input', recalcManualAbsent);
   document.getElementById('manualStudents').addEventListener('input', recalcManualAbsent);
+  document.getElementById('manualStudents').addEventListener('input', ()=>{ if(document.getElementById('manualStudents').value.trim()!=='') document.getElementById('manualPresentWarn')?.classList.remove('show'); });
 
   function currentIdentity(){
     return {
@@ -1941,6 +1988,12 @@ document.getElementById('dateInput').addEventListener('change', showClasses);
       loadedKey = key;
       submitBtn.textContent = 'Update record';
       msgEl.style.color = "var(--green)";
+      const manualMissing = heldEl.value === 'yes' && String(record.students).trim() === '';
+      document.getElementById('manualPresentWarn')?.classList.toggle('show', manualMissing);
+      if(manualMissing){
+        msgEl.style.color = "var(--red)";
+        msgEl.textContent = "Saved — but please also mention the number of students present.";
+      } else
       msgEl.textContent = isUpdate ? "Updated." : "Saved. You can keep editing the fields above (e.g. enrolled/present) and press \u201cUpdate record\u201d again any time — or use \u201cClear form\u201d to start a new entry.";
     }catch(e){
       msgEl.style.color = "var(--red)";
@@ -2037,7 +2090,7 @@ async function loadRecordsTable(dept){
       <td>${gcrTag}</td>
       <td>${r.gcrCode ? String(r.gcrCode).replace(/</g,'&lt;') : '—'}</td>
       <td>${r.totalEnrolled || '—'}</td>
-      <td>${r.students || '—'}</td>
+      <td>${r.students || (r.held === 'yes' ? '<span class="missing-present">Not mentioned</span>' : '—')}</td>
       <td>${r.absent || '—'}</td>
       <td>${linkCell}</td>
       <td>${r.remarks ? r.remarks.replace(/</g,'&lt;') : '—'}</td>
@@ -2229,7 +2282,7 @@ function renderAdminRowView(r){
     <td>${gcrTag}</td>
     <td>${r.gcrCode ? String(r.gcrCode).replace(/</g,'&lt;') : '—'}</td>
     <td>${r.totalEnrolled || '—'}</td>
-    <td>${r.students || '—'}</td>
+    <td>${r.students || (r.held === 'yes' ? '<span class="missing-present">Not mentioned</span>' : '—')}</td>
     <td>${r.absent || '—'}</td>
     <td>${linkCell}</td>
     <td>${r.remarks ? r.remarks.replace(/</g,'&lt;') : '—'}</td>
