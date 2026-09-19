@@ -1491,7 +1491,17 @@ setupFacultyCombo('filterFacultyCE', 'filterFacultyListCE', 'All CE faculty', ()
 setupFacultyCombo('adminFilterFaculty', 'adminFilterFacultyList', 'All faculty', ()=> facultyList, ()=> loadAdminTable());
 
 // default date = today
-const todayStr = new Date().toISOString().slice(0,10);
+// NOTE: Date.prototype.toISOString() converts to UTC first — for any timezone ahead of
+// UTC (e.g. Pakistan, UTC+5), local midnight becomes the *previous* day in UTC, so
+// "YYYY-MM-DD" sliced from it is off by one day. Always build date strings from local
+// getFullYear/getMonth/getDate instead.
+function localDateStr(d){
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${dd}`;
+}
+const todayStr = localDateStr(new Date());
 document.getElementById('dateInput').value = todayStr;
 document.getElementById('filterDateEE').value = "";
 document.getElementById('filterDateCE').value = "";
@@ -2277,19 +2287,26 @@ async function generateNonComplianceReport(){
   try{ allRecords = await listRecords(); }
   catch(e){ console.error(e); statusEl.className = 'upload-status err'; statusEl.textContent = 'Could not load records.'; return; }
 
-  // Index existing records by their record key so each scheduled class can be
-  // looked up in O(1) rather than re-scanning the full record list per class.
-  const recordByKey = {};
+  // Index existing records for lookup. Records submitted via the manual form, or whose
+  // date was corrected via admin edit, don't always match the schedule's exact section
+  // text (spacing/casing), so besides the exact key we also index by faculty+start and by
+  // a normalized section+start, and accept any of the three as proof the class was covered.
+  const normSection = s => (s || '').trim().toUpperCase().replace(/\s+/g, ' ');
+  const recordByExactKey = {};
+  const recordByFacultyKey = {};
+  const recordBySectionKey = {};
   allRecords.forEach(r=>{
-    if(!r || !r.date || !r.section || !r.start) return;
-    recordByKey[fbKey(recordKey(r.date, r.section, r.start))] = r;
+    if(!r || !r.date || !r.start) return;
+    if(r.section) recordByExactKey[fbKey(recordKey(r.date, r.section, r.start))] = r;
+    if(r.faculty) recordByFacultyKey[fbKey(`fac::${r.date}::${normFacultyKey(r.faculty)}::${r.start}`)] = r;
+    if(r.section) recordBySectionKey[fbKey(`sec::${r.date}::${normSection(r.section)}::${r.start}`)] = r;
   });
 
   const facKey = facFilterVal ? normFacultyKey(facFilterVal) : null;
   const rows = [];
   const cursor = new Date(from);
   while(cursor <= to){
-    const dateStr = cursor.toISOString().slice(0,10);
+    const dateStr = localDateStr(cursor);
     const wd = cursor.getDay();
     const classesToday = allSchedule().filter(c=>{
       if(c.day !== wd) return false;
@@ -2299,7 +2316,9 @@ async function generateNonComplianceReport(){
       return true;
     });
     classesToday.forEach(c=>{
-      const rec = recordByKey[fbKey(recordKey(dateStr, c.section, c.start))];
+      const rec = recordByExactKey[fbKey(recordKey(dateStr, c.section, c.start))]
+        || recordBySectionKey[fbKey(`sec::${dateStr}::${normSection(c.section)}::${c.start}`)]
+        || recordByFacultyKey[fbKey(`fac::${dateStr}::${normFacultyKey(c.faculty)}::${c.start}`)];
       if(!rec){
         rows.push({date: dateStr, weekday: DAY_NAMES[wd], dept: c.dept || 'EE', section: c.section, start: c.start, end: c.end, subject: c.subject, faculty: c.faculty, reason: 'No record submitted'});
       } else if(rec.held === 'no'){
