@@ -585,6 +585,7 @@
   }
   .stat-card:hover{ box-shadow: var(--shadow-md); }
   .stat-card.held{ border-top-color: var(--green); }
+  .stat-card.notheld{ border-top-color: var(--red); }
   .stat-card .stat-num{
     font-size: 2.4rem;
     font-weight: 700;
@@ -592,6 +593,7 @@
     color: var(--navy);
   }
   .stat-card.held .stat-num{ color: var(--green); }
+  .stat-card.notheld .stat-num{ color: var(--red); }
   .stat-card .stat-lbl{
     font-family: Arial, Helvetica, sans-serif;
     font-size: .82rem;
@@ -753,7 +755,21 @@
         <div class="field">
           <label for="manualDate">Date of the online class</label>
           <input type="date" id="manualDate">
-          <div class="field-hint">The actual calendar date the class was conducted online. Mention the weekday timetable being followed in Remarks if it differs.</div>
+          <div class="field-hint">The actual calendar date the class was conducted online.</div>
+        </div>
+        <div class="field">
+          <label for="manualTimetableDay">Weekday classes as per timetable</label>
+          <select id="manualTimetableDay">
+            <option value="auto">Same weekday as the date above</option>
+            <option value="1">Monday timetable</option>
+            <option value="2">Tuesday timetable</option>
+            <option value="3">Wednesday timetable</option>
+            <option value="4">Thursday timetable</option>
+            <option value="5">Friday timetable</option>
+          </select>
+        </div>
+        <div class="field" style="grid-column: 1 / -1;">
+          <div class="date-note info hidden" id="manualDateNote" style="margin:0;"></div>
         </div>
         <div class="field">
           <label for="manualSection">Section</label>
@@ -830,6 +846,10 @@
         <div class="stat-num" id="viewEEStatHeld">–</div>
         <div class="stat-lbl">Held online</div>
       </div>
+      <div class="stat-card notheld">
+        <div class="stat-num" id="viewEEStatNotHeld">–</div>
+        <div class="stat-lbl">Not held / no record</div>
+      </div>
     </div>
     <p class="stats-hint" id="viewEEStatsHint">Pick a date below to see class counts for that day.</p>
     <div class="controls">
@@ -873,6 +893,10 @@
       <div class="stat-card held">
         <div class="stat-num" id="viewCEStatHeld">–</div>
         <div class="stat-lbl">Held online</div>
+      </div>
+      <div class="stat-card notheld">
+        <div class="stat-num" id="viewCEStatNotHeld">–</div>
+        <div class="stat-lbl">Not held / no record</div>
       </div>
     </div>
     <p class="stats-hint" id="viewCEStatsHint">Pick a date below to see class counts for that day.</p>
@@ -927,6 +951,10 @@
         <div class="stat-card held">
           <div class="stat-num" id="adminStatHeld">–</div>
           <div class="stat-lbl">Held online</div>
+        </div>
+        <div class="stat-card notheld">
+          <div class="stat-num" id="adminStatNotHeld">–</div>
+          <div class="stat-lbl">Not held / no record</div>
         </div>
       </div>
       <p class="stats-hint" id="adminStatsHint">Pick a date below to see class counts for that day.</p>
@@ -1009,6 +1037,20 @@
           <button class="ghost" id="reportExportPdfBtn">Export PDF</button>
         </div>
         <p class="upload-status" id="reportStatus"></p>
+        <div class="stats-row" id="reportStatsRow" style="display:none;">
+          <div class="stat-card scheduled">
+            <div class="stat-num" id="reportStatScheduled">–</div>
+            <div class="stat-lbl">Classes scheduled</div>
+          </div>
+          <div class="stat-card held">
+            <div class="stat-num" id="reportStatHeld">–</div>
+            <div class="stat-lbl">Held online</div>
+          </div>
+          <div class="stat-card notheld">
+            <div class="stat-num" id="reportStatNotHeld">–</div>
+            <div class="stat-lbl">Not held / no record</div>
+          </div>
+        </div>
         <div class="table-wrap">
           <table class="records" id="reportTable">
             <thead>
@@ -1771,6 +1813,17 @@ function recordKey(dateStr, section, start){
   return `record::${dateStr}::${section}::${start}`;
 }
 
+// Small sub-line shown under a record's date: just the weekday name when it
+// matches the record's actual calendar date, or "Timetable: <Day>" when the
+// record followed a different weekday's timetable (e.g. a Saturday make-up
+// class running Monday's schedule).
+function weekdaySubline(r){
+  if(!r || !r.weekday) return '';
+  const d = r.date ? new Date(r.date + "T00:00:00") : null;
+  const calWeekday = d && !isNaN(d.getTime()) ? DAY_NAMES[d.getDay()] : null;
+  return (calWeekday && calWeekday !== r.weekday) ? `Timetable: ${r.weekday}` : r.weekday;
+}
+
 // ---------- Timetable weekday helpers ----------
 // The timetable only runs Monday–Friday. A working day that falls outside that
 // range (or a day being run on another day's schedule) is handled by letting the
@@ -2106,10 +2159,48 @@ showClasses();   // paints the "choose your name and a date" prompt on first loa
   const toggleBtn = document.getElementById('manualToggleBtn');
   const form = document.getElementById('manualForm');
   const dateEl = document.getElementById('manualDate');
+  const ttDaySel = document.getElementById('manualTimetableDay');
   const submitBtn = document.getElementById('manualSubmitBtn');
   const clearBtn = document.getElementById('manualClearBtn');
   const hintEl = document.getElementById('manualEditHint');
   dateEl.value = todayStr;
+
+  // Reverse lookup: weekday name -> number, so a loaded record's stored
+  // "weekday" (the timetable day it followed) can be matched back to a
+  // <select> option.
+  const DAY_NUM_BY_NAME = Object.fromEntries(Object.entries(DAY_NAMES).map(([n,name])=> [name, parseInt(n,10)]));
+
+  function resolvedManualTimetableDay(dateStr){
+    const choice = ttDaySel ? ttDaySel.value : 'auto';
+    if(choice && choice !== 'auto') return parseInt(choice, 10);
+    if(!dateStr) return null;
+    const d = new Date(dateStr + "T00:00:00");
+    return isNaN(d.getTime()) ? null : d.getDay();
+  }
+
+  function updateManualDateNote(){
+    const note = document.getElementById('manualDateNote');
+    if(!note) return;
+    const dateStr = dateEl.value;
+    const choice = ttDaySel ? ttDaySel.value : 'auto';
+    if(!dateStr){ note.className = 'date-note info hidden'; note.textContent = ''; return; }
+    const calDay = new Date(dateStr + "T00:00:00").getDay();
+    if(choice !== 'auto'){
+      note.className = 'date-note info';
+      note.innerHTML = `Showing the <strong>${DAY_NAMES[parseInt(choice,10)]}</strong> timetable for <strong>${prettyDate(dateStr)}</strong>. Switch back to “Same weekday as the date above” if that isn’t right.`;
+      return;
+    }
+    if(!TIMETABLE_DAYS.includes(calDay)){
+      note.className = 'date-note warn';
+      note.innerHTML = `${DAY_NAMES[calDay]} isn’t a timetable day. If online classes are following another weekday’s schedule, select that weekday above.`;
+      return;
+    }
+    note.className = 'date-note info hidden';
+    note.textContent = '';
+  }
+  dateEl.addEventListener('change', updateManualDateNote);
+  ttDaySel.addEventListener('change', updateManualDateNote);
+  updateManualDateNote();
 
   // Tracks the record currently loaded into the form for editing (if any),
   // so re-submitting the same identity (faculty/date/section/start) updates
@@ -2179,6 +2270,13 @@ showClasses();   // paints the "choose your name and a date" prompt on first loa
       document.getElementById('manualDept').value = rec.dept || 'EE';
       document.getElementById('manualSubject').value = rec.subject || '';
       document.getElementById('manualEnd').value = rec.end || '';
+      // Restore which weekday's timetable this record followed. If it matches
+      // the actual calendar weekday of the saved date, leave the select on
+      // "auto"; otherwise select the specific weekday that was followed.
+      const recDay = rec.weekday ? DAY_NUM_BY_NAME[rec.weekday] : undefined;
+      const calDayForRec = new Date(dateStr + "T00:00:00").getDay();
+      ttDaySel.value = (recDay !== undefined && recDay !== calDayForRec) ? String(recDay) : 'auto';
+      updateManualDateNote();
       if(rec.held === 'yes' || rec.held === 'no'){
         const el = form.querySelector(`input[name="manual-held"][value="${rec.held}"]`);
         if(el) el.checked = true;
@@ -2199,6 +2297,8 @@ showClasses();   // paints the "choose your name and a date" prompt on first loa
     } else {
       if(loadedKey){ clearVolatileFields(); }
       loadedKey = null;
+      ttDaySel.value = 'auto';
+      updateManualDateNote();
       submitBtn.textContent = 'Submit record';
       hintEl.classList.remove('found');
       hintEl.textContent = "No existing submission found for this name/date/section/start — this will be saved as a new record.";
@@ -2213,6 +2313,8 @@ showClasses();   // paints the "choose your name and a date" prompt on first loa
     form.querySelectorAll('input[type=text], input[type=number], input[type=url], textarea').forEach(el=> el.value = '');
     form.querySelectorAll('input[type=radio]:checked').forEach(el=> el.checked = false);
     dateEl.value = todayStr;
+    ttDaySel.value = 'auto';
+    updateManualDateNote();
     document.getElementById('manualDept').value = 'EE';
     loadedKey = null;
     submitBtn.textContent = 'Submit record';
@@ -2243,8 +2345,7 @@ showClasses();   // paints the "choose your name and a date" prompt on first loa
       return;
     }
 
-    const d = new Date(dateStr + "T00:00:00");
-    const weekday = isNaN(d.getTime()) ? null : d.getDay();
+    const weekday = resolvedManualTimetableDay(dateStr);
     // If we loaded an existing record above, reuse its exact key so this
     // submission updates it in place rather than creating a duplicate. Start
     // time is otherwise required for a stable, re-findable key.
@@ -2308,9 +2409,14 @@ function scheduledCountFor(dateStr, facFilter, scheduleArr){
 function renderStatCards(prefix, dateStr, facFilter, recordsForDay, scheduleArr){
   const scheduled = scheduledCountFor(dateStr, facFilter, scheduleArr);
   const held = (recordsForDay || []).filter(r => r.held === 'yes').length;
+  // "Not held" covers both classes explicitly logged as not held and classes with
+  // no record at all for the day — i.e. everything scheduled that wasn't confirmed held.
+  const notHeld = scheduled === null ? null : Math.max(scheduled - held, 0);
   const hint = document.getElementById(prefix + 'StatsHint');
   document.getElementById(prefix + 'StatScheduled').textContent = scheduled === null ? '–' : scheduled;
   document.getElementById(prefix + 'StatHeld').textContent = scheduled === null ? '–' : held;
+  const notHeldEl = document.getElementById(prefix + 'StatNotHeld');
+  if(notHeldEl) notHeldEl.textContent = notHeld === null ? '–' : notHeld;
   if(hint) hint.style.display = scheduled === null ? 'block' : 'none';
 }
 
@@ -2370,7 +2476,7 @@ async function loadRecordsTable(dept){
     const linkCell = r.link ? `<span class="link-cell"><a href="${r.link}" target="_blank" rel="noopener">Open link</a></span>` : '—';
     const loggedAt = r.loggedAt ? new Date(r.loggedAt).toLocaleString() : '';
     return `<tr>
-      <td>${r.date} <div style="color:var(--slate);font-size:.75rem;">${r.weekday||''}</div></td>
+      <td>${r.date} <div style="color:var(--slate);font-size:.75rem;">${weekdaySubline(r)}</div></td>
       <td>${r.section}</td>
       <td>${r.start}–${r.end}</td>
       <td>${r.subject}</td>
@@ -2510,6 +2616,7 @@ async function generateNonComplianceReport(){
 
   const facKey = facFilterVal ? normFacultyKey(facFilterVal) : null;
   const rows = [];
+  let totalScheduled = 0;
   const cursor = new Date(from);
   while(cursor <= to){
     const dateStr = localDateStr(cursor);
@@ -2521,6 +2628,7 @@ async function generateNonComplianceReport(){
       if(facKey && normFacultyKey(c.faculty) !== facKey) return false;
       return true;
     });
+    totalScheduled += classesToday.length;
     classesToday.forEach(c=>{
       const rec = recordByExactKey[fbKey(recordKey(dateStr, c.section, c.start))]
         || recordBySectionKey[fbKey(`sec::${dateStr}::${normSection(c.section)}::${c.start}`)]
@@ -2536,15 +2644,23 @@ async function generateNonComplianceReport(){
   rows.sort((a,b)=> (a.date + a.start).localeCompare(b.date + b.start) || a.faculty.localeCompare(b.faculty));
 
   window._nonComplianceRows = rows;
-  renderNonComplianceReport(rows, fromStr, toStr);
+  renderNonComplianceReport(rows, fromStr, toStr, totalScheduled);
 }
 
-function renderNonComplianceReport(rows, fromStr, toStr){
+function renderNonComplianceReport(rows, fromStr, toStr, totalScheduled){
   const body = document.getElementById('reportBody');
   const countLine = document.getElementById('reportCountLine');
   const statusEl = document.getElementById('reportStatus');
   const timeSel = document.getElementById('reportTime').value;
   const timeNote = timeSel ? ` at the ${timeSel} slot` : '';
+
+  const statsRow = document.getElementById('reportStatsRow');
+  const notHeld = rows.length;
+  const held = Math.max(totalScheduled - notHeld, 0);
+  statsRow.style.display = 'flex';
+  document.getElementById('reportStatScheduled').textContent = totalScheduled;
+  document.getElementById('reportStatHeld').textContent = held;
+  document.getElementById('reportStatNotHeld').textContent = notHeld;
 
   if(rows.length === 0){
     body.innerHTML = '<tr><td colspan="8">No missed or non-initiated online classes found for this range/filters.</td></tr>';
@@ -2601,6 +2717,9 @@ function exportNonComplianceReportPdf(){
 
   const facultyCount = new Set(rows.map(r=> normFacultyKey(r.faculty))).size;
   const generatedAt = new Date().toLocaleString();
+  const totalScheduled = document.getElementById('reportStatScheduled').textContent;
+  const totalHeld = document.getElementById('reportStatHeld').textContent;
+  const totalNotHeld = document.getElementById('reportStatNotHeld').textContent;
 
   const filterBits = [];
   filterBits.push(`Date range: ${fromStr} to ${toStr}`);
@@ -2635,7 +2754,12 @@ function exportNonComplianceReportPdf(){
   header .sub{ font-size: .85rem; color:#4a5b6c; }
   .meta{ font-size: .82rem; color:#4a5b6c; margin-bottom: 14px; }
   .meta div{ margin-bottom: 2px; }
-  .summary{ font-size: .95rem; font-weight:600; color:#0f2942; margin-bottom: 14px; }
+  .summary{ font-size: .95rem; font-weight:600; color:#0f2942; margin-bottom: 10px; }
+  .statbar{ display:flex; gap: 18px; margin-bottom: 16px; }
+  .statbar div{ border: 1px solid #b9b2a0; border-radius: 6px; padding: 8px 14px; font-size: .8rem; color:#4a5b6c; }
+  .statbar b{ display:block; font-size: 1.3rem; color:#0f2942; }
+  .statbar div.sb-held b{ color:#2f6f4f; }
+  .statbar div.sb-notheld b{ color:#a8402f; }
   table{ width:100%; border-collapse: collapse; font-size: .78rem; }
   th, td{ border: 1px solid #b9b2a0; padding: 6px 7px; text-align:left; vertical-align: top; }
   th{ background: #f6f4ef; color:#0f2942; }
@@ -2654,6 +2778,11 @@ function exportNonComplianceReportPdf(){
     <div>Generated: ${esc(generatedAt)}</div>
   </div>
   <div class="summary">${rows.length} non-initiated/non-held class${rows.length===1?'':'es'} across ${facultyCount} faculty member${facultyCount===1?'':'s'}.</div>
+  <div class="statbar">
+    <div class="sb-scheduled"><b>${esc(totalScheduled)}</b>Classes scheduled</div>
+    <div class="sb-held"><b>${esc(totalHeld)}</b>Held online</div>
+    <div class="sb-notheld"><b>${esc(totalNotHeld)}</b>Not held / no record</div>
+  </div>
   <table>
     <thead>
       <tr><th>Date</th><th>Weekday</th><th>Dept</th><th>Section</th><th>Time</th><th>Subject</th><th>Faculty</th><th>Reason</th></tr>
@@ -2817,7 +2946,7 @@ function renderAdminRowView(r){
   return `<tr data-key="${r._key}">
     <td><input type="checkbox" class="admin-row-check" data-key="${r._key}"></td>
     <td>${r.dept || 'EE'}</td>
-    <td>${r.date} <div style="color:var(--slate);font-size:.75rem;">${r.weekday||''}</div></td>
+    <td>${r.date} <div style="color:var(--slate);font-size:.75rem;">${weekdaySubline(r)}</div></td>
     <td>${r.section}</td>
     <td>${r.start}–${r.end}</td>
     <td>${r.subject}</td>
