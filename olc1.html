@@ -246,6 +246,8 @@
     display:flex;
     justify-content: space-between;
     align-items:center;
+    flex-wrap: wrap;
+    gap: 10px 16px;
     margin-top: 16px;
     padding-top: 14px;
     border-top: 1px dashed var(--line);
@@ -333,6 +335,85 @@
     padding: 10px 14px;
     margin: -8px 0 16px;
   }
+  /* Softer, non-alarming variant of .date-note — used for guidance rather than errors */
+  .date-note.info{
+    background: #eef3f8;
+    border: 1px solid #b9cbdd;
+    border-left: 5px solid var(--navy);
+    color: #23405c;
+    font-weight: 600;
+  }
+  .date-note.warn{
+    background: #fbf1e4;
+    border: 1px solid var(--amber-2);
+    border-left: 5px solid var(--amber);
+    color: #6a4012;
+  }
+  .date-note.hidden{ display:none; }
+  /* numbered step badges on the three fields of the record form */
+  .step-num{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    background: var(--navy);
+    color: #fff;
+    font-size: .74rem;
+    font-weight: 700;
+    margin-right: 7px;
+    vertical-align: middle;
+  }
+  .field-hint{
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: .8rem;
+    color: var(--slate);
+    max-width: 320px;
+    line-height: 1.35;
+  }
+  /* progress strip shown above the class cards */
+  .progress-wrap{
+    display:flex;
+    align-items:center;
+    gap: 14px;
+    flex-wrap: wrap;
+    background: var(--paper-2);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-sm);
+    padding: 12px 18px;
+    margin: 0 0 18px;
+    font-family: Arial, Helvetica, sans-serif;
+  }
+  .progress-wrap .p-text{ font-size: .95rem; font-weight: 700; color: var(--navy); }
+  .progress-wrap .p-bar{
+    flex: 1 1 180px;
+    height: 9px;
+    background: #e7e2d6;
+    border-radius: 20px;
+    overflow: hidden;
+    min-width: 140px;
+  }
+  .progress-wrap .p-fill{
+    height: 100%;
+    width: 0%;
+    background: var(--green);
+    border-radius: 20px;
+    transition: width .25s ease;
+  }
+  .progress-wrap.done .p-text{ color: var(--green); }
+  .card-status{
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: .8rem;
+    font-weight: 700;
+    border-radius: 20px;
+    padding: 3px 12px;
+    border: 1px solid var(--line);
+    background: var(--paper);
+    color: var(--slate);
+    white-space: nowrap;
+  }
+  .card-status.saved{ background:#e6f0e9; border-color:#a9c6b4; color: var(--green); }
   .present-warn{
     display:none;
     font-family: Arial, Helvetica, sans-serif;
@@ -607,27 +688,43 @@
 
   <!-- RECORD PANEL -->
   <section id="panelRecord" class="panel active">
-    <p class="select-line">Select your name and a date to see your scheduled classes.</p>
+    <p class="select-line">Three quick steps: choose your name, the date, and the weekday timetable being followed. Your classes then appear below.</p>
     <div class="controls">
       <div class="field combo-field">
-        <label for="facultySelect">Faculty member</label>
+        <label for="facultySelect"><span class="step-num">1</span>Your name</label>
         <div class="combo-wrap">
-          <input type="text" id="facultySelect" placeholder="— select your name —" autocomplete="off">
+          <input type="text" id="facultySelect" placeholder="Type a few letters of your name" autocomplete="off">
           <div class="combo-list" id="facultySelectList"></div>
         </div>
+        <div class="field-hint">The list filters as you type. Click your name to select it.</div>
       </div>
       <div class="field">
-        <label for="dateInput">Date/Day of the scheduled class, as per the timetable, to be conducted online.</label>
+        <label for="dateInput"><span class="step-num">2</span>Date of the online class</label>
         <input type="date" id="dateInput">
-        <div class="date-note">⚠️ Enter the date matching the timetable weekday you're following (e.g., if Saturday follows Monday's schedule, pick that date).</div>
+        <div class="field-hint">The actual calendar date on which the class is being conducted online.</div>
+      </div>
+      <div class="field">
+        <label for="timetableDaySelect"><span class="step-num">3</span>Weekday classes as per timetable</label>
+        <select id="timetableDaySelect">
+          <option value="auto">Same weekday as the date above</option>
+          <option value="1">Monday timetable</option>
+          <option value="2">Tuesday timetable</option>
+          <option value="3">Wednesday timetable</option>
+          <option value="4">Thursday timetable</option>
+          <option value="5">Friday timetable</option>
+        </select>
+        <div class="field-hint">Change this only if the chosen date is running on a different weekday's timetable.</div>
       </div>
     </div>
 
+    <div class="date-note info hidden" id="dateNote"></div>
+
     <div class="present-notice" id="presentNotice">
-      To edit a submitted record, select your name and the date again.
+      Already submitted? Select your name and the same date again — your entries load back so you can correct them.
     </div>
 
     <div id="dayHeading"></div>
+    <div id="progressWrap"></div>
     <div id="classList"></div>
 
     <div class="manual-toggle-wrap">
@@ -654,9 +751,9 @@
           </select>
         </div>
         <div class="field">
-          <label for="manualDate">Date/Day of the scheduled class, as per the timetable, to be conducted online.</label>
+          <label for="manualDate">Date of the online class</label>
           <input type="date" id="manualDate">
-          <div class="date-note">⚠️ Enter the date matching the timetable weekday you're following.</div>
+          <div class="field-hint">The actual calendar date the class was conducted online. Mention the weekday timetable being followed in Remarks if it differs.</div>
         </div>
         <div class="field">
           <label for="manualSection">Section</label>
@@ -1673,31 +1770,118 @@ function recordKey(dateStr, section, start){
   return `record::${dateStr}::${section}::${start}`;
 }
 
+// ---------- Timetable weekday helpers ----------
+// The timetable only runs Monday–Friday. A working day that falls outside that
+// range (or a day being run on another day's schedule) is handled by letting the
+// faculty member pick, in step 3, which weekday's timetable is being followed.
+const TIMETABLE_DAYS = [1,2,3,4,5];
+
+function resolvedTimetableDay(dateStr){
+  const sel = document.getElementById('timetableDaySelect');
+  const choice = sel ? sel.value : 'auto';
+  if(choice && choice !== 'auto') return parseInt(choice, 10);
+  if(!dateStr) return null;
+  const d = new Date(dateStr + "T00:00:00");
+  return isNaN(d.getTime()) ? null : d.getDay();
+}
+
+function prettyDate(dateStr){
+  const d = new Date(dateStr + "T00:00:00");
+  if(isNaN(d.getTime())) return dateStr;
+  return d.toLocaleDateString(undefined, {day:'numeric', month:'short', year:'numeric'});
+}
+
+// Guidance banner under the three controls. Deliberately never names a specific
+// weekend day — it simply asks for the weekday timetable being followed.
+function updateDateNote(){
+  const note = document.getElementById('dateNote');
+  if(!note) return;
+  const dateStr = document.getElementById('dateInput').value;
+  const sel = document.getElementById('timetableDaySelect');
+  const choice = sel ? sel.value : 'auto';
+
+  if(!dateStr){
+    note.className = 'date-note info hidden';
+    note.textContent = '';
+    return;
+  }
+  const calDay = new Date(dateStr + "T00:00:00").getDay();
+
+  if(choice !== 'auto'){
+    note.className = 'date-note info';
+    note.innerHTML = `Showing the <strong>${DAY_NAMES[parseInt(choice,10)]}</strong> timetable for <strong>${prettyDate(dateStr)}</strong>. Switch step 3 back to “Same weekday as the date above” if that isn’t right.`;
+    return;
+  }
+  if(!TIMETABLE_DAYS.includes(calDay)){
+    note.className = 'date-note warn';
+    note.innerHTML = `No timetable runs on the selected date. In step 3, please <strong>select the weekday classes as per the timetable</strong> that is being followed on this date.`;
+    return;
+  }
+  note.className = 'date-note info hidden';
+  note.textContent = '';
+}
+
+// ---------- Submitted-so-far progress strip ----------
+function markCardSaved(card){
+  card.dataset.saved = '1';
+  const chip = card.querySelector('.card-status');
+  if(chip){ chip.textContent = 'Submitted'; chip.classList.add('saved'); }
+  updateProgress();
+}
+function updateProgress(){
+  const box = document.getElementById('progressBox');
+  if(!box) return;
+  const cards = document.querySelectorAll('#classList .class-card');
+  const total = cards.length;
+  const done = document.querySelectorAll('#classList .class-card[data-saved="1"]').length;
+  const txt = document.getElementById('progressText');
+  const fill = document.getElementById('progressFill');
+  if(txt) txt.textContent = done === total && total > 0
+    ? `All ${total} ${total === 1 ? 'class' : 'classes'} submitted — thank you.`
+    : `${done} of ${total} ${total === 1 ? 'class' : 'classes'} submitted`;
+  if(fill) fill.style.width = total ? `${Math.round((done/total)*100)}%` : '0%';
+  box.classList.toggle('done', total > 0 && done === total);
+}
+
 // ---------- Render classes for a faculty + date ----------
 async function showClasses(){
   const fac = document.getElementById('facultySelect').value;
   const dateStr = document.getElementById('dateInput').value;
   const heading = document.getElementById('dayHeading');
   const list = document.getElementById('classList');
+  const progress = document.getElementById('progressWrap');
   list.innerHTML = "";
   heading.innerHTML = "";
+  if(progress) progress.innerHTML = "";
+  updateDateNote();
 
   if(!fac || !dateStr){
-    list.innerHTML = '';
+    list.innerHTML = '<p class="empty-note">Choose your name and a date above to load your scheduled classes.</p>';
     return;
   }
 
-  const d = new Date(dateStr + "T00:00:00");
-  const weekday = d.getDay();
-  heading.innerHTML = `<div class="day-heading">${DAY_NAMES[weekday]}, ${dateStr}</div>`;
+  const weekday = resolvedTimetableDay(dateStr);
+  heading.innerHTML = TIMETABLE_DAYS.includes(weekday)
+    ? `<div class="day-heading">${DAY_NAMES[weekday]} timetable &nbsp;·&nbsp; ${prettyDate(dateStr)}</div>`
+    : `<div class="day-heading">${prettyDate(dateStr)} &nbsp;·&nbsp; weekday timetable not selected</div>`;
 
   const facKey = normFacultyKey(fac);
   const classes = allSchedule().filter(c => normFacultyKey(c.faculty) === facKey && c.day === weekday)
                            .sort((a,b)=> a.start.localeCompare(b.start));
 
   if(classes.length === 0){
-    list.innerHTML = '<p class="empty-note">No classes scheduled for this faculty member on this day.</p>';
+    list.innerHTML = TIMETABLE_DAYS.includes(weekday)
+      ? '<p class="empty-note">No classes are listed for you on this timetable day. If a different weekday’s timetable is being followed, select it in step 3 above — or use “My name or schedule isn’t listed” below.</p>'
+      : '<p class="empty-note">The timetable does not run on this day. Please select, in step 3 above, the weekday classes as per the timetable that are being followed.</p>';
     return;
+  }
+
+  if(progress){
+    progress.innerHTML = `
+      <div class="progress-wrap" id="progressBox">
+        <span class="p-text" id="progressText">0 of ${classes.length} classes submitted</span>
+        <span class="p-bar"><span class="p-fill" id="progressFill"></span></span>
+      </div>`;
   }
 
   for(const c of classes){
@@ -1723,15 +1907,17 @@ async function showClasses(){
         </div>
         <div class="field">
           <label>Total students enrolled</label>
-          <input type="number" min="0" class="enrolled-input" placeholder="e.g. 40">
+          <input type="number" min="0" inputmode="numeric" class="enrolled-input" placeholder="e.g. 40">
         </div>
         <div class="field">
           <label>Students present</label>
-          <input type="number" min="0" class="students-input" placeholder="e.g. 32">
+          <input type="number" min="0" inputmode="numeric" class="students-input" placeholder="e.g. 32">
+          <div class="present-warn">Please enter how many students attended.</div>
         </div>
         <div class="field">
           <label>Students absent</label>
-          <input type="number" min="0" class="absent-input" placeholder="Auto-calculated">
+          <input type="number" min="0" inputmode="numeric" class="absent-input" placeholder="Fills in automatically">
+          <div class="field-hint">Calculated as enrolled − present. You can overwrite it.</div>
         </div>
         <div class="field" style="grid-column: 1 / -1;">
           <label>Lectures uploaded on GCR</label>
@@ -1755,8 +1941,9 @@ async function showClasses(){
         </div>
       </div>
       <div class="card-footer">
-        <button class="primary save-btn">Submit now</button>
+        <button class="primary save-btn">Submit this class</button>
         <span class="save-msg"></span>
+        <span class="card-status">Not submitted yet</span>
       </div>
     `;
     list.appendChild(card);
@@ -1782,7 +1969,8 @@ async function showClasses(){
         const preBadge = card.querySelector('.recorded-badge');
         preBadge.dataset.preexisting = '1';
         preBadge.style.display = 'inline-block';
-        card.querySelector('.save-btn').textContent = 'Update record';
+        card.querySelector('.save-btn').textContent = 'Update this class';
+        markCardSaved(card);
       }
     }catch(e){ /* no existing record, ignore */ }
 
@@ -1803,9 +1991,18 @@ async function showClasses(){
     const presentWarnEl = card.querySelector('.present-warn');
     function checkPresent(){
       const held = card.querySelector(`input[name="held-${key}"]:checked`);
-      const missing = held && held.value === 'yes' && card.querySelector('.students-input').value.trim() === '';
-      if(presentWarnEl) presentWarnEl.classList.toggle('show', !!missing);
-      return !!missing;
+      const presentRaw = card.querySelector('.students-input').value.trim();
+      const missing = !!(held && held.value === 'yes' && presentRaw === '');
+      const enrolled = parseInt(card.querySelector('.enrolled-input').value, 10);
+      const present = parseInt(presentRaw, 10);
+      const tooMany = !isNaN(enrolled) && !isNaN(present) && present > enrolled;
+      if(presentWarnEl){
+        presentWarnEl.textContent = tooMany
+          ? 'Students present cannot be more than students enrolled.'
+          : 'Please enter how many students attended.';
+        presentWarnEl.classList.toggle('show', missing || tooMany);
+      }
+      return missing;
     }
     checkPresent();
 
@@ -1826,7 +2023,9 @@ async function showClasses(){
       const heldEl = card.querySelector(`input[name="held-${key}"]:checked`);
       if(!heldEl){
         msgEl.style.color = "var(--red)";
-        msgEl.textContent = "Select Yes or No to save.";
+        msgEl.textContent = "Please answer “Online class held on scheduled time?” first.";
+        const firstRadio = card.querySelector(`input[name="held-${key}"]`);
+        if(firstRadio) firstRadio.focus();
         return;
       }
       const record = {
@@ -1865,7 +2064,8 @@ async function showClasses(){
         // one auto-saved just now (e.g. right after clicking Yes) is "Saved".
         if(!badge.dataset.preexisting) badge.textContent = 'Submitted — you can still edit below';
         badge.style.display = 'inline-block';
-        card.querySelector('.save-btn').textContent = 'Update record';
+        card.querySelector('.save-btn').textContent = 'Update this class';
+        markCardSaved(card);
       }catch(e){
         msgEl.style.color = "var(--red)";
         msgEl.textContent = "Error saving record.";
@@ -1878,7 +2078,7 @@ async function showClasses(){
     // Auto-save is turned off: nothing is stored until "Submit now" is clicked.
     function saveCardDebounced(){ msgEl.textContent = ""; }
     card.querySelectorAll(`input[name="gcr-${key}"]`).forEach(r=> r.addEventListener('change', saveCardDebounced));
-    card.querySelector('.enrolled-input').addEventListener('input', ()=>{ recalcAbsent(); saveCardDebounced(); });
+    card.querySelector('.enrolled-input').addEventListener('input', ()=>{ recalcAbsent(); checkPresent(); saveCardDebounced(); });
     card.querySelector('.students-input').addEventListener('input', ()=>{ recalcAbsent(); checkPresent(); saveCardDebounced(); });
     card.querySelector('.absent-input').addEventListener('input', saveCardDebounced);
     card.querySelector('.gcrcode-input').addEventListener('input', saveCardDebounced);
@@ -1891,9 +2091,14 @@ async function showClasses(){
       saveCardNow();
     });
   }
+
+  updateProgress();
 }
 
 document.getElementById('dateInput').addEventListener('change', showClasses);
+document.getElementById('timetableDaySelect').addEventListener('change', showClasses);
+updateDateNote();
+showClasses();   // paints the "choose your name and a date" prompt on first load
 
 // ---------- Manual submission (faculty/class not in the timetable list) ----------
 (function setupManualForm(){
