@@ -9,6 +9,8 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 <!-- pdf.js — used by the admin "Upload latest timetable" feature to parse timetable PDFs -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<!-- ExcelJS — used by the admin-only "Complete report" Excel export (formatted workbook) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
 <style>
   :root{
     --navy: #0f2942;
@@ -760,7 +762,10 @@
       </div>
       <button class="ghost" id="clearFiltersEE">Clear filters</button>
       <button class="primary" id="refreshBtnEE">Refresh</button>
-      <button class="ghost" id="exportBtnEE">Export CSV</button>
+      <button class="ghost" id="exportXlsBtnEE">Export Excel</button>
+      <button class="ghost" id="exportPdfBtnEE">Export PDF</button>
+      <button class="primary admin-only" id="completeBtnEE" style="display:none;">Complete report</button>
+      <button class="ghost admin-only" id="completeXlsBtnEE" style="display:none;">Complete report (Excel)</button>
     </div>
     <p class="note-shared">Records are stored in shared storage for this tool, so every faculty member and administrator opening this page can see the same monitoring log. This view is filtered to the EE timetable.</p>
     <div class="table-wrap">
@@ -808,7 +813,10 @@
       </div>
       <button class="ghost" id="clearFiltersCE">Clear filters</button>
       <button class="primary" id="refreshBtnCE">Refresh</button>
-      <button class="ghost" id="exportBtnCE">Export CSV</button>
+      <button class="ghost" id="exportXlsBtnCE">Export Excel</button>
+      <button class="ghost" id="exportPdfBtnCE">Export PDF</button>
+      <button class="primary admin-only" id="completeBtnCE" style="display:none;">Complete report</button>
+      <button class="ghost admin-only" id="completeXlsBtnCE" style="display:none;">Complete report (Excel)</button>
     </div>
     <p class="note-shared">Records are stored in shared storage for this tool, so every faculty member and administrator opening this page can see the same monitoring log. This view is filtered to the CE timetable.</p>
     <div class="table-wrap">
@@ -927,7 +935,7 @@
             </div>
           </div>
           <button class="primary" id="reportGenerateBtn">Generate report</button>
-          <button class="ghost" id="reportExportBtn">Export CSV</button>
+          <button class="ghost" id="reportExportXlsBtn">Export Excel</button>
           <button class="ghost" id="reportExportPdfBtn">Export PDF</button>
         </div>
         <p class="upload-status" id="reportStatus"></p>
@@ -1689,6 +1697,7 @@ function tryAdminUnlock(){
   const msg = document.getElementById('adminGateMsg');
   if(pass === ADMIN_PASSWORD){
     adminUnlocked = true;
+    document.querySelectorAll('.admin-only').forEach(el => { el.style.display = ''; });
     document.getElementById('adminGate').style.display = 'none';
     document.getElementById('adminContent').style.display = 'block';
     msg.textContent = '';
@@ -2170,25 +2179,698 @@ document.getElementById('clearFiltersCE').addEventListener('click', ()=>{
   loadRecordsTable('CE');
 });
 
-function exportRecordsCsv(dept){
-  const rows = window['_currentFilteredRecords' + dept] || [];
-  if(rows.length === 0){ alert("No records to export."); return; }
-  const headers = ["Date","Weekday","Dept","Section","Start","End","Subject","Faculty","Room","Held on time","GCR uploaded","GCR code","Total enrolled","Students present","Students absent","Link","Remarks/Comments","Logged at"];
-  const csvRows = [headers.join(",")];
-  rows.forEach(r=>{
-    const line = [r.date, r.weekday, r.dept||'EE', r.section, r.start, r.end, r.subject, r.faculty, r.room, r.held, r.gcrUploaded, r.gcrCode, r.totalEnrolled, r.students, r.absent, r.link, (r.remarks||'').replace(/,/g,';').replace(/\n/g,' '), r.loggedAt]
-      .map(v => `"${String(v ?? '').replace(/"/g,'""')}"`).join(",");
-    csvRows.push(line);
-  });
-  const blob = new Blob([csvRows.join("\n")], {type:"text/csv"});
+/* ---------- Shared Excel export helpers (auto-fitted columns) ---------- */
+function cleanText(v){ return String(v ?? '').replace(/\s+/g,' ').trim(); }
+function fmtLoggedAt(iso){
+  if(!iso) return '';
+  const d = new Date(iso);
+  if(isNaN(d)) return cleanText(iso);
+  const p = n => String(n).padStart(2,'0');
+  return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+function downloadBlob(blob, filename){
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = url; a.download = `online_class_records_${dept}_${todayStr}.csv`;
-  a.click();
-  URL.revokeObjectURL(url);
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=> URL.revokeObjectURL(url), 1500);
 }
-document.getElementById('exportBtnEE').addEventListener('click', ()=> exportRecordsCsv('EE'));
-document.getElementById('exportBtnCE').addEventListener('click', ()=> exportRecordsCsv('CE'));
+// Excel: same table, but with styled header, frozen header row, filters and column widths fitted to content.
+async function downloadXlsx(filename, sheetName, headers, rows, opts){
+  opts = opts || {};
+  const numCols = opts.numCols || [], linkCols = opts.linkCols || [], wrapCols = opts.wrapCols || [];
+  if(typeof ExcelJS === 'undefined'){ alert('The Excel library could not be loaded. Check your internet connection and reload the page.'); return; }
+  const wb = new ExcelJS.Workbook();
+  const ws = wb.addWorksheet(sheetName, {views:[{state:'frozen', ySplit:1}]});
+  ws.addRow(headers);
+  rows.forEach(r=>{
+    ws.addRow(r.map((v,i)=>{
+      const t = cleanText(v);
+      if(numCols.includes(i) && t !== '' && !isNaN(Number(t))) return Number(t);
+      if(linkCols.includes(i) && /^https?:\/\//i.test(t)) return {text:'Open link', hyperlink:t};
+      return t;
+    }));
+  });
+  const hdr = ws.getRow(1);
+  hdr.height = 24;
+  hdr.eachCell(c=>{
+    c.font = {bold:true, color:{argb:'FFFFFFFF'}};
+    c.fill = {type:'pattern', pattern:'solid', fgColor:{argb:'FF0F2942'}};
+    c.alignment = {vertical:'middle', horizontal:'center', wrapText:true};
+  });
+  headers.forEach((h,i)=>{
+    let max = String(h).length;
+    rows.forEach(r=>{
+      const t = cleanText(r[i]);
+      const len = linkCols.includes(i) && /^https?:\/\//i.test(t) ? 9 : t.length;
+      if(len > max) max = len;
+    });
+    const cap = wrapCols.includes(i) ? 60 : 40;
+    ws.getColumn(i+1).width = Math.min(Math.max(max + 3, 9), cap);
+  });
+  ws.eachRow((row, n)=>{
+    if(n === 1) return;
+    row.eachCell({includeEmpty:true}, (c, ci)=>{
+      const i = ci - 1;
+      const isLink = linkCols.includes(i) && c.value && c.value.hyperlink;
+      c.alignment = {vertical:'top', wrapText: wrapCols.includes(i), horizontal: numCols.includes(i) ? 'center' : 'left'};
+      c.border = {bottom:{style:'thin', color:{argb:'FFE2E8F0'}}};
+      if(isLink) c.font = {color:{argb:'FF0563C1'}, underline:true};
+      if(n % 2 === 0) c.fill = {type:'pattern', pattern:'solid', fgColor:{argb:'FFF7F9FC'}};
+    });
+  });
+  ws.autoFilter = {from:{row:1, column:1}, to:{row:1, column:headers.length}};
+  try{
+    const buf = await wb.xlsx.writeBuffer();
+    downloadBlob(new Blob([buf], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}), filename);
+  }catch(e){ console.error(e); alert('Could not create the Excel file.'); }
+}
+
+// Table used by the Excel export of the "view all records" tab.
+function recordsExportTable(dept){
+  const rows = window['_currentFilteredRecords' + dept] || [];
+  const yn = v => v === 'yes' ? 'Yes' : v === 'no' ? 'No' : '';
+  const headers = ["Date","Weekday","Dept","Section","Start","End","Subject","Faculty","Room","Held on time","GCR uploaded","GCR code","Total enrolled","Students present","Students absent","Link","Remarks/Comments","Logged at"];
+  const data = rows.map(r => [
+    r.date, r.weekday, r.dept || 'EE', r.section, r.start, r.end, r.subject, r.faculty, r.room,
+    yn(r.held),
+    r.gcrUploaded === 'not-active' ? 'GCR not yet active' : yn(r.gcrUploaded),
+    r.gcrCode,
+    r.totalEnrolled,
+    (r.students === '' || r.students == null) && r.held === 'yes' ? 'Not mentioned' : r.students,
+    r.absent, r.link, r.remarks, fmtLoggedAt(r.loggedAt)
+  ]);
+  return {headers, data};
+}
+function exportRecordsXlsx(dept){
+  const t = recordsExportTable(dept);
+  if(t.data.length === 0){ alert("No records to export."); return; }
+  downloadXlsx(`online_class_records_${dept}_${todayStr}.xlsx`, `${dept} records`, t.headers, t.data,
+    {numCols:[12,13,14], linkCols:[15], wrapCols:[16]});
+}
+document.getElementById('exportXlsBtnEE').addEventListener('click', ()=> exportRecordsXlsx('EE'));
+document.getElementById('exportXlsBtnCE').addEventListener('click', ()=> exportRecordsXlsx('CE'));
+
+// Export the records currently shown in the EE / CE "view all records" table as a PDF
+// (opens a print-ready page; choose "Save as PDF" in the print dialog).
+function exportRecordsPdf(dept){
+  const rows = window['_currentFilteredRecords' + dept] || [];
+  if(rows.length === 0){ alert("No records to export."); return; }
+
+  const facFilterVal = document.getElementById('filterFaculty' + dept).value;
+  const dateFilterVal = document.getElementById('filterDate' + dept).value;
+  const generatedAt = new Date().toLocaleString();
+  const esc = v => String(v ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  const yesNo = v => v === 'yes' ? 'Yes' : v === 'no' ? 'No' : '—';
+
+  const total = rows.length;
+  const held = rows.filter(r => r.held === 'yes').length;
+  const notHeld = total - held;
+
+  const tableRows = rows.map(r=>{
+    const gcr = r.gcrUploaded === 'yes' ? 'Yes' : r.gcrUploaded === 'no' ? 'No'
+      : r.gcrUploaded === 'not-active' ? 'GCR not yet active' : '—';
+    const linkCell = r.link ? `<a href="${esc(r.link)}">Open link</a>` : '—';
+    const loggedAt = r.loggedAt ? new Date(r.loggedAt).toLocaleString() : '';
+    return `<tr>
+      <td>${esc(r.date)}<br><span class="sm">${esc(weekdaySubline(r))}</span></td>
+      <td>${esc(r.section)}</td>
+      <td>${esc(r.start)}–${esc(r.end)}</td>
+      <td>${esc(r.subject)}</td>
+      <td>${esc(r.faculty)}</td>
+      <td class="${r.held==='yes'?'yes':'no'}">${yesNo(r.held)}</td>
+      <td>${esc(gcr)}</td>
+      <td>${r.gcrCode ? esc(r.gcrCode) : '—'}</td>
+      <td>${esc(r.totalEnrolled || '—')}</td>
+      <td>${r.students ? esc(r.students) : (r.held === 'yes' ? 'Not mentioned' : '—')}</td>
+      <td>${esc(r.absent || '—')}</td>
+      <td>${linkCell}</td>
+      <td>${r.remarks ? esc(r.remarks) : '—'}</td>
+      <td>${esc(loggedAt)}</td>
+    </tr>`;
+  }).join('');
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Online Class Records — ${dept}</title>
+<style>
+  @page { size: A4 landscape; margin: 12mm 8mm; }
+  * { box-sizing: border-box; }
+  body{ font-family: Arial, Helvetica, sans-serif; color:#1c2530; margin:0; padding:0 0 20px; }
+  header{ border-bottom: 3px solid #b9763a; padding-bottom: 10px; margin-bottom: 12px; }
+  header h1{ font-size: 1.3rem; margin: 0 0 4px; color:#0f2942; }
+  header .sub{ font-size: .82rem; color:#4a5b6c; }
+  .meta{ font-size: .78rem; color:#4a5b6c; margin-bottom: 10px; }
+  .meta div{ margin-bottom: 2px; }
+  .statbar{ display:flex; gap: 14px; margin-bottom: 12px; }
+  .statbar div{ border: 1px solid #b9b2a0; border-radius: 6px; padding: 6px 12px; font-size: .75rem; color:#4a5b6c; }
+  .statbar b{ display:block; font-size: 1.15rem; color:#0f2942; }
+  .statbar .sb-held b{ color:#2f6f4f; }
+  .statbar .sb-notheld b{ color:#a8402f; }
+  table{ width:100%; border-collapse: collapse; font-size: .62rem; table-layout: auto; }
+  th, td{ border: 1px solid #b9b2a0; padding: 3px 4px; text-align:left; vertical-align: top; word-break: break-word; }
+  th{ background: #f6f4ef; color:#0f2942; }
+  thead{ display: table-header-group; }
+  tr{ page-break-inside: avoid; }
+  tbody tr:nth-child(even){ background: #faf9f6; }
+  .sm{ color:#4a5b6c; font-size:.85em; }
+  td.yes{ color:#2f6f4f; font-weight:700; }
+  td.no{ color:#a8402f; font-weight:700; }
+  a{ color:#0f2942; }
+  footer{ margin-top: 14px; font-size: .68rem; color:#4a5b6c; }
+</style>
+</head>
+<body>
+  <header>
+    <h1>Online Class Monitoring — ${dept} Records</h1>
+    <div class="sub">Air University ${dept} Department</div>
+  </header>
+  <div class="meta">
+    <div>Faculty: ${esc(facFilterVal || 'All ' + dept + ' faculty')}</div>
+    <div>Date: ${esc(dateFilterVal || 'All dates')}</div>
+    <div>Generated: ${esc(generatedAt)}</div>
+  </div>
+  <div class="statbar">
+    <div><b>${total}</b>Total records</div>
+    <div class="sb-held"><b>${held}</b>Held online</div>
+    <div class="sb-notheld"><b>${notHeld}</b>Not held</div>
+  </div>
+  <table>
+    <thead>
+      <tr><th>Date</th><th>Section</th><th>Time</th><th>Subject</th><th>Faculty</th><th>Held on time</th><th>GCR uploaded</th><th>GCR code</th><th>Enrolled</th><th>Present</th><th>Absent</th><th>Link</th><th>Remarks/Comments</th><th>Logged at</th></tr>
+    </thead>
+    <tbody>${tableRows}</tbody>
+  </table>
+  <footer>Generated from the Online Class Monitoring tool. Use your browser's "Save as PDF" option in the print dialog to save this file.</footer>
+  <scr` + `ipt>
+    window.onload = function(){ window.focus(); window.print(); };
+  </scr` + `ipt>
+</body>
+</html>`;
+
+  const w = window.open('', '_blank');
+  if(!w){ alert('Please allow pop-ups for this site to export the PDF.'); return; }
+  w.document.open();
+  w.document.write(html);
+  w.document.close();
+}
+document.getElementById('exportPdfBtnEE').addEventListener('click', ()=> exportRecordsPdf('EE'));
+document.getElementById('exportPdfBtnCE').addEventListener('click', ()=> exportRecordsPdf('CE'));
+
+// "Not held / no record" report for the date (and optional faculty) picked in the EE / CE
+// view tab. Lists every scheduled class that day that was not confirmed held online, i.e. the
+// same set the "Not held / no record" stat card counts (Scheduled − Held).
+// Matches a day's scheduled classes against submitted records (shared by the two reports below).
+function computeDayMatch(dept, dateStr, facFilterVal, allRecords){
+  const wd = weekdayForDateStr(dateStr);
+  const facKey = facFilterVal ? normFacultyKey(facFilterVal) : null;
+  const normSection = x => (x || '').trim().toUpperCase().replace(/\s+/g, ' ');
+
+  // Same record set the stat cards use: this dept, this date, optional faculty filter.
+  const dayRecs = allRecords.filter(r => r && r.date === dateStr && r.start && (r.dept || 'EE') === dept
+    && (!facKey || normFacultyKey(r.faculty) === facKey));
+  const heldRecs = dayRecs.filter(r => r.held === 'yes');
+
+  const keysOf = (sec, fac, start, date) => ({
+    exact: sec ? fbKey(recordKey(date, sec, start)) : null,
+    sec:   sec ? fbKey(`sec::${normSection(sec)}::${start}`) : null,
+    fac:   fac ? fbKey(`fac::${normFacultyKey(fac)}::${start}`) : null
+  });
+  // Index records; a "held" record is never overwritten by a non-held one for the same slot.
+  const idx = {exact:{}, sec:{}, fac:{}};
+  const put = (m, k, r) => { if(!k) return; const cur = m[k]; if(!cur || (r.held === 'yes' && cur.held !== 'yes')) m[k] = r; };
+  dayRecs.forEach(r=>{
+    const k = keysOf(r.section, r.faculty, r.start, dateStr);
+    put(idx.exact, k.exact, r); put(idx.sec, k.sec, r); put(idx.fac, k.fac, r);
+  });
+
+  const classes = getSchedule(dept).filter(c => c.day === wd && (!facKey || normFacultyKey(c.faculty) === facKey));
+  const used = new Set();
+  const rows = [];
+  let heldMatched = 0;
+  const heldRows = [];
+  classes.forEach(c=>{
+    const k = keysOf(c.section, c.faculty, c.start, dateStr);
+    const rec = (k.exact && idx.exact[k.exact]) || (k.sec && idx.sec[k.sec]) || (k.fac && idx.fac[k.fac]);
+    if(rec) used.add(rec);
+    if(rec && rec.held === 'yes'){
+      heldMatched++;
+      heldRows.push({start: c.start, end: c.end, section: c.section, subject: c.subject, faculty: c.faculty, room: c.room || '', rec});
+      return;
+    }
+    rows.push({
+      start: c.start, end: c.end, section: c.section, subject: c.subject, faculty: c.faculty, room: c.room || '',
+      reason: !rec ? 'No record submitted' : (rec.remarks ? 'Marked not held — ' + rec.remarks : 'Marked not held')
+    });
+  });
+  rows.sort((a,b)=> (a.start||'').localeCompare(b.start||'') || (a.faculty||'').localeCompare(b.faculty||''));
+  heldRows.sort((a,b)=> (a.start||'').localeCompare(b.start||'') || (a.faculty||'').localeCompare(b.faculty||''));
+
+  // Held records that did not line up with any scheduled class slot (this is why the stat card
+  // "Not held" number — Scheduled minus every held record — can be smaller than this list).
+  const unmatchedAll = dayRecs.filter(r => !used.has(r)).map(r=>{
+    const k = keysOf(r.section, r.faculty, r.start, dateStr);
+    const twin = [idx.exact[k.exact], idx.sec[k.sec], idx.fac[k.fac]].find(x => x && x !== r && used.has(x));
+    const facN = normFacultyKey(r.faculty), secN = normSection(r.section);
+    const cand = rows.filter(x => normFacultyKey(x.faculty) === facN || normSection(x.section) === secN)
+      .map(x => `${x.start} ${x.section}`);
+    return {
+      rec: r,
+      why: twin ? 'Duplicate record for a class already counted' : 'No timetable class at this section / time / faculty',
+      cand: cand.join('; ')
+    };
+  });
+  unmatchedAll.sort((a,b)=> (a.rec.start||'').localeCompare(b.rec.start||''));
+  const unmatched = unmatchedAll.filter(u => u.rec.held === 'yes');
+  const umWithLink = unmatched.filter(u => u.rec.link && String(u.rec.link).trim()).length;
+  const umWithDetails = unmatched.filter(u => u.rec.students && String(u.rec.students).trim()).length;
+  const umWithBoth = unmatched.filter(u => u.rec.link && String(u.rec.link).trim() && u.rec.students && String(u.rec.students).trim()).length;
+  return {wd, classes, rows, heldRows, heldRecs, dayRecs, heldMatched, unmatched, unmatchedAll, umWithLink, umWithDetails, umWithBoth};
+}
+
+// Builds the data used by the Complete report (HTML and Excel versions).
+function buildCompleteData(dept, dateStr, facFilterVal, allRecords){
+  const M = computeDayMatch(dept, dateStr, facFilterVal, allRecords);
+  const normSec = x => (x || '').trim().toUpperCase().replace(/\s+/g, ' ');
+  const toMin = t => { const m = /(\d{1,2})[:.](\d{2})/.exec(t || ''); return m ? (+m[1])*60 + (+m[2]) : 0; };
+
+  const A = M.heldRows;                       // 1. held, matches timetable
+  const B = M.unmatched;                      // 2. held, does not match timetable
+  const notRecAll = M.rows.slice();           // scheduled classes with no held record
+  const D = M.unmatchedAll.filter(u => u.rec.held !== 'yes');   // not-held records matching no class
+
+  // Held-but-mismatched records are real classes held at a different time / section spelling.
+  // Pair each one with the still-unrecorded timetable class it most likely belongs to
+  // (same faculty + section > same faculty > same section, nearest time), so that class is
+  // counted as held and taken off the "not recorded" list. Duplicates are not paired.
+  const pool = notRecAll.map(r => ({r, taken:false}));
+  B.forEach(u=>{
+    u.paired = null;
+    if(u.why.indexOf('Duplicate') === 0) return;
+    const fN = normFacultyKey(u.rec.faculty), sN = normSec(u.rec.section);
+    let best = null, bestScore = 0, bestDiff = 1e9;
+    pool.forEach(x=>{
+      if(x.taken) return;
+      const score = (normFacultyKey(x.r.faculty) === fN ? 2 : 0) + (normSec(x.r.section) === sN ? 1 : 0);
+      if(!score) return;
+      const diff = Math.abs(toMin(x.r.start) - toMin(u.rec.start));
+      if(score > bestScore || (score === bestScore && diff < bestDiff)){ best = x; bestScore = score; bestDiff = diff; }
+    });
+    if(best){ best.taken = true; u.paired = best.r; }
+  });
+  const C = pool.filter(x => !x.taken).map(x => x.r);           // 3. remaining, not recorded
+  const noRec = C.filter(r => r.reason === 'No record submitted').length;
+  const markedNo = C.length - noRec;
+
+  const scheduled = M.classes.length;
+  const heldTotal = M.heldRecs.length;                           // matched + mismatched, together
+  const remaining = Math.max(scheduled - heldTotal, 0);
+  const pairedN = B.filter(u => u.paired).length;
+  return {M, A, B, C, D, noRec, markedNo, scheduled, heldTotal, remaining, pairedN};
+}
+
+async function openCompleteReport(dept){
+  if(!adminUnlocked){ alert('The Complete report is available to administrators only. Unlock the Admin tab first.'); return; }
+  const dateStr = document.getElementById('filterDate' + dept).value;
+  const facFilterVal = document.getElementById('filterFaculty' + dept).value;
+  if(!dateStr){ alert('Pick a date in "Filter by date" first.'); return; }
+  if(weekdayForDateStr(dateStr) === null){ alert('Invalid date.'); return; }
+  let allRecords = [];
+  try{ allRecords = await listRecords(); }
+  catch(e){ console.error(e); alert('Could not load records.'); return; }
+
+  const {M, A, B, C, D, noRec, markedNo, scheduled, heldTotal, remaining, pairedN} = buildCompleteData(dept, dateStr, facFilterVal, allRecords);
+  const esc = v => String(v ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  const has = v => v && String(v).trim();
+  const link = r => has(r.link) ? `<a href="${esc(r.link)}">Open link</a>` : '—';
+  const nums = r => `${esc(r.totalEnrolled || '—')} / ${esc(r.students || '—')} / ${esc(r.absent || '—')}`;
+  const gcrTxt = r => r.gcrUploaded === 'yes' ? 'Yes' : r.gcrUploaded === 'no' ? 'No' : r.gcrUploaded === 'not-active' ? 'Not yet active' : '—';
+  const tA = A.map((r,i)=>`<tr><td>${i+1}</td><td>${esc(r.start)}–${esc(r.end)}</td><td>${esc(r.section)}</td><td>${esc(r.subject)}</td><td>${esc(r.faculty)}</td><td>${esc(r.room)}</td><td>${esc(gcrTxt(r.rec))}</td><td>${link(r.rec)}</td><td>${nums(r.rec)}</td><td>${r.rec.remarks ? esc(r.rec.remarks) : '—'}</td></tr>`).join('');
+  const tB = B.map((u,i)=>{
+    const r = u.rec;
+    const counted = u.paired ? `${esc(u.paired.start)} ${esc(u.paired.section)} — ${esc(u.paired.subject)} (${esc(u.paired.faculty)})` : 'Not counted against a class';
+    return `<tr><td>${i+1}</td><td>${esc(r.start)}–${esc(r.end)}</td><td>${esc(r.section)}</td><td>${esc(r.subject)}</td><td>${esc(r.faculty)}</td><td>${link(r)}</td><td>${nums(r)}</td><td>${esc(u.why)}</td><td>${counted}</td></tr>`;
+  }).join('');
+  const tC = C.map((r,i)=>`<tr><td>${i+1}</td><td>${esc(r.start)}–${esc(r.end)}</td><td>${esc(r.section)}</td><td>${esc(r.subject)}</td><td>${esc(r.faculty)}</td><td>${esc(r.room)}</td><td class="${r.reason==='No record submitted'?'norec':'nh'}">${esc(r.reason)}</td></tr>`).join('');
+  const tD = D.map((u,i)=>{ const r=u.rec; return `<tr><td>${i+1}</td><td>${esc(r.start)}–${esc(r.end)}</td><td>${esc(r.section)}</td><td>${esc(r.subject)}</td><td>${esc(r.faculty)}</td><td>${r.remarks ? esc(r.remarks) : '—'}</td></tr>`; }).join('');
+
+  const empty = msg => `<p class="empty">${msg}</p>`;
+  const listNote = C.length === remaining ? '' :
+    `<p class="note"><b>Note:</b> the list below has ${C.length} class${C.length===1?'':'es'} while ${scheduled} − ${heldTotal} = ${remaining}. The difference comes from held records that could not be tied to a specific timetable class (duplicates or extra classes), or from classes that share a single record.</p>`;
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>${dept} Complete Report — ${esc(dateStr)}</title>
+<style>
+  @page { size: A4 landscape; margin: 12mm 8mm; }
+  * { box-sizing: border-box; }
+  body{ font-family: Arial, Helvetica, sans-serif; color:#1c2530; margin:0; padding:24px; }
+  header{ border-bottom: 3px solid #b9763a; padding-bottom: 12px; margin-bottom: 14px; }
+  header h1{ font-size: 1.4rem; margin: 0 0 4px; color:#0f2942; }
+  header .sub{ font-size: .85rem; color:#4a5b6c; }
+  h2{ font-size: 1.05rem; margin: 26px 0 6px; color:#0f2942; padding-left: 10px; border-left: 5px solid #b9763a; }
+  h2.g{ border-left-color:#2f6f4f; } h2.o{ border-left-color:#b9763a; } h2.r{ border-left-color:#a8402f; }
+  .meta{ font-size: .85rem; color:#4a5b6c; margin-bottom: 12px; }
+  .meta div{ margin-bottom: 2px; }
+  .note{ font-size: .8rem; color:#4a5b6c; margin: 0 0 8px; max-width: 950px; }
+  .empty{ font-size:.85rem; color:#4a5b6c; font-style: italic; }
+  .statbar{ display:flex; gap: 14px; margin-bottom: 12px; flex-wrap:wrap; }
+  .statbar div{ border: 1px solid #b9b2a0; border-radius: 6px; padding: 8px 14px; font-size: .8rem; color:#4a5b6c; }
+  .statbar b{ display:block; font-size: 1.3rem; color:#0f2942; }
+  .statbar small{ display:block; font-size:.7rem; margin-top:2px; }
+  .statbar .g b{ color:#2f6f4f; } .statbar .r b{ color:#a8402f; }
+  .toolbar{ margin-bottom: 14px; }
+  .toolbar button{ font-size: .9rem; padding: 8px 16px; border-radius: 6px; border: 1px solid #0f2942; background:#0f2942; color:#fff; cursor:pointer; margin-right: 8px; }
+  .toolbar button.alt{ background:#fff; color:#0f2942; }
+  table{ width:100%; border-collapse: collapse; font-size: .74rem; }
+  th, td{ border: 1px solid #b9b2a0; padding: 4px 6px; text-align:left; vertical-align: top; word-break: break-word; }
+  th{ background: #f6f4ef; color:#0f2942; }
+  thead{ display: table-header-group; }
+  tr{ page-break-inside: avoid; }
+  tbody tr:nth-child(even){ background: #faf9f6; }
+  td.norec{ color:#a8402f; font-weight:700; }
+  td.nh{ color:#b9763a; font-weight:700; }
+  footer{ margin-top: 16px; font-size: .72rem; color:#4a5b6c; }
+  @media print{ .toolbar{ display:none; } body{ padding:0; } h2{ page-break-after: avoid; } }
+</style>
+</head>
+<body>
+  <div class="toolbar">
+    <button onclick="window.print()">Print / Save as PDF</button>
+    <button class="alt" onclick="window.close()">Close</button>
+  </div>
+  <header>
+    <h1>Online Class Monitoring — ${dept} Complete Report</h1>
+    <div class="sub">Air University ${dept} Department</div>
+  </header>
+  <div class="meta">
+    <div>Date: ${esc(dateStr)} (${esc(DAY_NAMES[M.wd])})</div>
+    <div>Faculty: ${esc(facFilterVal || 'All ' + dept + ' faculty')}</div>
+    <div>Generated: ${esc(new Date().toLocaleString())}</div>
+  </div>
+  <div class="statbar">
+    <div><b>${scheduled}</b>Total scheduled</div>
+    <div class="g"><b>${heldTotal}</b>Held online<small>${A.length} match timetable + ${B.length} mismatch</small></div>
+    <div class="r"><b>${remaining}</b>Remaining — not recorded / not held<small>${scheduled} − ${heldTotal}</small></div>
+  </div>
+
+  <h2 class="g">1. Held and matches timetable (${A.length})</h2>
+  ${A.length ? `<table><thead><tr><th>#</th><th>Time</th><th>Section</th><th>Subject</th><th>Faculty</th><th>Room</th><th>GCR uploaded</th><th>Link</th><th>Enrolled / Present / Absent</th><th>Remarks</th></tr></thead><tbody>${tA}</tbody></table>` : empty('None.')}
+
+  <h2 class="o">2. Held but mismatch with timetable (${B.length})</h2>
+  <p class="note">Marked held, but no timetable class on this weekday has the same section, faculty and start time (changed time, make-up class, different section spelling, or duplicate entry). These are counted as held, and each one is counted against the timetable class shown in the last column, which is why that class is not in list 3.</p>
+  ${B.length ? `<table><thead><tr><th>#</th><th>Recorded time</th><th>Section</th><th>Subject</th><th>Faculty</th><th>Link</th><th>Enrolled / Present / Absent</th><th>Why unmatched</th><th>Counted against timetable class</th></tr></thead><tbody>${tB}</tbody></table>` : empty('None.')}
+
+  <h2 class="r">3. Remaining — not recorded / not held (${C.length})</h2>
+  <p class="note">Scheduled classes with no held record: ${noRec} with no record submitted, ${markedNo} marked not held.</p>
+  ${listNote}
+  ${C.length ? `<table><thead><tr><th>#</th><th>Time</th><th>Section</th><th>Subject</th><th>Faculty</th><th>Room</th><th>Status</th></tr></thead><tbody>${tC}</tbody></table>` : empty('All scheduled classes were held.')}
+
+  ${D.length ? `<h2>Also: records marked not held that match no timetable class (${D.length})</h2>
+  <table><thead><tr><th>#</th><th>Recorded time</th><th>Section</th><th>Subject</th><th>Faculty</th><th>Remarks</th></tr></thead><tbody>${tD}</tbody></table>` : ''}
+
+  <footer>Generated from the Online Class Monitoring tool. Use "Print / Save as PDF" above to save this report.</footer>
+</body>
+</html>`;
+
+  const w = window.open('', '_blank');
+  if(!w){ alert('Please allow pop-ups for this site to open the report.'); return; }
+  w.document.open(); w.document.write(html); w.document.close();
+}
+
+// ---------- Complete report — formatted Excel workbook (admin only) ----------
+function buildCompleteWorkbook(ExcelJSLib, D, meta){
+  const wb = new ExcelJSLib.Workbook();
+  wb.creator = 'Online Class Monitoring';
+  wb.created = new Date();
+
+  const NAVY = 'FF0F2942', AMBER = 'FFB9763A', GREEN = 'FF2F6F4F', RED = 'FFA8402F', LINE = 'FFB9B2A0', ZEBRA = 'FFF6F4EF', HEAD_TXT = 'FFFFFFFF';
+  const thin = {style:'thin', color:{argb: LINE}};
+  const border = {top:thin, left:thin, bottom:thin, right:thin};
+  const has = v => v !== undefined && v !== null && String(v).trim() !== '';
+  const numOrText = v => { if(!has(v)) return ''; const t = String(v).trim(); return /^\d+$/.test(t) ? Number(t) : t; };
+  const gcrTxt = r => r.gcrUploaded === 'yes' ? 'Yes' : r.gcrUploaded === 'no' ? 'No' : r.gcrUploaded === 'not-active' ? 'Not yet active' : '';
+  const timeTxt = (a,b) => `${a || ''}–${b || ''}`;
+
+  // Estimates how many wrapped lines a value needs in a column of the given width.
+  const lines = (val, width) => {
+    const txt = (val && val.text !== undefined) ? String(val.text) : String(val ?? '');
+    return txt.split('\n').reduce((n, ln) => n + Math.max(1, Math.ceil(ln.length / Math.max(width * 1.1 - 1, 1))), 0);
+  };
+
+  // cols: [{header, key, min, max, fixed, align}]; rows: array of arrays (cell values, or {text,hyperlink}).
+  function addTableSheet(name, title, subtitle, accent, cols, rows, opts){
+    opts = opts || {};
+    const ws = wb.addWorksheet(name, {
+      views: [{state:'frozen', ySplit: 4, showGridLines: false}],
+      pageSetup: {orientation:'landscape', paperSize: 9, fitToPage: true, fitToWidth: 1, fitToHeight: 0, margins:{left:.4,right:.4,top:.5,bottom:.5,header:.3,footer:.3}}
+    });
+    // Column widths from content
+    const widths = cols.map((c, ci) => {
+      if(c.fixed) return c.fixed;
+      let w = String(c.header).length + 2;
+      rows.forEach(r => {
+        const v = r[ci]; const t = (v && v.text !== undefined) ? String(v.text) : String(v ?? '');
+        t.split('\n').forEach(ln => { w = Math.max(w, ln.length + 2); });
+      });
+      return Math.min(c.max || 40, Math.max(c.min || 8, w));
+    });
+    ws.columns = cols.map((c, i) => ({key: c.key, width: widths[i]}));
+
+    // Title + subtitle
+    ws.mergeCells(1, 1, 1, cols.length);
+    const t = ws.getCell(1,1); t.value = title;
+    t.font = {name:'Calibri', size:15, bold:true, color:{argb: NAVY}};
+    t.alignment = {vertical:'middle', horizontal:'left'};
+    ws.getRow(1).height = 26;
+    ws.mergeCells(2, 1, 2, cols.length);
+    const st = ws.getCell(2,1); st.value = subtitle;
+    st.font = {name:'Calibri', size:10, color:{argb:'FF4A5B6C'}};
+    st.alignment = {vertical:'middle', horizontal:'left'};
+    ws.getRow(2).height = 18;
+    // accent bar
+    for(let c=1; c<=cols.length; c++){ ws.getCell(3,c).fill = {type:'pattern', pattern:'solid', fgColor:{argb: accent}}; }
+    ws.getRow(3).height = 4;
+
+    // Header row (row 4)
+    const hr = ws.getRow(4);
+    cols.forEach((c, i) => {
+      const cell = hr.getCell(i+1);
+      cell.value = c.header;
+      cell.font = {name:'Calibri', size:11, bold:true, color:{argb: HEAD_TXT}};
+      cell.fill = {type:'pattern', pattern:'solid', fgColor:{argb: NAVY}};
+      cell.alignment = {vertical:'middle', horizontal:'center', wrapText:true};
+      cell.border = border;
+    });
+    hr.height = 30;
+
+    // Data rows
+    rows.forEach((r, ri) => {
+      const row = ws.getRow(5 + ri);
+      let maxLines = 1;
+      cols.forEach((c, ci) => {
+        const cell = row.getCell(ci+1);
+        const v = r[ci];
+        cell.value = (v === '' || v === undefined) ? null : v;
+        if(v && v.hyperlink){ cell.font = {name:'Calibri', size:10, color:{argb:'FF0563C1'}, underline:true}; }
+        else { cell.font = {name:'Calibri', size:10}; }
+        cell.alignment = {vertical:'top', horizontal: c.align || 'left', wrapText:true};
+        cell.border = border;
+        if(ri % 2 === 1) cell.fill = {type:'pattern', pattern:'solid', fgColor:{argb: ZEBRA}};
+        maxLines = Math.max(maxLines, lines(v, widths[ci]));
+      });
+      if(opts.statusCol !== undefined){
+        const sc = row.getCell(opts.statusCol + 1);
+        const txt = String(sc.value || '');
+        sc.font = {name:'Calibri', size:10, bold:true, color:{argb: txt.indexOf('No record') === 0 ? RED : AMBER}};
+      }
+      row.height = Math.max(18, maxLines * 13.5 + 5);
+    });
+
+    // Empty state
+    if(rows.length === 0){
+      ws.mergeCells(5, 1, 5, cols.length);
+      const e = ws.getCell(5,1); e.value = opts.emptyText || 'None.';
+      e.font = {name:'Calibri', size:10, italic:true, color:{argb:'FF4A5B6C'}};
+      e.alignment = {vertical:'middle', horizontal:'left'};
+      ws.getRow(5).height = 20;
+    } else {
+      ws.autoFilter = {from:{row:4, column:1}, to:{row:4 + rows.length, column: cols.length}};
+    }
+    ws.pageSetup.printTitlesRow = '4:4';
+    return ws;
+  }
+
+  const linkCell = r => has(r.link) ? {text:'Open link', hyperlink: String(r.link).trim()} : '';
+
+  // ---- Summary sheet ----
+  const sum = wb.addWorksheet('Summary', {
+    views:[{showGridLines:false}],
+    pageSetup:{orientation:'portrait', paperSize:9, fitToPage:true, fitToWidth:1, fitToHeight:0}
+  });
+  sum.columns = [{width:46},{width:14},{width:64}];
+  sum.mergeCells('A1:C1');
+  sum.getCell('A1').value = `Online Class Monitoring — ${meta.dept} Complete Report`;
+  sum.getCell('A1').font = {name:'Calibri', size:16, bold:true, color:{argb: NAVY}};
+  sum.getRow(1).height = 28;
+  sum.mergeCells('A2:C2');
+  sum.getCell('A2').value = `Air University ${meta.dept} Department`;
+  sum.getCell('A2').font = {name:'Calibri', size:10, color:{argb:'FF4A5B6C'}};
+  for(let c=1;c<=3;c++) sum.getCell(3,c).fill = {type:'pattern', pattern:'solid', fgColor:{argb: AMBER}};
+  sum.getRow(3).height = 4;
+
+  const metaRows = [['Date', `${meta.dateStr} (${meta.weekday})`], ['Faculty', meta.faculty], ['Generated', meta.generatedAt]];
+  metaRows.forEach((m, i) => {
+    const r = sum.getRow(5 + i);
+    r.getCell(1).value = m[0]; r.getCell(1).font = {name:'Calibri', size:10, bold:true, color:{argb: NAVY}};
+    sum.mergeCells(5+i, 2, 5+i, 3);
+    r.getCell(2).value = m[1]; r.getCell(2).font = {name:'Calibri', size:10};
+    r.getCell(2).alignment = {horizontal:'left'};
+  });
+
+  const hdrRow = sum.getRow(9);
+  ['Measure', 'Count', 'Note'].forEach((h, i) => {
+    const c = hdrRow.getCell(i+1); c.value = h;
+    c.font = {name:'Calibri', size:11, bold:true, color:{argb: HEAD_TXT}};
+    c.fill = {type:'pattern', pattern:'solid', fgColor:{argb: NAVY}};
+    c.alignment = {vertical:'middle', horizontal: i===1 ? 'center' : 'left'};
+    c.border = border;
+  });
+  hdrRow.height = 24;
+
+  const figs = [
+    ['Total scheduled', D.scheduled, 'Classes in the timetable for this weekday', NAVY, true],
+    ['Held online (matched + mismatched)', D.heldTotal, `${D.A.length} match the timetable + ${D.B.length} do not match the timetable`, GREEN, true],
+    ['   Held and matches timetable', D.A.length, 'Section, faculty and start time agree with the timetable', GREEN, false],
+    ['   Held but mismatch with timetable', D.B.length, 'Changed time, make-up class, different section spelling, or duplicate entry', AMBER, false],
+    ['Remaining — not recorded / not held', D.remaining, `${D.scheduled} scheduled − ${D.heldTotal} held`, RED, true],
+    ['   No record submitted', D.noRec, 'Faculty never logged the class', RED, false],
+    ['   Marked not held', D.markedNo, 'Logged as not held on scheduled time', AMBER, false]
+  ];
+  figs.forEach((f, i) => {
+    const r = sum.getRow(10 + i);
+    r.getCell(1).value = f[0]; r.getCell(2).value = f[1]; r.getCell(3).value = f[2];
+    r.getCell(1).font = {name:'Calibri', size:10.5, bold:f[4]};
+    r.getCell(2).font = {name:'Calibri', size:12, bold:true, color:{argb:f[3]}};
+    r.getCell(3).font = {name:'Calibri', size:10, color:{argb:'FF4A5B6C'}};
+    r.getCell(1).alignment = {vertical:'middle'}; r.getCell(2).alignment = {vertical:'middle', horizontal:'center'}; r.getCell(3).alignment = {vertical:'middle', wrapText:true};
+    for(let c=1;c<=3;c++){
+      r.getCell(c).border = border;
+      if(f[4]) r.getCell(c).fill = {type:'pattern', pattern:'solid', fgColor:{argb: ZEBRA}};
+    }
+    r.height = 22;
+  });
+  let noteRow = 10 + figs.length + 1;
+  if(D.C.length !== D.remaining){
+    sum.mergeCells(noteRow, 1, noteRow, 3);
+    const c = sum.getCell(noteRow, 1);
+    c.value = `Note: the "Not Recorded" sheet lists ${D.C.length} classes while ${D.scheduled} − ${D.heldTotal} = ${D.remaining}. The difference comes from held records that could not be tied to a specific timetable class (duplicates or extra classes), or from classes that share a single record.`;
+    c.font = {name:'Calibri', size:9.5, italic:true, color:{argb:'FF4A5B6C'}};
+    c.alignment = {wrapText:true, vertical:'top'};
+    sum.getRow(noteRow).height = 40;
+    noteRow++;
+  }
+  sum.mergeCells(noteRow, 1, noteRow, 3);
+  sum.getCell(noteRow, 1).value = 'Sheets: 1 Held - Matched · 2 Held - Mismatch · 3 Not Recorded' + (D.D.length ? ' · Not Held - No Match' : '');
+  sum.getCell(noteRow, 1).font = {name:'Calibri', size:9.5, color:{argb:'FF4A5B6C'}};
+
+  const sub = `${meta.dept} · ${meta.dateStr} (${meta.weekday}) · Faculty: ${meta.faculty}`;
+
+  // ---- 1. Held and matches timetable ----
+  addTableSheet('1 Held - Matched', `1. Held and matches timetable (${D.A.length})`, sub, GREEN, [
+    {header:'#', key:'n', fixed:5, align:'center'},
+    {header:'Time', key:'time', min:12, max:14, align:'center'},
+    {header:'Section', key:'sec', min:9, max:20},
+    {header:'Subject', key:'sub', min:18, max:40},
+    {header:'Faculty', key:'fac', min:18, max:30},
+    {header:'Room', key:'room', min:8, max:16, align:'center'},
+    {header:'GCR uploaded', key:'gcr', min:12, max:16, align:'center'},
+    {header:'GCR code', key:'gcrc', min:10, max:18, align:'center'},
+    {header:'Enrolled', key:'enr', min:9, max:12, align:'center'},
+    {header:'Present', key:'pre', min:9, max:30, align:'center'},
+    {header:'Absent', key:'abs', min:9, max:30, align:'center'},
+    {header:'Link', key:'link', fixed:12, align:'center'},
+    {header:'Remarks / Comments', key:'rem', min:18, max:45}
+  ], D.A.map((r,i) => [i+1, timeTxt(r.start, r.end), r.section, r.subject, r.faculty, r.room, gcrTxt(r.rec), r.rec.gcrCode || '', numOrText(r.rec.totalEnrolled), numOrText(r.rec.students), numOrText(r.rec.absent), linkCell(r.rec), r.rec.remarks || '']));
+
+  // ---- 2. Held but mismatch ----
+  addTableSheet('2 Held - Mismatch', `2. Held but mismatch with timetable (${D.B.length})`, sub, AMBER, [
+    {header:'#', key:'n', fixed:5, align:'center'},
+    {header:'Recorded time', key:'time', min:13, max:16, align:'center'},
+    {header:'Section', key:'sec', min:9, max:20},
+    {header:'Subject', key:'sub', min:18, max:40},
+    {header:'Faculty', key:'fac', min:18, max:30},
+    {header:'Enrolled', key:'enr', min:9, max:12, align:'center'},
+    {header:'Present', key:'pre', min:9, max:30, align:'center'},
+    {header:'Absent', key:'abs', min:9, max:30, align:'center'},
+    {header:'Link', key:'link', fixed:12, align:'center'},
+    {header:'Remarks / Comments', key:'rem', min:18, max:40},
+    {header:'Why unmatched', key:'why', min:28, max:40},
+    {header:'Counted against timetable class', key:'cnt', min:30, max:50}
+  ], D.B.map((u,i) => { const r = u.rec; return [i+1, timeTxt(r.start, r.end), r.section, r.subject, r.faculty, numOrText(r.totalEnrolled), numOrText(r.students), numOrText(r.absent), linkCell(r), r.remarks || '', u.why, u.paired ? `${u.paired.start} ${u.paired.section} — ${u.paired.subject} (${u.paired.faculty})` : 'Not counted against a class']; }));
+
+  // ---- 3. Not recorded / not held ----
+  addTableSheet('3 Not Recorded', `3. Remaining — not recorded / not held (${D.C.length})`, sub, RED, [
+    {header:'#', key:'n', fixed:5, align:'center'},
+    {header:'Time', key:'time', min:12, max:14, align:'center'},
+    {header:'Section', key:'sec', min:9, max:20},
+    {header:'Subject', key:'sub', min:18, max:40},
+    {header:'Faculty', key:'fac', min:18, max:30},
+    {header:'Room', key:'room', min:8, max:16, align:'center'},
+    {header:'Status', key:'status', min:20, max:50}
+  ], D.C.map((r,i) => [i+1, timeTxt(r.start, r.end), r.section, r.subject, r.faculty, r.room, r.reason]), {statusCol: 6, emptyText:'All scheduled classes were held.'});
+
+  // ---- Optional: not-held records matching no class ----
+  if(D.D.length){
+    addTableSheet('Not Held - No Match', `Records marked not held that match no timetable class (${D.D.length})`, sub, AMBER, [
+      {header:'#', key:'n', fixed:5, align:'center'},
+      {header:'Recorded time', key:'time', min:13, max:16, align:'center'},
+      {header:'Section', key:'sec', min:9, max:20},
+      {header:'Subject', key:'sub', min:18, max:40},
+      {header:'Faculty', key:'fac', min:18, max:30},
+      {header:'Remarks / Comments', key:'rem', min:18, max:45}
+    ], D.D.map((u,i) => { const r = u.rec; return [i+1, timeTxt(r.start, r.end), r.section, r.subject, r.faculty, r.remarks || '']; }));
+  }
+  return wb;
+}
+
+async function exportCompleteExcel(dept){
+  if(!adminUnlocked){ alert('The Complete report is available to administrators only. Unlock the Admin tab first.'); return; }
+  const dateStr = document.getElementById('filterDate' + dept).value;
+  const facFilterVal = document.getElementById('filterFaculty' + dept).value;
+  if(!dateStr){ alert('Pick a date in "Filter by date" first.'); return; }
+  if(weekdayForDateStr(dateStr) === null){ alert('Invalid date.'); return; }
+  if(typeof ExcelJS === 'undefined'){ alert('The Excel library could not be loaded. Check your internet connection and reload the page.'); return; }
+  let allRecords = [];
+  try{ allRecords = await listRecords(); }
+  catch(e){ console.error(e); alert('Could not load records.'); return; }
+
+  const D = buildCompleteData(dept, dateStr, facFilterVal, allRecords);
+  const wb = buildCompleteWorkbook(ExcelJS, D, {
+    dept, dateStr, weekday: DAY_NAMES[D.M.wd],
+    faculty: facFilterVal || ('All ' + dept + ' faculty'),
+    generatedAt: new Date().toLocaleString()
+  });
+  try{
+    const buf = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buf], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `${dept}_complete_report_${dateStr}.xlsx`;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=> URL.revokeObjectURL(url), 1500);
+  }catch(e){ console.error(e); alert('Could not create the Excel file.'); }
+}
+document.getElementById('completeXlsBtnEE').addEventListener('click', ()=> exportCompleteExcel('EE'));
+document.getElementById('completeXlsBtnCE').addEventListener('click', ()=> exportCompleteExcel('CE'));
+
+document.getElementById('completeBtnEE').addEventListener('click', ()=> openCompleteReport('EE'));
+document.getElementById('completeBtnCE').addEventListener('click', ()=> openCompleteReport('CE'));
 
 // ---------- Admin: non-compliance report (faculty who did not initiate online classes) ----------
 window._nonComplianceRows = [];
@@ -2342,22 +3024,16 @@ function renderNonComplianceReport(rows, fromStr, toStr, totalScheduled){
   statusEl.textContent = `Checked ${fromStr} to ${toStr}${timeNote}.`;
 }
 
-function exportNonComplianceCsv(){
+function nonComplianceExportTable(){
   const rows = window._nonComplianceRows || [];
-  if(rows.length === 0){ alert('Generate a report first (or nothing was found for the current range/filters).'); return; }
   const headers = ["Date","Weekday","Dept","Section","Start","End","Subject","Faculty","Reason"];
-  const csvRows = [headers.join(",")];
-  rows.forEach(r=>{
-    const line = [r.date, r.weekday, r.dept, r.section, r.start, r.end, r.subject, r.faculty, r.reason]
-      .map(v => `"${String(v ?? '').replace(/"/g,'""')}"`).join(",");
-    csvRows.push(line);
-  });
-  const blob = new Blob([csvRows.join("\n")], {type:"text/csv"});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = `online_class_non_compliance_${todayStr}.csv`;
-  a.click();
-  URL.revokeObjectURL(url);
+  const data = rows.map(r => [r.date, r.weekday, r.dept, r.section, r.start, r.end, r.subject, r.faculty, r.reason]);
+  return {headers, data};
+}
+function exportNonComplianceXlsx(){
+  const t = nonComplianceExportTable();
+  if(t.data.length === 0){ alert('Generate a report first (or nothing was found for the current range/filters).'); return; }
+  downloadXlsx(`online_class_non_compliance_${todayStr}.xlsx`, 'Non-compliance', t.headers, t.data, {wrapCols:[8]});
 }
 
 function exportNonComplianceReportPdf(){
@@ -2465,7 +3141,7 @@ function exportNonComplianceReportPdf(){
 }
 
 document.getElementById('reportGenerateBtn').addEventListener('click', generateNonComplianceReport);
-document.getElementById('reportExportBtn').addEventListener('click', exportNonComplianceCsv);
+document.getElementById('reportExportXlsBtn').addEventListener('click', exportNonComplianceXlsx);
 document.getElementById('reportExportPdfBtn').addEventListener('click', exportNonComplianceReportPdf);
 
 // ---------- Admin: view / edit / delete any record ----------
