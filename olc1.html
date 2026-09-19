@@ -321,6 +321,18 @@
     padding: 12px 16px;
     margin: 0 0 18px;
   }
+  .date-note{
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: .95rem;
+    font-weight: 700;
+    background: #fdecec;
+    border: 1px solid #f3b6b6;
+    border-left: 5px solid var(--red);
+    color: #7a1f1f;
+    border-radius: var(--radius);
+    padding: 10px 14px;
+    margin: -8px 0 16px;
+  }
   .present-warn{
     display:none;
     font-family: Arial, Helvetica, sans-serif;
@@ -607,6 +619,7 @@
       <div class="field">
         <label for="dateInput">Date/Day of the scheduled class, as per the timetable, to be conducted online.</label>
         <input type="date" id="dateInput">
+        <div class="date-note">⚠️ Enter the date matching the timetable weekday you're following (e.g., if Saturday follows Monday's schedule, pick that date).</div>
       </div>
     </div>
 
@@ -643,6 +656,7 @@
         <div class="field">
           <label for="manualDate">Date/Day of the scheduled class, as per the timetable, to be conducted online.</label>
           <input type="date" id="manualDate">
+          <div class="date-note">⚠️ Enter the date matching the timetable weekday you're following.</div>
         </div>
         <div class="field">
           <label for="manualSection">Section</label>
@@ -862,7 +876,7 @@
 
       <div class="admin-block">
         <h3>Non-compliance report — faculty who did not initiate online classes</h3>
-        <p class="hint">Scans the timetable against submitted records over a date range and lists every scheduled class that has either no record at all ("No record submitted" — the faculty member never logged it) or a record marked "Held on scheduled time: No". Use this to follow up with faculty who did not initiate/effect their online classes.</p>
+        <p class="hint">Scans the timetable against submitted records over a date range and lists every scheduled class that has either no record at all ("No record submitted" — the faculty member never logged it) or a record marked "Held on scheduled time: No". Narrow it to a specific timetable time slot to check who did not conduct/submit for that particular period. Use this to follow up with faculty who did not initiate/effect their online classes.</p>
         <div class="controls">
           <div class="field">
             <label for="reportFromDate">From date</label>
@@ -878,6 +892,12 @@
               <option value="">All departments</option>
               <option value="EE">EE</option>
               <option value="CE">CE</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="reportTime">Time slot (as per timetable)</label>
+            <select id="reportTime">
+              <option value="">All time slots</option>
             </select>
           </div>
           <div class="field combo-field">
@@ -1417,6 +1437,7 @@ function rebuildFacultyList(){
   facultyList = dedupeFacultyNames(allSchedule());
   facultyListEE = dedupeFacultyNames(SCHEDULE_EE);
   facultyListCE = dedupeFacultyNames(SCHEDULE_CE);
+  if(typeof populateReportTimeOptions === 'function') populateReportTimeOptions(); // keep the non-compliance report's time-slot list in sync with the timetable
 }
 rebuildFacultyList();
 
@@ -2196,11 +2217,36 @@ document.getElementById('exportBtnCE').addEventListener('click', ()=> exportReco
 window._nonComplianceRows = [];
 setupFacultyCombo('reportFaculty', 'reportFacultyList', 'All faculty', ()=> facultyList, ()=>{});
 
+function populateReportTimeOptions(){
+  const sel = document.getElementById('reportTime');
+  const deptSel = document.getElementById('reportDept').value;
+  const prevVal = sel.value;
+  // Distinct start times from the timetable, per selected department (or all).
+  const slots = {}; // start -> Set of end times
+  allSchedule().forEach(c=>{
+    if(deptSel && (c.dept || 'EE') !== deptSel) return;
+    if(!c.start) return;
+    if(!slots[c.start]) slots[c.start] = new Set();
+    if(c.end) slots[c.start].add(c.end);
+  });
+  const starts = Object.keys(slots).sort();
+  sel.innerHTML = '<option value="">All time slots</option>' + starts.map(s=>{
+    const ends = Array.from(slots[s]);
+    const label = ends.length === 1 ? `${s}–${ends[0]}` : s;
+    return `<option value="${s}">${label}</option>`;
+  }).join('');
+  // Keep the previously chosen slot selected if it's still available for this department.
+  if(starts.includes(prevVal)) sel.value = prevVal;
+}
+document.getElementById('reportDept').addEventListener('change', populateReportTimeOptions);
+populateReportTimeOptions();
+
 async function generateNonComplianceReport(){
   const statusEl = document.getElementById('reportStatus');
   const fromStr = document.getElementById('reportFromDate').value;
   const toStr = document.getElementById('reportToDate').value;
   const deptSel = document.getElementById('reportDept').value;
+  const timeSel = document.getElementById('reportTime').value;
   const facFilterVal = document.getElementById('reportFaculty').value;
 
   if(!fromStr || !toStr){
@@ -2248,6 +2294,7 @@ async function generateNonComplianceReport(){
     const classesToday = allSchedule().filter(c=>{
       if(c.day !== wd) return false;
       if(deptSel && (c.dept || 'EE') !== deptSel) return false;
+      if(timeSel && c.start !== timeSel) return false;
       if(facKey && normFacultyKey(c.faculty) !== facKey) return false;
       return true;
     });
@@ -2271,12 +2318,14 @@ function renderNonComplianceReport(rows, fromStr, toStr){
   const body = document.getElementById('reportBody');
   const countLine = document.getElementById('reportCountLine');
   const statusEl = document.getElementById('reportStatus');
+  const timeSel = document.getElementById('reportTime').value;
+  const timeNote = timeSel ? ` at the ${timeSel} slot` : '';
 
   if(rows.length === 0){
     body.innerHTML = '<tr><td colspan="8">No missed or non-initiated online classes found for this range/filters.</td></tr>';
     countLine.textContent = '';
     statusEl.className = 'upload-status';
-    statusEl.textContent = `Checked ${fromStr} to ${toStr}.`;
+    statusEl.textContent = `Checked ${fromStr} to ${toStr}${timeNote}.`;
     return;
   }
 
@@ -2292,9 +2341,9 @@ function renderNonComplianceReport(rows, fromStr, toStr){
   </tr>`).join('');
 
   const facultyCount = new Set(rows.map(r=> normFacultyKey(r.faculty))).size;
-  countLine.textContent = `${rows.length} non-initiated/non-held class${rows.length===1?'':'es'} across ${facultyCount} faculty member${facultyCount===1?'':'s'}, ${fromStr} to ${toStr}.`;
+  countLine.textContent = `${rows.length} non-initiated/non-held class${rows.length===1?'':'es'} across ${facultyCount} faculty member${facultyCount===1?'':'s'}, ${fromStr} to ${toStr}${timeNote}.`;
   statusEl.className = 'upload-status';
-  statusEl.textContent = `Checked ${fromStr} to ${toStr}.`;
+  statusEl.textContent = `Checked ${fromStr} to ${toStr}${timeNote}.`;
 }
 
 function exportNonComplianceCsv(){
