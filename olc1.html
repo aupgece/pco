@@ -1006,6 +1006,7 @@
           </div>
           <button class="primary" id="reportGenerateBtn">Generate report</button>
           <button class="ghost" id="reportExportBtn">Export CSV</button>
+          <button class="ghost" id="reportExportPdfBtn">Export PDF</button>
         </div>
         <p class="upload-status" id="reportStatus"></p>
         <div class="table-wrap">
@@ -2588,8 +2589,100 @@ function exportNonComplianceCsv(){
   URL.revokeObjectURL(url);
 }
 
+function exportNonComplianceReportPdf(){
+  const rows = window._nonComplianceRows || [];
+  if(rows.length === 0){ alert('Generate a report first (or nothing was found for the current range/filters).'); return; }
+
+  const fromStr = document.getElementById('reportFromDate').value;
+  const toStr = document.getElementById('reportToDate').value;
+  const deptSel = document.getElementById('reportDept').value;
+  const timeSel = document.getElementById('reportTime').value;
+  const facFilterVal = document.getElementById('reportFaculty').value;
+
+  const facultyCount = new Set(rows.map(r=> normFacultyKey(r.faculty))).size;
+  const generatedAt = new Date().toLocaleString();
+
+  const filterBits = [];
+  filterBits.push(`Date range: ${fromStr} to ${toStr}`);
+  filterBits.push(`Department: ${deptSel || 'All departments'}`);
+  filterBits.push(`Time slot: ${timeSel || 'All time slots'}`);
+  filterBits.push(`Faculty: ${facFilterVal || 'All faculty'}`);
+
+  const esc = s => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+  const tableRows = rows.map(r=>`<tr>
+      <td>${esc(r.date)}</td>
+      <td>${esc(r.weekday)}</td>
+      <td>${esc(r.dept)}</td>
+      <td>${esc(r.section)}</td>
+      <td>${esc(r.start)}–${esc(r.end)}</td>
+      <td>${esc(r.subject)}</td>
+      <td>${esc(r.faculty)}</td>
+      <td>${esc(r.reason)}</td>
+    </tr>`).join('');
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Online Class Non-Compliance Report</title>
+<style>
+  @page { size: A4 landscape; margin: 14mm 12mm; }
+  * { box-sizing: border-box; }
+  body{ font-family: Arial, Helvetica, sans-serif; color:#1c2530; margin:0; padding:0 0 24px; }
+  header{ border-bottom: 3px solid #b9763a; padding-bottom: 12px; margin-bottom: 16px; }
+  header h1{ font-size: 1.4rem; margin: 0 0 4px; color:#0f2942; }
+  header .sub{ font-size: .85rem; color:#4a5b6c; }
+  .meta{ font-size: .82rem; color:#4a5b6c; margin-bottom: 14px; }
+  .meta div{ margin-bottom: 2px; }
+  .summary{ font-size: .95rem; font-weight:600; color:#0f2942; margin-bottom: 14px; }
+  table{ width:100%; border-collapse: collapse; font-size: .78rem; }
+  th, td{ border: 1px solid #b9b2a0; padding: 6px 7px; text-align:left; vertical-align: top; }
+  th{ background: #f6f4ef; color:#0f2942; }
+  tbody tr:nth-child(even){ background: #faf9f6; }
+  footer{ margin-top: 18px; font-size: .72rem; color:#4a5b6c; }
+  @media print{ a[href]:after{ content: none !important; } }
+</style>
+</head>
+<body>
+  <header>
+    <h1>Online Class Monitoring — Non-Compliance Report</h1>
+    <div class="sub">Air University EE / CE Department</div>
+  </header>
+  <div class="meta">
+    ${filterBits.map(b=>`<div>${esc(b)}</div>`).join('')}
+    <div>Generated: ${esc(generatedAt)}</div>
+  </div>
+  <div class="summary">${rows.length} non-initiated/non-held class${rows.length===1?'':'es'} across ${facultyCount} faculty member${facultyCount===1?'':'s'}.</div>
+  <table>
+    <thead>
+      <tr><th>Date</th><th>Weekday</th><th>Dept</th><th>Section</th><th>Time</th><th>Subject</th><th>Faculty</th><th>Reason</th></tr>
+    </thead>
+    <tbody>${tableRows}</tbody>
+  </table>
+  <footer>Generated from the Online Class Monitoring tool. Use your browser's "Save as PDF" option in the print dialog to save this report.</footer>
+  <scr` + `ipt>
+    window.onload = function(){
+      window.focus();
+      window.print();
+    };
+  </scr` + `ipt>
+</body>
+</html>`;
+
+  const w = window.open('', '_blank');
+  if(!w){
+    alert('Please allow pop-ups for this site to export the PDF report.');
+    return;
+  }
+  w.document.open();
+  w.document.write(html);
+  w.document.close();
+}
+
 document.getElementById('reportGenerateBtn').addEventListener('click', generateNonComplianceReport);
 document.getElementById('reportExportBtn').addEventListener('click', exportNonComplianceCsv);
+document.getElementById('reportExportPdfBtn').addEventListener('click', exportNonComplianceReportPdf);
 
 // ---------- Admin: view / edit / delete any record ----------
 window._adminRecords = [];
