@@ -1387,7 +1387,7 @@ function facultyNamesSoundSame(rawA, rawB){
   const shortest = Math.min(foldA.length, foldB.length), longest = Math.max(foldA.length, foldB.length);
   if(shortest < 3 || longest === 0) return false;      // too short to compare safely — avoid merging generic placeholders
   const dist = levenshtein(foldA, foldB);
-  return (1 - dist / longest) >= 0.7;                  // "close enough to sound like the same name"
+  return (1 - dist / longest) >= 0.9;                  // "close enough to sound like the same name" — 0.7 was too loose and silently merged distinct people (e.g. "Touseef Ur Rehman" into "Atique Ur Rehman") because a common surname like "Ur Rehman" dominates the short folded string
 }
 // Groups every distinct raw faculty spelling seen into clusters of "the same
 // person, spelled/typed differently" using facultyNamesSoundSame() above,
