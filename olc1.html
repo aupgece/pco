@@ -767,7 +767,7 @@
       <button class="primary admin-only" id="completeBtnEE" style="display:none;">Complete report</button>
       <button class="ghost admin-only" id="completeXlsBtnEE" style="display:none;">Complete report (Excel)</button>
     </div>
-    <p class="note-shared">Records are stored in shared storage for this tool, so every faculty member and administrator opening this page can see the same monitoring log. This view is filtered to the EE timetable.</p>
+    <p class="note-shared">Records are stored in shared storage for this tool, so every faculty member and administrator opening this page can see the same monitoring log. This view is filtered to the EE timetable; choosing a faculty member shows that person’s classes and records across both the EE and CE timetables.</p>
     <div class="table-wrap">
       <table class="records" id="recordsTableEE">
         <thead>
@@ -818,7 +818,7 @@
       <button class="primary admin-only" id="completeBtnCE" style="display:none;">Complete report</button>
       <button class="ghost admin-only" id="completeXlsBtnCE" style="display:none;">Complete report (Excel)</button>
     </div>
-    <p class="note-shared">Records are stored in shared storage for this tool, so every faculty member and administrator opening this page can see the same monitoring log. This view is filtered to the CE timetable.</p>
+    <p class="note-shared">Records are stored in shared storage for this tool, so every faculty member and administrator opening this page can see the same monitoring log. This view is filtered to the CE timetable; choosing a faculty member shows that person’s classes and records across both the EE and CE timetables.</p>
     <div class="table-wrap">
       <table class="records" id="recordsTableCE">
         <thead>
@@ -1376,27 +1376,29 @@ function allSchedule(){ return SCHEDULE_EE.concat(SCHEDULE_CE); }
 const DAY_NAMES = {0:"Sunday",1:"Monday",2:"Tuesday",3:"Wednesday",4:"Thursday",5:"Friday",6:"Saturday"};
 
 // ---------- Build faculty list(s) ----------
-// Faculty names get matched by how they SOUND, not by exact spelling —
-// timetables transliterate the same person differently ("Zoafshan" /
-// "Zo Afshan" / "Zekaish" / "Zarkaish"), so exact-string matching misses
-// these. normFacultyKey() strips titles, parenthetical tags like "(VFM)",
-// a leading "CE"/"EE" dept prefix, and all spacing/punctuation, leaving a
-// bare letter string. facultyPhoneticFold() then collapses that further —
-// doubled letters, interchangeable consonant sounds (s/z, sh/ch, k/c/q,
-// etc.), and vowels — into a rough "sounds like" key. Two names are treated
-// as the same person if their bare keys match exactly, OR their phonetic
-// keys are close enough (allowing for small spelling differences, but not
-// so loose that unrelated short names collide). When variants are merged,
-// the most detailed spelling (the longest variant) is kept as the display
-// name everywhere.
-function normFacultyKey(name){
-  let s = (name||'').trim().toLowerCase();
-  s = s.replace(/\([^)]*\)/g, ' ');                    // drop "(VFM)", "(Faculty)", etc.
-  s = s.replace(/^(ce|ee)[\s-]+(?=\S)/, '');           // drop a leading "CE "/"EE-" dept prefix
-  s = s.replace(/\b(dr|mr|mrs|ms|prof|engr|air cdr|gp capt|wg cdr|sqn ldr|col|lt col|maj|capt|brig|gen)\.?\b/g, ' ');
-  s = s.replace(/[^a-z\s]/g, ' ');                     // drop remaining punctuation
-  s = s.replace(/\s+/g, '');                           // ignore spacing differences ("zo afshan" == "zoafshan")
-  return s;
+// ONE person = ONE faculty entry, across BOTH the EE and CE timetables.
+// Timetables spell the same person differently ("CE Ms Zerkaish" / "EE- Ms.
+// Zarkaish" / "Ms. Zerkash (VFM)"), so names are matched by identity rather
+// than exact spelling. facultyProfile() strips everything that is not part of
+// the person's name — the leading "CE"/"EE" dept prefix, titles (Dr/Mr/Ms…),
+// "(VFM)"-style tags and all punctuation/spacing. Two names are the SAME
+// person when, after that clean-up:
+//   1. the letters are identical, OR
+//   2. they sound alike (doubled letters, s/z, sh/ch, k/c/q, v/w, j/y and
+//      vowels are ignored; >= 90% of the rough "sound" must match), OR
+//   3. one is the other plus extra name parts ("Sher Ali" / "Sher Ali Khan"),
+//      provided the shorter one already has at least two name parts.
+// Numbers are part of the identity, so "Visiting Lab Engineer 1" and "... 2"
+// stay two different people. Matching is transitive (if A~B and B~C, all
+// three are one person). The most detailed spelling becomes the display name,
+// shown WITHOUT the CE/EE prefix so it reads the same in both departments.
+let FACULTY_INDEX = new Map();        // clean letter key -> person key
+let FACULTY_CLUSTERS = [];            // [{key, profiles:[…]}] — every spelling seen for each person
+let FACULTY_LOOKUP_MEMO = new Map();  // cache for spellings not in the current timetables (e.g. older records)
+const FACULTY_PROFILE_CACHE = new Map();
+
+function stripDeptPrefix(raw){
+  return String(raw || '').replace(/^\s*(ce|ee)\b[\s\-.:\/]*(?=\S)/i, '');
 }
 function facultyPhoneticFold(key){
   let s = key.replace(/(.)\1+/g, '$1');                // collapse doubled letters
@@ -1410,6 +1412,29 @@ function facultyPhoneticFold(key){
   s = s.replace(/(.)\1+/g, '$1');
   return s;
 }
+function facultyProfile(raw){
+  const cacheKey = String(raw == null ? '' : raw);
+  const hit = FACULTY_PROFILE_CACHE.get(cacheKey);
+  if(hit) return hit;
+  let s = cacheKey.trim().toLowerCase();
+  s = s.replace(/\([^)]*\)/g, ' ');                    // drop "(VFM)", "(Faculty)", "(MATH)", etc.
+  s = stripDeptPrefix(s);                              // drop a leading "CE "/"EE-" dept prefix
+  s = s.replace(/\b(dr|mr|mrs|ms|miss|prof|professor|engr|air cdr|gp capt|wg cdr|sqn ldr|col|lt col|maj|capt|brig|gen)\.?\b/g, ' ');
+  s = s.replace(/[^a-z0-9\s]/g, ' ');                  // drop remaining punctuation
+  const all = s.split(/\s+/).filter(Boolean);
+  const words = all.filter(w => /[a-z]/.test(w)).map(w => w.replace(/\d/g, ''));
+  const letters = words.join('');
+  const p = {
+    key: all.join(''),                                  // letters + digits, spacing ignored ("zo afshan" == "zoafshan")
+    letters,
+    digits: (s.match(/\d+/g) || []).join(','),
+    words,
+    wordFolds: words.map(facultyPhoneticFold),
+    fold: facultyPhoneticFold(letters)
+  };
+  FACULTY_PROFILE_CACHE.set(cacheKey, p);
+  return p;
+}
 function levenshtein(a, b){
   const m = a.length, n = b.length;
   const d = Array.from({length:m+1}, (_, i)=>[i].concat(new Array(n).fill(0)));
@@ -1421,20 +1446,57 @@ function levenshtein(a, b){
   }
   return d[m][n];
 }
-function facultyNamesSoundSame(rawA, rawB){
-  const keyA = normFacultyKey(rawA), keyB = normFacultyKey(rawB);
-  if(!keyA || !keyB) return false;
-  if(keyA === keyB) return true;
-  const foldA = facultyPhoneticFold(keyA), foldB = facultyPhoneticFold(keyB);
-  const shortest = Math.min(foldA.length, foldB.length), longest = Math.max(foldA.length, foldB.length);
-  if(shortest < 3 || longest === 0) return false;      // too short to compare safely — avoid merging generic placeholders
-  const dist = levenshtein(foldA, foldB);
-  return (1 - dist / longest) >= 0.9;                  // "close enough to sound like the same name" — 0.7 was too loose and silently merged distinct people (e.g. "Touseef Ur Rehman" into "Atique Ur Rehman") because a common surname like "Ur Rehman" dominates the short folded string
+// Is every name part of the shorter name found (by sound, in order) inside the longer one?
+function facultyWordsContained(S, L){
+  if(S.words.length < 2 || S.words.length >= L.words.length || S.letters.length < 6) return false;
+  let j = 0;
+  for(const f of S.wordFolds){
+    if(!f) return false;
+    while(j < L.wordFolds.length && L.wordFolds[j] !== f) j++;
+    if(j >= L.wordFolds.length) return false;
+    j++;
+  }
+  return true;
 }
-// Groups every distinct raw faculty spelling seen into clusters of "the same
-// person, spelled/typed differently" using facultyNamesSoundSame() above,
-// then picks the longest (most detailed) spelling in each cluster as the
-// name to display everywhere for that person.
+function facultyProfilesSame(A, B){
+  if(!A.key || !B.key) return false;
+  if(A.digits !== B.digits) return false;              // "Visiting Lab Engineer 1" is not "… 2"
+  if(A.key === B.key) return true;
+  if(!A.letters || !B.letters) return false;
+  const shortest = Math.min(A.fold.length, B.fold.length), longest = Math.max(A.fold.length, B.fold.length);
+  if(shortest >= 3 && longest > 0 && (1 - levenshtein(A.fold, B.fold) / longest) >= 0.9) return true;  // 0.7 was too loose ("Touseef Ur Rehman" vs "Atique Ur Rehman")
+  return facultyWordsContained(A, B) || facultyWordsContained(B, A);
+}
+function facultyNamesSoundSame(rawA, rawB){
+  return facultyProfilesSame(facultyProfile(rawA), facultyProfile(rawB));
+}
+// The person key used EVERYWHERE two faculty names are compared (class lookup,
+// records filters, reports, stat cards). Spellings that belong to a person in
+// the current timetables resolve straight to that person; a spelling that is
+// not in them (e.g. an older saved record) is matched by sound to a known person.
+function normFacultyKey(name){
+  const p = facultyProfile(name);
+  if(!p.key) return '';
+  const direct = FACULTY_INDEX.get(p.key);
+  if(direct) return direct;
+  if(FACULTY_LOOKUP_MEMO.has(p.key)) return FACULTY_LOOKUP_MEMO.get(p.key);
+  let found = p.key;
+  outer: for(const cl of FACULTY_CLUSTERS){
+    for(const q of cl.profiles){ if(facultyProfilesSame(p, q)){ found = cl.key; break outer; } }
+  }
+  FACULTY_LOOKUP_MEMO.set(p.key, found);
+  return found;
+}
+// Groups every distinct raw spelling into people (union-find, so matching is
+// transitive) and picks one display name per person: the most detailed spelling
+// (most name letters), with the CE/EE prefix removed.
+function pickFacultyDisplay(variants){
+  let best = variants[0];
+  const score = v => facultyProfile(v).letters.length * 1000 + v.length;
+  variants.forEach(v=>{ if(score(v) > score(best)) best = v; });
+  const stripped = stripDeptPrefix(best).trim();
+  return /[a-z]{3}/i.test(stripped.replace(/\([^)]*\)/g, '')) ? stripped : best;   // keep the raw text if nothing meaningful is left (e.g. "CE (Faculty)")
+}
 function buildFacultyCanonicalMap(rows){
   const rawNames = [];
   const seenRaw = new Set();
@@ -1442,43 +1504,62 @@ function buildFacultyCanonicalMap(rows){
     const raw = (c.faculty||'').trim();
     if(raw && !seenRaw.has(raw)){ seenRaw.add(raw); rawNames.push(raw); }
   });
-  const clusters = []; // array of arrays of raw variants
-  rawNames.forEach(raw=>{
-    let cluster = clusters.find(cl => cl.some(existing => facultyNamesSoundSame(existing, raw)));
-    if(cluster) cluster.push(raw); else clusters.push([raw]);
+  const profs = rawNames.map(facultyProfile);
+  const parent = rawNames.map((_, i)=> i);
+  const find = i => { while(parent[i] !== i){ parent[i] = parent[parent[i]]; i = parent[i]; } return i; };
+  for(let i=0;i<rawNames.length;i++){
+    for(let j=i+1;j<rawNames.length;j++){
+      if(find(i) !== find(j) && facultyProfilesSame(profs[i], profs[j])) parent[find(j)] = find(i);
+    }
+  }
+  const groups = new Map();
+  rawNames.forEach((raw, i)=>{
+    const r = find(i);
+    if(!groups.has(r)) groups.set(r, []);
+    groups.get(r).push(raw);
   });
   const canonicalByRaw = new Map();
-  clusters.forEach(cluster=>{
-    let canonical = cluster[0];
-    cluster.forEach(v=>{ if(v.length > canonical.length) canonical = v; });
-    cluster.forEach(v=> canonicalByRaw.set(v, canonical));
+  groups.forEach(variants=>{
+    const canonical = pickFacultyDisplay(variants);
+    variants.forEach(v=> canonicalByRaw.set(v, canonical));
   });
   return canonicalByRaw;
 }
-function dedupeFacultyNames(rows){
-  const canonicalByRaw = buildFacultyCanonicalMap(rows);
-  return Array.from(new Set(canonicalByRaw.values())).sort((a,b)=>a.localeCompare(b));
+function registerFacultyClusters(canonicalByRaw){
+  FACULTY_INDEX = new Map();
+  FACULTY_LOOKUP_MEMO = new Map();
+  const byCanon = new Map();
+  canonicalByRaw.forEach((canonical, raw)=>{
+    const pk = facultyProfile(canonical).key;
+    FACULTY_INDEX.set(facultyProfile(raw).key, pk);
+    if(!byCanon.has(canonical)) byCanon.set(canonical, {key: pk, profiles: []});
+    byCanon.get(canonical).profiles.push(facultyProfile(raw));
+  });
+  FACULTY_CLUSTERS = Array.from(byCanon.values());
 }
-// Rewrites every schedule row's faculty field to the one canonical (most
-// detailed) spelling for that person, so a faculty member's name reads
-// identically everywhere it shows up — class cards, the records tables, and
-// the Admin schedule-edit grid — not only in the "select your name" list.
-function canonicalizeFacultyNames(rows){
-  const canonicalByRaw = buildFacultyCanonicalMap(rows);
-  rows.forEach(c=>{
+const facultySortKey = n => facultyProfile(n).key;
+function uniqueFacultyNames(rows){
+  return Array.from(new Set(rows.map(c => (c.faculty||'').trim()).filter(Boolean)))
+    .sort((a,b)=> facultySortKey(a).localeCompare(facultySortKey(b)));
+}
+let facultyList = [];   // combined EE + CE, one entry per person — used for "Record a class", both records views, and Admin
+let facultyListEE = []; // people on the EE timetable
+let facultyListCE = []; // people on the CE timetable
+function rebuildFacultyList(){
+  // One pass over BOTH timetables: rewrite every row's faculty to that person's
+  // display name (same object refs as SCHEDULE_EE/SCHEDULE_CE, so both update),
+  // and register the people so old records with other spellings still match.
+  const all = allSchedule();
+  const canonicalByRaw = buildFacultyCanonicalMap(all);
+  all.forEach(c=>{
     const raw = (c.faculty||'').trim();
     const canonical = raw && canonicalByRaw.get(raw);
     if(canonical && c.faculty !== canonical) c.faculty = canonical;
   });
-}
-let facultyList = [];   // combined EE + CE, deduplicated — used for "Record a class" and Admin
-let facultyListEE = []; // EE only, deduplicated — used for the EE view-records filter
-let facultyListCE = []; // CE only, deduplicated — used for the CE view-records filter
-function rebuildFacultyList(){
-  canonicalizeFacultyNames(allSchedule()); // same object refs as SCHEDULE_EE/SCHEDULE_CE, so this updates both
-  facultyList = dedupeFacultyNames(allSchedule());
-  facultyListEE = dedupeFacultyNames(SCHEDULE_EE);
-  facultyListCE = dedupeFacultyNames(SCHEDULE_CE);
+  registerFacultyClusters(canonicalByRaw);
+  facultyList = uniqueFacultyNames(all);
+  facultyListEE = uniqueFacultyNames(SCHEDULE_EE);
+  facultyListCE = uniqueFacultyNames(SCHEDULE_CE);
   if(typeof populateReportTimeOptions === 'function') populateReportTimeOptions(); // keep the non-compliance report's time-slot list in sync with the timetable
 }
 rebuildFacultyList();
@@ -1528,8 +1609,8 @@ function setupFacultyCombo(inputId, listId, blankLabel, getList, onSelect){
   });
 }
 setupFacultyCombo('facultySelect', 'facultySelectList', '— select your name —', ()=> facultyList, ()=> showClasses());
-setupFacultyCombo('filterFacultyEE', 'filterFacultyListEE', 'All EE faculty', ()=> facultyListEE, ()=> loadRecordsTable('EE'));
-setupFacultyCombo('filterFacultyCE', 'filterFacultyListCE', 'All CE faculty', ()=> facultyListCE, ()=> loadRecordsTable('CE'));
+setupFacultyCombo('filterFacultyEE', 'filterFacultyListEE', 'All EE faculty', ()=> facultyList, ()=> loadRecordsTable('EE'));
+setupFacultyCombo('filterFacultyCE', 'filterFacultyListCE', 'All CE faculty', ()=> facultyList, ()=> loadRecordsTable('CE'));
 setupFacultyCombo('adminFilterFaculty', 'adminFilterFacultyList', 'All faculty', ()=> facultyList, ()=> loadAdminTable());
 
 // default date = today
@@ -2100,24 +2181,28 @@ async function loadRecordsTable(dept){
     console.error(e);
     body.innerHTML = '<tr><td colspan="14">No records found yet.</td></tr>';
     countLine.textContent = "";
-    renderStatCards('view' + P, dateFilter, facFilter, [], getSchedule(P));
+    renderStatCards('view' + P, dateFilter, facFilter, [], facFilter ? allSchedule() : getSchedule(P));
     return;
   }
 
-  // Only this department's records — legacy records saved before CE existed
-  // have no dept field, so they default to EE.
+  // Without a faculty filter: only this department's records — legacy records
+  // saved before CE existed have no dept field, so they default to EE.
+  // With a faculty filter: that person is ONE person across both timetables, so
+  // their classes and records from EE and CE are both shown (the section column
+  // is tagged with the other department where it differs).
   const records = allRecords.filter(r => (r.dept || 'EE') === P);
   const facKey = facFilter ? normFacultyKey(facFilter) : null;
+  const pool = facKey ? allRecords : records;
 
-  const filtered = records.filter(r=>{
+  const filtered = pool.filter(r=>{
     if(facKey && normFacultyKey(r.faculty) !== facKey) return false;
     if(dateFilter && r.date !== dateFilter) return false;
     return true;
   });
 
-  renderStatCards('view' + P, dateFilter, facFilter, filtered, getSchedule(P));
+  renderStatCards('view' + P, dateFilter, facFilter, filtered, facKey ? allSchedule() : getSchedule(P));
 
-  if(records.length === 0){
+  if(records.length === 0 && filtered.length === 0){
     body.innerHTML = '<tr><td colspan="14">No records saved yet.</td></tr>';
     countLine.textContent = "";
     return;
@@ -2141,7 +2226,7 @@ async function loadRecordsTable(dept){
     const loggedAt = r.loggedAt ? new Date(r.loggedAt).toLocaleString() : '';
     return `<tr>
       <td>${r.date} <div style="color:var(--slate);font-size:.75rem;">${weekdaySubline(r)}</div></td>
-      <td>${r.section}</td>
+      <td>${r.section}${(r.dept || 'EE') !== P ? ` <div style="color:var(--slate);font-size:.75rem;">${r.dept || 'EE'} timetable</div>` : ''}</td>
       <td>${r.start}–${r.end}</td>
       <td>${r.subject}</td>
       <td>${r.faculty}</td>
@@ -2157,7 +2242,7 @@ async function loadRecordsTable(dept){
     </tr>`;
   }).join('');
 
-  countLine.textContent = `${filtered.length} of ${records.length} total record(s).`;
+  countLine.textContent = `${filtered.length} of ${facKey ? pool.length : records.length} total record(s).`;
   window['_currentFilteredRecords' + P] = filtered;
 }
 
@@ -2389,7 +2474,8 @@ function computeDayMatch(dept, dateStr, facFilterVal, allRecords){
   const normSection = x => (x || '').trim().toUpperCase().replace(/\s+/g, ' ');
 
   // Same record set the stat cards use: this dept, this date, optional faculty filter.
-  const dayRecs = allRecords.filter(r => r && r.date === dateStr && r.start && (r.dept || 'EE') === dept
+  // A selected faculty member is one person across both timetables, so all of their classes/records count.
+  const dayRecs = allRecords.filter(r => r && r.date === dateStr && r.start && (facKey || (r.dept || 'EE') === dept)
     && (!facKey || normFacultyKey(r.faculty) === facKey));
   const heldRecs = dayRecs.filter(r => r.held === 'yes');
 
@@ -2406,7 +2492,7 @@ function computeDayMatch(dept, dateStr, facFilterVal, allRecords){
     put(idx.exact, k.exact, r); put(idx.sec, k.sec, r); put(idx.fac, k.fac, r);
   });
 
-  const classes = getSchedule(dept).filter(c => c.day === wd && (!facKey || normFacultyKey(c.faculty) === facKey));
+  const classes = (facKey ? allSchedule() : getSchedule(dept)).filter(c => c.day === wd && (!facKey || normFacultyKey(c.faculty) === facKey));
   const used = new Set();
   const rows = [];
   let heldMatched = 0;
