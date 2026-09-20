@@ -991,6 +991,11 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
     <div class="stat-label">Unassigned Courses</div>
     <div class="stat-hint">click to see list ↓</div>
   </div>
+  <div class="stat-card clickable" id="statUnassignedSec" title="Click to show/hide unassigned sections">
+    <div class="stat-value red" id="statUnassignedSecVal">0</div>
+    <div class="stat-label">Unassigned Sections</div>
+    <div class="stat-hint">click to see list ↓</div>
+  </div>
   <div class="stat-card clickable" id="statFmAssigned" title="Click to view assigned faculty">
     <div class="stat-value teal" id="statFmAssignedVal">0</div>
     <div class="stat-label">FMs Assigned</div>
@@ -1153,6 +1158,19 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
       <svg class="ua-drawer-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
     </div>
     <div class="ua-drawer-body" id="uaDrawerBody"></div>
+  </div>
+</div>
+
+<!-- ── Unassigned Sections Drawer ────────────────────────────────────────── -->
+<div class="ua-drawer" id="uaSecDrawer" style="">
+  <div class="ua-drawer-inner" id="uaSecDrawerInner">
+    <div class="ua-drawer-header" id="uaSecDrawerHeader">
+      <svg class="ua-drawer-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+      <span class="ua-drawer-title">Unassigned Sections</span>
+      <span class="ua-drawer-count" id="uaSecDrawerCount">0</span>
+      <svg class="ua-drawer-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+    </div>
+    <div class="ua-drawer-body" id="uaSecDrawerBody"></div>
   </div>
 </div>
 
@@ -3362,6 +3380,7 @@ function printProgramLoading(prefix, programLabel, accentColor, view){
 // ─── STAT CARDS ───────────────────────────────────────────────────────────────
 let uaDrawerOpen = false;
 let uaFmDrawerOpen = false;
+let uaSecDrawerOpen = false;
 let uaEeFmDrawerOpen = false;
 let uaCeFmDrawerOpen = false;
 let uaLabEngDrawerOpen = false;
@@ -3627,6 +3646,92 @@ function renderStatCards(){
     body.innerHTML = html;
   }
 
+  // ── Unassigned Sections ──────────────────────────────────────────────────
+  // This total is the sum of the blue "remaining/total" badges (e.g. 1/6)
+  // shown next to each course in the Detail table: every badge's remaining
+  // number is a section with no FM yet. Scope = every course that shows a
+  // badge (any course held by at least one FM row, from ANY tab — EE, CE,
+  // other depts, custom tabs) PLUS the EE / FMs-Demand-by-Other-Depts
+  // courses that have no FM row at all yet (they have no badge to see, but
+  // all of their sections are still unassigned). Each course is counted
+  // once, no matter how many FM rows share it.
+  //  • course has an official named section list → each listed section not
+  //    used in any row's Section 1/2/3 is unassigned;
+  //  • otherwise it falls back to the plain "Sec" count minus the number of
+  //    FM rows already on that course (same rule as getRemainingSectionsCount).
+  const codesInTable = new Set(data.map(r => (r.code||'').trim()).filter(Boolean));
+  const inSecScope = c => isCountedCourse(c) || codesInTable.has((c.code||'').trim());
+  const unassignedSecItems = [];
+  let unassignedSecCount = 0;
+  lists.courses.filter(inSecScope).forEach(c=>{
+    const key = courseListKey(c);
+    if(!key) return;
+    const code = (c.code||'').trim();
+    const official = code ? getCourseSections(code) : null;
+    if(official){
+      const taken = getTakenSectionsForCourse(code);
+      const missing = official.filter(sv=>!taken.has(sv));
+      if(missing.length){
+        unassignedSecItems.push({c, names:missing, remaining:missing.length, total:official.length});
+        unassignedSecCount += missing.length;
+      }
+    } else {
+      const total = Number(c.totalSections)||0;
+      if(!total) return;
+      const rowsOnCourse = data.filter(r=>dataRowCourseKey(r)===key).length;
+      const remaining = total - rowsOnCourse;
+      if(remaining > 0){
+        unassignedSecItems.push({c, names:null, remaining, total});
+        unassignedSecCount += remaining;
+      }
+    }
+  });
+
+  document.getElementById('statUnassignedSecVal').textContent = unassignedSecCount;
+  const secCard = document.getElementById('statUnassignedSec');
+  secCard.classList.toggle('active-card', uaSecDrawerOpen);
+  const secDrawer = document.getElementById('uaSecDrawer');
+  if(unassignedSecCount > 0){
+    secDrawer.style.display = '';
+  } else {
+    secDrawer.style.display = 'none';
+    uaSecDrawerOpen = false;
+    document.getElementById('uaSecDrawerInner').classList.remove('open');
+    secCard.classList.remove('active-card');
+  }
+  const secBadge = document.getElementById('uaSecDrawerCount');
+  secBadge.textContent = unassignedSecCount;
+  secBadge.className = 'ua-drawer-count' + (unassignedSecCount === 0 ? ' zero' : '');
+
+  const secBody = document.getElementById('uaSecDrawerBody');
+  if(!unassignedSecItems.length){
+    secBody.innerHTML = '<div class="ua-empty">All sections have been assigned. 🎉</div>';
+  } else {
+    const secChips = list => '<div class="ua-chips">' + list.map(it=>{
+      const c = it.c;
+      const detail = it.names
+        ? escHtml(it.names.join(', ')) + (it.remaining!==it.total ? ` (${it.remaining} of ${it.total})` : '')
+        : `${it.remaining} of ${it.total} section${it.total===1?'':'s'}`;
+      return `<div class="ua-chip">
+          <span class="ua-code">${escHtml(c.code||'—')}</span>
+          <span>${escHtml(c.name)}</span>
+          <span class="ua-cr">${detail}</span>
+         </div>`;
+    }).join('') + '</div>';
+    const secLectures = unassignedSecItems.filter(it=>!isLabCourse(it.c));
+    const secLabs = unassignedSecItems.filter(it=>isLabCourse(it.c));
+    let html = '<div class="ua-section-title">Sections not yet assigned to any faculty (' + unassignedSecCount + ')</div>';
+    if(secLectures.length){
+      html += '<div class="ua-section-title" style="margin-top:8px;">Courses (' + secLectures.reduce((n,it)=>n+it.remaining,0) + ' sections)</div>';
+      html += secChips(secLectures);
+    }
+    if(secLabs.length){
+      html += '<div class="ua-section-title" style="margin-top:8px;">Labs (' + secLabs.reduce((n,it)=>n+it.remaining,0) + ' sections)</div>';
+      html += secChips(secLabs);
+    }
+    secBody.innerHTML = html;
+  }
+
   // ── FM Not Assigned drawer ───────────────────────────────────────────────
   const fmCard = document.getElementById('statFmNotAssigned');
   fmCard.classList.toggle('active-card', uaFmDrawerOpen);
@@ -3769,6 +3874,17 @@ function renderStatCards(){
 // Toggle drawer on card or header click
 document.getElementById('statUnassigned').addEventListener('click', toggleUaDrawer);
 document.getElementById('uaDrawerHeader').addEventListener('click', toggleUaDrawer);
+
+document.getElementById('statUnassignedSec').addEventListener('click', toggleUaSecDrawer);
+document.getElementById('uaSecDrawerHeader').addEventListener('click', toggleUaSecDrawer);
+
+function toggleUaSecDrawer(){
+  const n = parseInt(document.getElementById('statUnassignedSecVal').textContent, 10) || 0;
+  if(n === 0) return;
+  uaSecDrawerOpen = !uaSecDrawerOpen;
+  document.getElementById('uaSecDrawerInner').classList.toggle('open', uaSecDrawerOpen);
+  document.getElementById('statUnassignedSec').classList.toggle('active-card', uaSecDrawerOpen);
+}
 
 function toggleUaDrawer(){
   const unassignedCount = parseInt(document.getElementById('statUnassignedVal').textContent, 10) || 0;
