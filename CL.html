@@ -821,6 +821,36 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
   .admin-modal input[type=password]:focus{ border-color:var(--teal); outline:none; box-shadow:0 0 0 2px rgba(42,111,98,.15); }
   .admin-modal-actions{ display:flex; gap:8px; margin-top:14px; }
   .admin-modal .err-msg{ font-size:12px; color:var(--red); min-height:16px; margin-bottom:2px; }
+  /* Manual "mark section as assigned" (Unassigned Sections drawer) */
+  body.view-only .ua-admin-only{ display:none !important; }
+  .ua-mark-btn{
+    border:1px solid var(--teal); background:#fff; color:var(--teal-deep);
+    border-radius:5px; font-size:11px; font-weight:600; padding:1px 8px;
+    cursor:pointer; font-family:inherit; white-space:nowrap;
+  }
+  .ua-mark-btn:hover{ background:var(--teal); color:#fff; }
+  .ua-mark-btn.subtle{ border-color:var(--line); color:var(--muted); }
+  .ua-mark-btn.subtle:hover{ background:var(--red); border-color:var(--red); color:#fff; }
+  .ua-chip.ua-done{ background:#EAF8F1; border-color:#8FD0BC; }
+  .ua-fm-tag{ font-size:11px; color:var(--ink-soft); font-style:italic; }
+  .ma-modal{
+    background:#fff; border-radius:12px; box-shadow:0 10px 48px rgba(0,0,0,.22);
+    width:420px; max-width:95vw; max-height:90vh; overflow:auto; padding:24px 26px 20px;
+  }
+  .ma-modal h3{ font-family:'Source Serif 4',serif; font-size:17px; margin:0 0 4px; color:var(--ink); }
+  .ma-course{ font-size:13px; color:var(--ink-soft); margin:0 0 14px; }
+  .ma-label{ display:block; font-size:12px; font-weight:600; color:var(--ink-soft); margin:12px 0 5px; }
+  .ma-label span{ font-weight:400; color:var(--muted); }
+  .ma-modal input[type=text], .ma-modal input[type=number]{
+    width:100%; padding:9px 12px; border:1px solid var(--line); border-radius:8px;
+    font-family:inherit; font-size:13.5px; color:var(--ink);
+  }
+  .ma-modal input:focus{ border-color:var(--teal); outline:none; box-shadow:0 0 0 2px rgba(108,63,235,.15); }
+  .ma-secs{ display:flex; flex-direction:column; gap:5px; max-height:180px; overflow:auto; border:1px solid var(--line); border-radius:8px; padding:8px 10px; }
+  .ma-secs label{ display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; }
+  .ma-selall{ font-size:11px; color:var(--teal-deep); cursor:pointer; background:none; border:none; padding:0; margin-left:8px; text-decoration:underline; font-family:inherit; }
+  .ma-err{ font-size:12px; color:var(--red); min-height:16px; margin-top:6px; }
+  .ma-actions{ display:flex; gap:8px; margin-top:12px; }
   /* Read-only table state */
   body.view-only td input,
   body.view-only td textarea,
@@ -1474,6 +1504,23 @@ BEET-F-24-A"></textarea>
   </div>
 </div>
 
+<!-- Mark section(s) as assigned (manual, optional FM name) -->
+<div class="admin-modal-overlay" id="markAssignedOverlay">
+  <div class="ma-modal">
+    <h3>Mark as assigned</h3>
+    <div class="ma-course" id="maCourse"></div>
+    <div id="maSecWrap"></div>
+    <label class="ma-label" for="maFm">Faculty name <span>(optional — type any name, or leave blank)</span></label>
+    <input type="text" id="maFm" list="maFmList" placeholder="e.g. Visiting faculty / Dr. Name" autocomplete="off">
+    <datalist id="maFmList"></datalist>
+    <div class="ma-err" id="maErr"></div>
+    <div class="ma-actions">
+      <button class="btn primary" id="maSave" type="button">Mark as assigned</button>
+      <button class="btn" id="maCancel" type="button">Cancel</button>
+    </div>
+  </div>
+</div>
+
 <!-- Change Password Modal -->
 <div class="admin-modal-overlay" id="changePwModalOverlay">
   <div class="admin-modal">
@@ -2121,20 +2168,50 @@ function getTakenSectionsForCourse(courseCode, excludeRowId, excludeField){
 // marked "2 sections" with 1 FMs assigned still reports 1 remaining instead
 // of being treated as fully handled. Returns null only when neither an
 // official list nor a totalSections count exists (can't determine fullness).
+// ── Manually "marked as assigned" sections ───────────────────────────────────
+// Lets an admin close off an unassigned section WITHOUT picking an FM from
+// the dropdown list (e.g. a visiting/external teacher, or a section that
+// is handled but not entered in the table), with an optional free-text FM
+// name. Stored in lists.manualSections (saved to Firestore with the rest of
+// lists): {id, key, sec, fm, n}
+//   key = course code (or course name when the code is blank)
+//   sec = the named section it covers, or '' for a plain count-only course
+//   fm  = optional free-text faculty name
+//   n   = how many sections the record covers (always 1 for a named section)
+// A mark stops counting the moment a real FM row takes that same section.
+function ensureManualSections(){
+  if(!Array.isArray(lists.manualSections)) lists.manualSections = [];
+  return lists.manualSections;
+}
+function getEffectiveManualMarks(key){
+  key = (key||'').trim();
+  if(!key) return [];
+  const marks = ensureManualSections().filter(m => (m.key||'') === key);
+  if(!marks.length) return [];
+  const official = getCourseSections(key);
+  if(!official) return marks.filter(m => !m.sec);
+  const taken = getTakenSectionsForCourse(key);
+  return marks.filter(m => m.sec && official.includes(m.sec) && !taken.has(m.sec));
+}
+function manualCountFor(key){
+  return getEffectiveManualMarks(key).reduce((n,m)=> n + (Number(m.n)||1), 0);
+}
+
 function getRemainingSectionsCount(courseCode){
   const code = (courseCode||'').trim();
   if(!code) return null;
   const official = getCourseSections(code);
   if(official){
     const taken = getTakenSectionsForCourse(code);
-    const takenOfficial = official.filter(s=>taken.has(s)).length;
-    return { total: official.length, remaining: official.length - takenOfficial };
+    const manual = new Set(getEffectiveManualMarks(code).map(m=>m.sec));
+    const covered = official.filter(s=>taken.has(s) || manual.has(s)).length;
+    return { total: official.length, remaining: official.length - covered };
   }
   const course = lists.courses.find(c => (c.code||'').trim() === code);
   const total = course && course.totalSections ? Number(course.totalSections) : 0;
   if(!total) return null;
   const assignedRows = data.filter(r => (r.code||'').trim() === code).length;
-  return { total, remaining: total - assignedRows };
+  return { total, remaining: total - assignedRows - manualCountFor(code) };
 }
 
 // A course is "full" once every one of its official sections already has
@@ -3381,6 +3458,9 @@ function printProgramLoading(prefix, programLabel, accentColor, view){
 let uaDrawerOpen = false;
 let uaFmDrawerOpen = false;
 let uaSecDrawerOpen = false;
+let uaSecItemsCache = [];
+let uaSecHasContent = false;
+let maState = null;   // {key, name, code, names|null, remaining}
 let uaEeFmDrawerOpen = false;
 let uaCeFmDrawerOpen = false;
 let uaLabEngDrawerOpen = false;
@@ -3670,28 +3750,39 @@ function renderStatCards(){
     const official = code ? getCourseSections(code) : null;
     if(official){
       const taken = getTakenSectionsForCourse(code);
-      const missing = official.filter(sv=>!taken.has(sv));
+      const manual = new Set(getEffectiveManualMarks(key).map(m=>m.sec));
+      const missing = official.filter(sv=>!taken.has(sv) && !manual.has(sv));
       if(missing.length){
-        unassignedSecItems.push({c, names:missing, remaining:missing.length, total:official.length});
+        unassignedSecItems.push({c, key, names:missing, remaining:missing.length, total:official.length});
         unassignedSecCount += missing.length;
       }
     } else {
       const total = Number(c.totalSections)||0;
       if(!total) return;
       const rowsOnCourse = data.filter(r=>dataRowCourseKey(r)===key).length;
-      const remaining = total - rowsOnCourse;
+      const remaining = total - rowsOnCourse - manualCountFor(key);
       if(remaining > 0){
-        unassignedSecItems.push({c, names:null, remaining, total});
+        unassignedSecItems.push({c, key, names:null, remaining, total});
         unassignedSecCount += remaining;
       }
     }
   });
+  uaSecItemsCache = unassignedSecItems;
+
+  // Sections an admin has manually marked as assigned (still in effect).
+  const manualDone = [];
+  lists.courses.forEach(c=>{
+    const key = courseListKey(c);
+    if(!key) return;
+    getEffectiveManualMarks(key).forEach(m=> manualDone.push({c, m}));
+  });
+  uaSecHasContent = unassignedSecCount > 0 || manualDone.length > 0;
 
   document.getElementById('statUnassignedSecVal').textContent = unassignedSecCount;
   const secCard = document.getElementById('statUnassignedSec');
   secCard.classList.toggle('active-card', uaSecDrawerOpen);
   const secDrawer = document.getElementById('uaSecDrawer');
-  if(unassignedSecCount > 0){
+  if(uaSecHasContent){
     secDrawer.style.display = '';
   } else {
     secDrawer.style.display = 'none';
@@ -3704,33 +3795,52 @@ function renderStatCards(){
   secBadge.className = 'ua-drawer-count' + (unassignedSecCount === 0 ? ' zero' : '');
 
   const secBody = document.getElementById('uaSecDrawerBody');
+  let secHtml = '';
   if(!unassignedSecItems.length){
-    secBody.innerHTML = '<div class="ua-empty">All sections have been assigned. 🎉</div>';
+    secHtml += '<div class="ua-empty">All sections have been assigned. 🎉</div>';
   } else {
     const secChips = list => '<div class="ua-chips">' + list.map(it=>{
       const c = it.c;
       const detail = it.names
         ? escHtml(it.names.join(', ')) + (it.remaining!==it.total ? ` (${it.remaining} of ${it.total})` : '')
         : `${it.remaining} of ${it.total} section${it.total===1?'':'s'}`;
+      const idx = unassignedSecItems.indexOf(it);
       return `<div class="ua-chip">
           <span class="ua-code">${escHtml(c.code||'—')}</span>
           <span>${escHtml(c.name)}</span>
           <span class="ua-cr">${detail}</span>
+          <button type="button" class="ua-mark-btn ua-admin-only" data-ua-mark="${idx}" title="Mark section(s) as assigned without choosing an FM from the list">Mark assigned</button>
          </div>`;
     }).join('') + '</div>';
     const secLectures = unassignedSecItems.filter(it=>!isLabCourse(it.c));
     const secLabs = unassignedSecItems.filter(it=>isLabCourse(it.c));
-    let html = '<div class="ua-section-title">Sections not yet assigned to any faculty (' + unassignedSecCount + ')</div>';
+    secHtml += '<div class="ua-section-title">Sections not yet assigned to any faculty (' + unassignedSecCount + ')</div>';
     if(secLectures.length){
-      html += '<div class="ua-section-title" style="margin-top:8px;">Courses (' + secLectures.reduce((n,it)=>n+it.remaining,0) + ' sections)</div>';
-      html += secChips(secLectures);
+      secHtml += '<div class="ua-section-title" style="margin-top:8px;">Courses (' + secLectures.reduce((n,it)=>n+it.remaining,0) + ' sections)</div>';
+      secHtml += secChips(secLectures);
     }
     if(secLabs.length){
-      html += '<div class="ua-section-title" style="margin-top:8px;">Labs (' + secLabs.reduce((n,it)=>n+it.remaining,0) + ' sections)</div>';
-      html += secChips(secLabs);
+      secHtml += '<div class="ua-section-title" style="margin-top:8px;">Labs (' + secLabs.reduce((n,it)=>n+it.remaining,0) + ' sections)</div>';
+      secHtml += secChips(secLabs);
     }
-    secBody.innerHTML = html;
   }
+  if(manualDone.length){
+    const total = manualDone.reduce((n,x)=> n + (Number(x.m.n)||1), 0);
+    secHtml += '<div class="ua-section-title" style="margin-top:14px;">Marked as assigned manually (' + total + ') — not counted above</div>';
+    secHtml += '<div class="ua-chips">' + manualDone.map(({c,m})=>{
+      const what = m.sec ? escHtml(m.sec) : `${Number(m.n)||1} section${(Number(m.n)||1)===1?'':'s'}`;
+      const who = m.fm ? `<span class="ua-fm-tag">→ ${escHtml(m.fm)}</span>` : '<span class="ua-fm-tag">→ (no name)</span>';
+      return `<div class="ua-chip ua-done">
+          <span class="ua-code">✓ ${escHtml(c.code||'—')}</span>
+          <span>${escHtml(c.name)}</span>
+          <span class="ua-cr">${what}</span>
+          ${who}
+          <button type="button" class="ua-mark-btn ua-admin-only" data-ua-edit="${escAttr(m.id)}" title="Edit / add the faculty name">✎</button>
+          <button type="button" class="ua-mark-btn subtle ua-admin-only" data-ua-undo="${escAttr(m.id)}" title="Un-mark — puts the section back in Unassigned">Undo</button>
+         </div>`;
+    }).join('') + '</div>';
+  }
+  secBody.innerHTML = secHtml;
 
   // ── FM Not Assigned drawer ───────────────────────────────────────────────
   const fmCard = document.getElementById('statFmNotAssigned');
@@ -3879,12 +3989,109 @@ document.getElementById('statUnassignedSec').addEventListener('click', toggleUaS
 document.getElementById('uaSecDrawerHeader').addEventListener('click', toggleUaSecDrawer);
 
 function toggleUaSecDrawer(){
-  const n = parseInt(document.getElementById('statUnassignedSecVal').textContent, 10) || 0;
-  if(n === 0) return;
+  if(!uaSecHasContent) return;
   uaSecDrawerOpen = !uaSecDrawerOpen;
   document.getElementById('uaSecDrawerInner').classList.toggle('open', uaSecDrawerOpen);
   document.getElementById('statUnassignedSec').classList.toggle('active-card', uaSecDrawerOpen);
 }
+
+
+// ── Mark unassigned section(s) as assigned (manual, optional FM name) ───────
+
+function newManualId(){ return 'm' + Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+
+function openMarkAssigned(idx){
+  if(!isAdmin) return;
+  const it = uaSecItemsCache[idx];
+  if(!it) return;
+  maState = { key: it.key, code: (it.c.code||'').trim(), name: it.c.name||'', names: it.names ? it.names.slice() : null, remaining: it.remaining };
+  document.getElementById('maCourse').innerHTML = (maState.code ? '<strong>' + escHtml(maState.code) + '</strong> — ' : '') + escHtml(maState.name);
+  const wrap = document.getElementById('maSecWrap');
+  if(maState.names){
+    wrap.innerHTML = '<label class="ma-label" style="margin-top:0;">Section(s) to mark <button type="button" class="ma-selall" id="maSelAll">select all</button></label>'
+      + '<div class="ma-secs">' + maState.names.map((n,i)=>
+          `<label><input type="checkbox" class="ma-sec-cb" value="${escAttr(n)}"${maState.names.length===1?' checked':''}> ${escHtml(n)}</label>`
+        ).join('') + '</div>';
+    document.getElementById('maSelAll').addEventListener('click', ()=>{
+      const cbs = wrap.querySelectorAll('.ma-sec-cb');
+      const all = Array.from(cbs).every(cb=>cb.checked);
+      cbs.forEach(cb=>cb.checked = !all);
+    });
+  } else {
+    wrap.innerHTML = `<label class="ma-label" style="margin-top:0;" for="maCount">How many sections? <span>(${maState.remaining} unassigned)</span></label>`
+      + `<input type="number" id="maCount" min="1" max="${maState.remaining}" value="1">`;
+  }
+  const dl = document.getElementById('maFmList');
+  dl.innerHTML = (lists.fms||[]).map(f=>`<option value="${escAttr(f.name)}"></option>`).join('');
+  document.getElementById('maFm').value = '';
+  document.getElementById('maErr').textContent = '';
+  document.getElementById('markAssignedOverlay').classList.add('open');
+}
+function closeMarkAssigned(){
+  document.getElementById('markAssignedOverlay').classList.remove('open');
+  maState = null;
+}
+function saveMarkAssigned(){
+  if(!isAdmin || !maState) return;
+  const err = document.getElementById('maErr');
+  const fm = document.getElementById('maFm').value.trim();
+  const marks = ensureManualSections();
+  if(maState.names){
+    const picked = Array.from(document.querySelectorAll('#maSecWrap .ma-sec-cb:checked')).map(cb=>cb.value);
+    if(!picked.length){ err.textContent = 'Tick at least one section.'; return; }
+    picked.forEach(sec=>{
+      const existing = marks.find(m => m.key === maState.key && m.sec === sec);
+      if(existing){ if(fm) existing.fm = fm; }
+      else marks.push({ id:newManualId(), key:maState.key, sec, fm, n:1 });
+    });
+  } else {
+    let n = parseInt(document.getElementById('maCount').value, 10);
+    if(!n || n < 1){ err.textContent = 'Enter how many sections (1 or more).'; return; }
+    n = Math.min(n, maState.remaining);
+    marks.push({ id:newManualId(), key:maState.key, sec:'', fm, n });
+  }
+  closeMarkAssigned();
+  scheduleSave(true);
+  renderAll();
+}
+document.getElementById('maSave').addEventListener('click', saveMarkAssigned);
+document.getElementById('maCancel').addEventListener('click', closeMarkAssigned);
+document.getElementById('markAssignedOverlay').addEventListener('click', e=>{
+  if(e.target.id === 'markAssignedOverlay') closeMarkAssigned();
+});
+document.getElementById('maFm').addEventListener('keydown', e=>{
+  if(e.key === 'Enter'){ e.preventDefault(); saveMarkAssigned(); }
+  if(e.key === 'Escape'){ closeMarkAssigned(); }
+});
+
+// Buttons inside the drawer body are re-created on every render, so they
+// are handled by one delegated listener.
+document.getElementById('uaSecDrawerBody').addEventListener('click', e=>{
+  const markBtn = e.target.closest('[data-ua-mark]');
+  const undoBtn = e.target.closest('[data-ua-undo]');
+  const editBtn = e.target.closest('[data-ua-edit]');
+  if(!(markBtn || undoBtn || editBtn)) return;
+  e.stopPropagation();
+  if(!isAdmin) return;
+  if(markBtn){ openMarkAssigned(Number(markBtn.getAttribute('data-ua-mark'))); return; }
+  const marks = ensureManualSections();
+  if(undoBtn){
+    const id = undoBtn.getAttribute('data-ua-undo');
+    const i = marks.findIndex(m=>m.id===id);
+    if(i >= 0){ marks.splice(i,1); scheduleSave(true); renderAll(); }
+    return;
+  }
+  if(editBtn){
+    const id = editBtn.getAttribute('data-ua-edit');
+    const m = marks.find(x=>x.id===id);
+    if(!m) return;
+    const v = prompt('Faculty name for this section (leave blank for none):', m.fm || '');
+    if(v === null) return;
+    m.fm = v.trim();
+    scheduleSave(true);
+    renderAll();
+  }
+});
 
 function toggleUaDrawer(){
   const unassignedCount = parseInt(document.getElementById('statUnassignedVal').textContent, 10) || 0;
