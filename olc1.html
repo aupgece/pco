@@ -1023,345 +1023,19 @@
 </main>
 
 <script>
-// ---------- Schedule data (from BEEE/BEET/BEEP/BEEV Fall-26/25/24/23 timetables) ----------
-// Fields: [section, day(1=Mon..5=Fri), start, end, subject, faculty, room]
-// This is the EE department's built-in timetable. A separate CE (Computer
-// Engineering) timetable is maintained independently — see SCHEDULE_BUILTIN_CE
-// below — and an admin can upload/replace either one from the Admin tab
-// without touching the other.
-const SCHEDULE_BUILTIN_EE = [
-["BEEE-F-26-A",1,"09:20","10:40","Calculus & Analytical Geometry","Ms Dr Ambreen (MATH)","B-110"],
-["BEEE-F-26-A",1,"12:00","13:20","Applied Physics","Dr. Rubina Nasir (Physics)","B-106"],
-["BEEE-F-26-A",1,"13:20","14:40","ICT Laboratory","CE Ms Zerkaish","Computer Lab-21"],
-["BEEE-F-26-A",2,"08:00","09:20","Applied Physics Laboratory","Ms. Sher Bano (Physics)","Applied Physics Lab (IAA)"],
-["BEEE-F-26-A",2,"10:40","12:00","Engineering Drawing","MTS Aleen Qureshi","Eng. Drawing Lab (IAA 4th Fl)"],
-["BEEE-F-26-A",2,"13:20","14:40","Electric Circuit Analysis","EE- Ms. Ambreen Ali Ch.","B-202"],
-["BEEE-F-26-A",2,"14:40","16:00","Applied Physics","Dr. Rubina Nasir (Physics)","B-107"],
-["BEEE-F-26-A",3,"08:00","09:20","Electric Circuit Analysis Laboratory","EE- Mr. Qasim","Electronics System Lab"],
-["BEEE-F-26-A",3,"12:00","13:20","ICT","EE- Dr. Sher Ali","B-105"],
-["BEEE-F-26-A",3,"13:20","14:40","Functional English","Ms Amna Khan (VFM)","B-202"],
-["BEEE-F-26-A",4,"09:20","10:40","Electric Circuit Analysis","EE- Ms. Ambreen Ali Ch.","B-202"],
-["BEEE-F-26-A",4,"10:40","12:00","Calculus & Analytical Geometry","Ms Dr Ambreen (MATH)","B-202"],
-["BEEE-F-26-A",4,"12:00","13:20","ICT","EE- Dr. Sher Ali","B-108"],
-["BEEE-F-26-A",4,"13:20","14:40","Functional English","Ms Amna Khan (VFM)","B-204"],
-["BEEE-F-26-A",4,"14:40","16:00","Advisory Class","EE- Ms. Hiba Hareem","B-109"],
+// ---------- Schedule data ----------
+// No timetable is built into this page. Both departments' timetables (EE and
+// CE) start empty and are loaded from the shared database; an administrator
+// adds or replaces either one from the Admin tab ("Upload latest timetable" —
+// a timetable PDF, or rows added manually). The two timetables are kept fully
+// separate, so uploading one never touches the other.
 
-["BEEE-F-26-B",1,"09:20","10:40","Electric Circuit Analysis","EE- Mr. Sami Ullah","B-203"],
-["BEEE-F-26-B",1,"12:00","13:20","ICT","EE- Dr. Sher Ali","B-202"],
-["BEEE-F-26-B",1,"13:20","14:40","Applied Physics","Dr. Rubina Nasir (Physics)","B-203"],
-["BEEE-F-26-B",1,"14:40","16:00","Advisory Class","EE- Ms. Seema Tahir","B-106"],
-["BEEE-F-26-B",3,"09:20","10:40","Calculus & Analytical Geometry","Ms Dr Ambreen (MATH)","B-202"],
-["BEEE-F-26-B",3,"10:40","12:00","ICT","EE- Dr. Sher Ali","B-106"],
-["BEEE-F-26-B",3,"12:00","13:20","Functional English","Ms Amna Khan (VFM)","B-109"],
-["BEEE-F-26-B",3,"13:20","14:40","ICT Laboratory","CE Ms Ayesha Tahir Amin","Computer Lab-21"],
-["BEEE-F-26-B",4,"09:20","10:40","Calculus & Analytical Geometry","Ms Dr Ambreen (MATH)","B-105"],
-["BEEE-F-26-B",4,"10:40","12:00","Electric Circuit Analysis","EE- Mr. Sami Ullah","B-204"],
-["BEEE-F-26-B",4,"12:00","13:20","Electric Circuit Analysis Laboratory","EE- Mr. Sami Ullah","Digital Electronics Lab"],
-["BEEE-F-26-B",4,"14:40","16:00","Functional English","Ms Amna Khan (VFM)","B-204"],
-["BEEE-F-26-B",5,"08:00","09:20","Applied Physics Laboratory","Mr. Aqib Rauf (Physics)","Applied Physics Lab (IAA)"],
-["BEEE-F-26-B",5,"12:00","13:20","Applied Physics","Dr. Rubina Nasir (Physics)","B-105"],
-["BEEE-F-26-B",5,"13:20","14:40","Engineering Drawing","MTS Aleen Qureshi","Eng. Drawing Lab (IAA 4th Fl)"],
 
-["BEET-F-26-A",1,"09:20","10:40","ICT","EE Ms. Hira Sana","B-202"],
-["BEET-F-26-A",1,"10:40","12:00","Calculus & Analytical Geometry","Ms. Sabah Noor (MATH)","B-110"],
-["BEET-F-26-A",1,"12:00","13:20","Electric Circuit Analysis Laboratory","EE- Mr. Qasim","Electronics System Lab"],
-["BEET-F-26-A",1,"14:40","16:00","Advisory Class","EE- Muhammad Ali Raza","B-110"],
-["BEET-F-26-A",2,"09:20","10:40","Electric Circuit Analysis","EE- Dr. Qumrish","B-202"],
-["BEET-F-26-A",2,"10:40","12:00","Functional English","Ms. Khansa Riaz","B-109"],
-["BEET-F-26-A",2,"12:00","13:20","Calculus & Analytical Geometry","Ms. Sabah Noor (MATH)","B-202"],
-["BEET-F-26-A",2,"13:20","14:40","Applied Physics Laboratory","Ms. Sher Bano (Physics)","Applied Physics Lab (IAA)"],
-["BEET-F-26-A",3,"09:20","10:40","ICT Laboratory","ict lab faculity","Computer Lab-9"],
-["BEET-F-26-A",3,"12:00","13:20","Functional English","Ms. Khansa Riaz","B-110"],
-["BEET-F-26-A",3,"13:20","14:40","ICT","EE Ms. Hira Sana","B-110"],
-["BEET-F-26-A",3,"14:40","16:00","Applied Physics","Dr. Rubina Nasir (Physics)","B-105"],
-["BEET-F-26-A",5,"09:20","10:40","Engineering Drawing","Engr. Faizan Ahmad Siddiqui","Eng. Drawing Lab (IAA 4th Fl)"],
-["BEET-F-26-A",5,"10:40","12:00","Electric Circuit Analysis","EE- Dr. Qumrish","B-105"],
-["BEET-F-26-A",5,"13:20","14:40","Applied Physics","Dr. Rubina Nasir (Physics)","B-105"],
-
-["BEEP-F-26-A",1,"09:20","10:40","Electric Circuit Analysis Laboratory","EE Visiting Lab Engineer 1","Digital Electronics Lab"],
-["BEEP-F-26-A",1,"13:20","14:40","Functional English","Ms. Tahreem Ijaz (ENG)","B-110"],
-["BEEP-F-26-A",1,"14:40","16:00","Advisory Class","EE- Mr. Faizan Munir","B-105"],
-["BEEP-F-26-A",2,"09:20","10:40","Applied Physics","Ms. Romana Ghazal (Physics)","B-106"],
-["BEEP-F-26-A",2,"10:40","12:00","Electric Circuit Analysis","EE- Mr. Sami Ullah","B-106"],
-["BEEP-F-26-A",2,"12:00","13:20","ICT","EE- Dr. Sher Ali","B-108"],
-["BEEP-F-26-A",2,"13:20","14:40","Engineering Drawing","MTS Aleen Qureshi","Eng. Drawing Lab (IAA 4th Fl)"],
-["BEEP-F-26-A",3,"08:00","09:20","Calculus & Analytical Geometry","Dr. Samina (Math)","B-110"],
-["BEEP-F-26-A",3,"09:20","10:40","Electric Circuit Analysis","EE- Mr. Sami Ullah","B-109"],
-["BEEP-F-26-A",3,"10:40","12:00","Functional English","Ms. Tahreem Ijaz (ENG)","B-109"],
-["BEEP-F-26-A",3,"13:20","14:40","ICT","EE- Dr. Sher Ali","B-106"],
-["BEEP-F-26-A",5,"08:00","09:20","Calculus & Analytical Geometry","Dr. Samina (Math)","B-109"],
-["BEEP-F-26-A",5,"09:20","10:40","Applied Physics","Ms. Romana Ghazal (Physics)","B-107"],
-["BEEP-F-26-A",5,"10:40","12:00","Applied Physics Laboratory","Ms. Romana Ghazal (Physics)","Applied Physics Lab (IAA)"],
-["BEEP-F-26-A",5,"13:20","14:40","ICT Laboratory","CE Maryam Sheikh","Computer Lab-9"],
-
-["BEEP-F-26-B",1,"12:00","13:20","Functional English","Ms. Tahreem Ijaz (ENG)","B-105"],
-["BEEP-F-26-B",1,"13:20","14:40","Electric Circuit Analysis Laboratory","EE- Ms. Ambreen Ali Ch.","Digital Electronics Lab"],
-["BEEP-F-26-B",2,"08:00","09:20","Electric Circuit Analysis","EE- Ms. Ambreen Ali Ch.","B-110"],
-["BEEP-F-26-B",2,"09:20","10:40","ICT","EE Ms. Hira Sana","B-109"],
-["BEEP-F-26-B",2,"10:40","12:00","Applied Physics Laboratory","Ms. Romana Ghazal (Physics)","Applied Physics Lab (IAA)"],
-["BEEP-F-26-B",2,"13:20","14:40","Applied Physics","Ms. Romana Ghazal (Physics)","B-108"],
-["BEEP-F-26-B",3,"09:20","10:40","Calculus & Analytical Geometry","Dr. Samina (Math)","B-108"],
-["BEEP-F-26-B",3,"10:40","12:00","ICT Laboratory","CE Ms Zerkaish","Computer Lab-9"],
-["BEEP-F-26-B",3,"13:20","14:40","Functional English","Ms. Tahreem Ijaz (ENG)","B-203"],
-["BEEP-F-26-B",3,"14:40","16:00","Electric Circuit Analysis","EE- Ms. Ambreen Ali Ch.","B-106"],
-["BEEP-F-26-B",5,"08:00","09:20","Advisory Class","EE- Dr. Qumrish","B-106"],
-["BEEP-F-26-B",5,"09:20","10:40","Calculus & Analytical Geometry","Dr. Samina (Math)","B-105"],
-["BEEP-F-26-B",5,"10:40","12:00","Engineering Drawing","MTS Aleen Qureshi","Eng. Drawing Lab (IAA 4th Fl)"],
-["BEEP-F-26-B",5,"13:20","14:40","Applied Physics","Ms. Romana Ghazal (Physics)","B-204"],
-["BEEP-F-26-B",5,"14:40","16:00","ICT","EE Ms. Hira Sana","B-204"],
-
-["BEEV-F-26-A",1,"09:20","10:40","Advisory Class","EE- Ms. Ambreen Ali Ch.","B-105"],
-["BEEV-F-26-A",1,"12:00","13:20","Calculus & Analytical Geometry","Ms. Sabah Noor (MATH)","B-107"],
-["BEEV-F-26-A",1,"13:20","14:40","Electric Circuit Analysis","EE- Mr. Faizan Munir","B-202"],
-["BEEV-F-26-A",2,"08:00","09:20","Engineering Drawing","Engr. Faizan Ahmad Siddiqui","Eng. Drawing Lab (IAA 4th Fl)"],
-["BEEV-F-26-A",2,"09:20","10:40","Calculus & Analytical Geometry","Ms. Sabah Noor (MATH)","B-202"],
-["BEEV-F-26-A",2,"10:40","12:00","Functional English","Ms. Khansa Riaz","B-105"],
-["BEEV-F-26-A",2,"12:00","13:20","ICT","EE Ms. Hira Sana","B-204"],
-["BEEV-F-26-A",2,"13:20","14:40","Applied Physics","Ms. Romana Ghazal (Physics)","B-202"],
-["BEEV-F-26-A",3,"09:20","10:40","Applied Physics","Ms. Romana Ghazal (Physics)","B-204"],
-["BEEV-F-26-A",3,"10:40","12:00","Electric Circuit Analysis","EE- Mr. Faizan Munir","B-202"],
-["BEEV-F-26-A",3,"12:00","13:20","ICT Laboratory","CE Ms Zerkaish","Computer Systems Design Lab"],
-["BEEV-F-26-A",5,"08:00","09:20","Electric Circuit Analysis Laboratory","EE- Mr. Qasim","Digital Electronics Lab"],
-["BEEV-F-26-A",5,"09:20","10:40","Functional English","Ms. Khansa Riaz","B-204"],
-["BEEV-F-26-A",5,"10:40","12:00","ICT","EE Ms. Hira Sana","B-110"],
-["BEEV-F-26-A",5,"13:20","14:40","Applied Physics Laboratory","Mr. Aqib Rauf (Physics)","Applied Physics Lab (IAA)"],
-
-["BEEE-F-25-A",1,"08:00","09:20","Data Structures and Algorithms Laboratory","CE Ms Ayesha Tahir Amin","Computer Lab-9"],
-["BEEE-F-25-A",1,"12:00","13:20","Complex Variables and Transforms","Ms. Dr Tehreem (MATH)","B-204"],
-["BEEE-F-25-A",1,"14:40","16:00","Digital Logic Design","EE- Mr. Hafiz Muhammad Talha","B-202"],
-["BEEE-F-25-A",2,"08:00","09:20","Data Structures and Algorithms","EE- Ms. Saba Mumtaz","B-106"],
-["BEEE-F-25-A",2,"09:20","10:40","Electronic Devices and Circuits Laboratory","EE Visiting Lab Engineer 2","Computer Lab-21"],
-["BEEE-F-25-A",2,"10:40","12:00","Complex Variables and Transforms","Ms. Dr Tehreem (MATH)","B-203"],
-["BEEE-F-25-A",2,"13:20","14:40","Digital Logic Design Laboratory","EE- Mr. Qasim","Control & Instrumentation Lab"],
-["BEEE-F-25-A",3,"08:00","09:20","Ethics","Mr. Raham Maula (VFM)","B-203"],
-["BEEE-F-25-A",3,"12:00","13:20","Electronic Devices and Circuits","EE- Dr. Qumrish","B-107"],
-["BEEE-F-25-A",3,"14:40","16:00","Occupational Health and Safety","Muhammad Ammar Arshad (MTS)","B-202"],
-["BEEE-F-25-A",4,"09:20","10:40","Electronic Devices and Circuits","EE- Dr. Qumrish","B-109"],
-["BEEE-F-25-A",4,"10:40","12:00","Ethics","Mr. Raham Maula (VFM)","B-203"],
-["BEEE-F-25-A",4,"12:00","13:20","Digital Logic Design","EE- Mr. Hafiz Muhammad Talha","B-109"],
-["BEEE-F-25-A",4,"13:20","14:40","Data Structures and Algorithms","EE- Ms. Saba Mumtaz","B-105"],
-["BEEE-F-25-A",4,"14:40","16:00","Advisory Class","EE Ms. Anum Zehra","B-107"],
-
-["BEEE-F-25-B",2,"09:20","10:40","Digital Logic Design","EE- Dr. Shahzad Ahmad","B-110"],
-["BEEE-F-25-B",2,"10:40","12:00","Complex Variables and Transforms","Ms. Dr Tehreem (MATH)","B-204"],
-["BEEE-F-25-B",2,"13:20","14:40","Digital Logic Design Laboratory","EE- Mr. Hafiz Muhammad Talha","Communication Lab"],
-["BEEE-F-25-B",3,"08:00","09:20","Data Structures and Algorithms","EE- Ms. Saba Mumtaz","B-108"],
-["BEEE-F-25-B",3,"10:40","12:00","Electronic Devices and Circuits","EE- Ms. Madeeha Uzma","B-202"],
-["BEEE-F-25-B",3,"12:00","13:20","Complex Variables and Transforms","Ms. Dr Tehreem (MATH)","B-108"],
-["BEEE-F-25-B",3,"13:20","14:40","Electronic Devices and Circuits Laboratory","EE Visiting Lab Engineer 1","Digital Electronics Lab"],
-["BEEE-F-25-B",4,"08:00","09:20","Ethics","Mr. Raham Maula (VFM)","B-109"],
-["BEEE-F-25-B",4,"09:20","10:40","Electronic Devices and Circuits","EE- Ms. Madeeha Uzma","B-204"],
-["BEEE-F-25-B",4,"12:00","13:20","Advisory Class","EE- Dr. Imran Farid","B-106"],
-["BEEE-F-25-B",4,"13:20","14:40","Data Structures and Algorithms Laboratory","CE Ms Ayesha Tahir Amin","Computer Lab-9"],
-["BEEE-F-25-B",5,"08:00","09:20","Ethics","Mr. Raham Maula (VFM)","B-107"],
-["BEEE-F-25-B",5,"09:20","10:40","Data Structures and Algorithms","EE- Ms. Saba Mumtaz","B-110"],
-["BEEE-F-25-B",5,"10:40","12:00","Digital Logic Design","EE- Dr. Shahzad Ahmad","B-106"],
-["BEEE-F-25-B",5,"14:40","16:00","Occupational Health and Safety","Muhammad Ammar Arshad (MTS)","B-109"],
-
-["BEEP-F-25-A",2,"08:00","09:20","Electronic Devices and Circuits","EE- Mr. Mashood Ahmed","B-204"],
-["BEEP-F-25-A",2,"10:40","12:00","Digital Logic Design Laboratory","EE- Mr. Hafiz Muhammad Talha","Control & Instrumentation Lab"],
-["BEEP-F-25-A",2,"13:20","14:40","Data Structures and Algorithms","EE- Ms. Saba Mumtaz","B-105"],
-["BEEP-F-25-A",2,"14:40","16:00","Occupational Health and Safety","Muhammad Ammar Arshad (MTS)","B-108"],
-["BEEP-F-25-A",3,"09:20","10:40","Ethics","Mr. Raham Maula (VFM)","B-107"],
-["BEEP-F-25-A",3,"10:40","12:00","Electronic Devices and Circuits","EE- Mr. Mashood Ahmed","B-108"],
-["BEEP-F-25-A",3,"12:00","13:20","Project Management","Ms. Aqeela Anwar (VFM)","B-106"],
-["BEEP-F-25-A",4,"08:00","09:20","Data Structures and Algorithms Laboratory","CE Ms Javeria Razzaq","Computer Lab-9"],
-["BEEP-F-25-A",4,"10:40","12:00","Digital Logic Design","EE- Ms. Hiba Hareem","B-109"],
-["BEEP-F-25-A",4,"12:00","13:20","Ethics","Mr. Raham Maula (VFM)","B-204"],
-["BEEP-F-25-A",4,"13:20","14:40","Project Management","Ms. Aqeela Anwar (VFM)","B-107"],
-["BEEP-F-25-A",4,"14:40","16:00","Advisory Class","EE- Dr. Sher Ali","B-202"],
-["BEEP-F-25-A",5,"08:00","09:20","Data Structures and Algorithms","EE- Ms. Saba Mumtaz","B-105"],
-["BEEP-F-25-A",5,"09:20","10:40","Digital Logic Design","EE- Ms. Hiba Hareem","B-109"],
-["BEEP-F-25-A",5,"13:20","14:40","Electronic Devices and Circuits Laboratory","EE- Mr. Mashood Ahmed","Electronics System Lab"],
-
-["BEEP-F-25-B",2,"08:00","09:20","Occupational Health and Safety","Muhammad Ammar Arshad (MTS)","B-105"],
-["BEEP-F-25-B",2,"09:20","10:40","Digital Logic Design","EE- Ms. Ambreen Ali Ch.","B-105"],
-["BEEP-F-25-B",2,"10:40","12:00","Data Structures and Algorithms Laboratory","CE Ms Javeria Razzaq","Computer Lab-9"],
-["BEEP-F-25-B",2,"13:20","14:40","Advisory Class","EE- Dr. Syed Ahmed Pasha","B-110"],
-["BEEP-F-25-B",3,"08:00","09:20","Electronic Devices and Circuits","EE- Mr. Mashood Ahmed","B-202"],
-["BEEP-F-25-B",3,"09:20","10:40","Digital Logic Design","EE- Ms. Ambreen Ali Ch.","B-203"],
-["BEEP-F-25-B",3,"10:40","12:00","Ethics","Ms. Hadiqa Sohail (VFM)","B-107"],
-["BEEP-F-25-B",3,"12:00","13:20","Data Structures and Algorithms","EE- Ms. Saba Mumtaz","B-107"],
-["BEEP-F-25-B",3,"13:20","14:40","Digital Logic Design Laboratory","EE Visiting Lab Engineer 2","Control & Instrumentation Lab"],
-["BEEP-F-25-B",4,"08:00","09:20","Electronic Devices and Circuits","EE- Mr. Mashood Ahmed","B-107"],
-["BEEP-F-25-B",4,"10:40","12:00","Ethics","Ms. Hadiqa Sohail (VFM)","B-105"],
-["BEEP-F-25-B",4,"12:00","13:20","Data Structures and Algorithms","EE- Ms. Saba Mumtaz","B-107"],
-["BEEP-F-25-B",4,"14:40","16:00","Project Management","Ms. Aqeela Anwar (VFM)","B-110"],
-["BEEP-F-25-B",5,"10:40","12:00","Project Management","Ms. Aqeela Anwar (VFM)","B-110"],
-["BEEP-F-25-B",5,"13:20","14:40","Electronic Devices and Circuits Laboratory","EE- Ms. Laiba Rani","Digital Electronics Lab"],
-
-["BEEV-F-25-A",1,"09:20","10:40","Ethics","Ms. Hadiqa Sohail (VFM)","B-204"],
-["BEEV-F-25-A",1,"10:40","12:00","Data Structures and Algorithms Laboratory","CE (Faculty)","Computer Systems Design Lab"],
-["BEEV-F-25-A",1,"13:20","14:40","Electronic Devices and Circuits","EE- Ms. Madeeha Uzma","B-106"],
-["BEEV-F-25-A",1,"14:40","16:00","Advisory Class","EE- Dr. Ashfaq Ahmed","B-107"],
-["BEEV-F-25-A",3,"08:00","09:20","Digital Logic Design","EE- Ms. Hiba Hareem","B-106"],
-["BEEV-F-25-A",3,"09:20","10:40","Electronic Devices and Circuits","EE- Ms. Madeeha Uzma","B-105"],
-["BEEV-F-25-A",3,"10:40","12:00","Digital Logic Design Laboratory","EE Visiting Lab Engineer 2","Control & Instrumentation Lab"],
-["BEEV-F-25-A",3,"14:40","16:00","Pakistan Studies","Mr. Raham Maula (VFM)","B-109"],
-["BEEV-F-25-A",4,"08:00","09:20","Ethics","Ms. Hadiqa Sohail (VFM)","B-204"],
-["BEEV-F-25-A",4,"09:20","10:40","Digital Logic Design","EE- Ms. Hiba Hareem","B-107"],
-["BEEV-F-25-A",4,"12:00","13:20","Electronic Devices and Circuits Laboratory","EE- Ms. Madeeha Uzma","Communication Lab"],
-["BEEV-F-25-A",4,"14:40","16:00","Data Structures and Algorithms","CE Ms. Zoafshan","B-108"],
-["BEEV-F-25-A",5,"09:20","10:40","Data Structures and Algorithms","CE Ms. Zoafshan","B-106"],
-["BEEV-F-25-A",5,"10:40","12:00","Pakistan Studies","Mr. Raham Maula (VFM)","B-202"],
-["BEEV-F-25-A",5,"13:20","14:40","Occupational Health and Safety","Muhammad Ammar Arshad (MTS)","B-107"],
-
-["BEET-F-25-A",1,"08:00","09:20","Ethics","Ms. Hadiqa Sohail (VFM)","B-105"],
-["BEET-F-25-A",1,"10:40","12:00","Fehm-e-Quran II","Dr. Salma Razzaq (HUM)","B-202"],
-["BEET-F-25-A",1,"12:00","13:20","Electronic Devices and Circuits","EE- Ms. Madeeha Uzma","B-109"],
-["BEET-F-25-A",1,"13:20","14:40","Complex Variables and Transforms","Ms. Dr Tehreem (MATH)","B-204"],
-["BEET-F-25-A",1,"14:40","16:00","Digital Logic Design","EE- Mr. Sharoze Sohail","B-204"],
-["BEET-F-25-A",2,"09:20","10:40","Advisory Class","EE- Mr. Atique Ur Rehman","B-204"],
-["BEET-F-25-A",2,"10:40","12:00","Electronic Devices and Circuits","EE- Ms. Madeeha Uzma","B-108"],
-["BEET-F-25-A",2,"12:00","13:20","Fehm-e-Quran II","Dr. Salma Razzaq (HUM)","B-106"],
-["BEET-F-25-A",2,"13:20","14:40","Data Structures and Algorithms Laboratory","CE Ms Ayesha Tahir Amin","Computer Lab-9"],
-["BEET-F-25-A",3,"08:00","09:20","Ethics","Ms. Hadiqa Sohail (VFM)","B-204"],
-["BEET-F-25-A",3,"09:20","10:40","Complex Variables and Transforms","Ms. Dr Tehreem (MATH)","B-106"],
-["BEET-F-25-A",3,"10:40","12:00","Electronic Devices and Circuits Laboratory","EE- Ms. Lariab","Digital Electronics Lab"],
-["BEET-F-25-A",3,"13:20","14:40","Data Structures and Algorithms","CE Ms Sidrish Ehsan","B-108"],
-["BEET-F-25-A",4,"10:40","12:00","Data Structures and Algorithms","CE Ms Sidrish Ehsan","B-110"],
-["BEET-F-25-A",4,"12:00","13:20","Digital Logic Design","EE- Mr. Sharoze Sohail","B-110"],
-["BEET-F-25-A",4,"13:20","14:40","Digital Logic Design Laboratory","EE- Mr. Sharoze Sohail","Electronics System Lab"],
-
-["BEEE-F-24-A",1,"08:00","09:20","Microprocessors Interfacing and Applications","EE- Mr. Hussain Asif","B-204"],
-["BEEE-F-24-A",1,"10:40","12:00","Digital Signal Processing","EE- Dr. Syed Ahmed Pasha","B-108"],
-["BEEE-F-24-A",1,"13:20","14:40","Electrical Machines","EE- Ms. Seema Tahir","B-108"],
-["BEEE-F-24-A",1,"14:40","16:00","Civics and Community Engagements","Dr. Asim Muneeb Khan (VFM)","B-109"],
-["BEEE-F-24-A",2,"09:20","10:40","Laser & Its Applications","EE- Dr. Ahsan Sarwar Rana","B-107"],
-["BEEE-F-24-A",2,"10:40","12:00","Digital Signal Processing","EE- Dr. Syed Ahmed Pasha","B-110"],
-["BEEE-F-24-A",2,"12:00","13:20","Digital Signal Processing Laboratory","EE- Ms. Laiba Rani","Digital Signal Processing Lab"],
-["BEEE-F-24-A",2,"14:40","16:00","Civics and Community Engagements","Dr. Asim Muneeb Khan (VFM)","B-203"],
-["BEEE-F-24-A",3,"08:00","09:20","Microprocessors Interfacing and Applications","EE- Mr. Hussain Asif","B-105"],
-["BEEE-F-24-A",3,"10:40","12:00","Electrical Machines Laboratory","EE Ms. Anum Zehra","Electrical Machines & Power Electronics Lab"],
-["BEEE-F-24-A",4,"09:20","10:40","Electrical Machines","EE- Ms. Seema Tahir","B-202"],
-["BEEE-F-24-A",4,"10:40","12:00","Laser & Its Applications","EE- Dr. Ahsan Sarwar Rana","B-108"],
-["BEEE-F-24-A",4,"12:00","13:20","Microprocessors Interfacing and Applications Laboratory","EE- Mr. Hussain Asif","Embedded Systems & Design Lab"],
-["BEEE-F-24-A",4,"14:40","16:00","Advisory Class","Mr. Touseef Ur Rehman","B-106"],
-
-["BEEE-F-24-B",1,"09:20","10:40","Microprocessors Interfacing and Applications","EE- Mr. Hussain Asif","B-108"],
-["BEEE-F-24-B",1,"10:40","12:00","Electrical Machines","EE Ms. Hira Sana","B-107"],
-["BEEE-F-24-B",1,"12:00","13:20","Civics and Community Engagements","Ms. Javeria Khan (VFM)","B-203"],
-["BEEE-F-24-B",1,"13:20","14:40","Digital Signal Processing","EE- Dr. Syed Ahmed Pasha","B-107"],
-["BEEE-F-24-B",2,"08:00","09:20","Microprocessors Interfacing and Applications","EE- Mr. Hussain Asif","B-109"],
-["BEEE-F-24-B",2,"09:20","10:40","Digital Signal Processing","EE- Dr. Syed Ahmed Pasha","B-108"],
-["BEEE-F-24-B",2,"10:40","12:00","Laser & Its Applications","EE- Dr. Ahsan Sarwar Rana","B-105"],
-["BEEE-F-24-B",2,"12:00","13:20","Microprocessors Interfacing and Applications Laboratory","EE- Mr. Hussain Asif","Embedded Systems & Design Lab"],
-["BEEE-F-24-B",3,"08:00","09:20","Electrical Machines Laboratory","EE Ms. Anum Zehra","Electrical Machines & Power Electronics Lab"],
-["BEEE-F-24-B",3,"10:40","12:00","Electrical Machines","EE Ms. Hira Sana","B-110"],
-["BEEE-F-24-B",4,"08:00","09:20","Advisory Class","EE- Mr. Hussain Asif","B-202"],
-["BEEE-F-24-B",4,"09:20","10:40","Laser & Its Applications","EE- Dr. Ahsan Sarwar Rana","B-110"],
-["BEEE-F-24-B",4,"10:40","12:00","Digital Signal Processing Laboratory","EE- Ms. Laiba Rani","Digital Signal Processing Lab"],
-["BEEE-F-24-B",4,"12:00","13:20","Civics and Community Engagements","Ms. Javeria Khan (VFM)","B-110"],
-
-["BEEP-F-24-A",1,"08:00","09:20","Electrical Machines","EE Ms. Hira Sana","B-109"],
-["BEEP-F-24-A",1,"09:20","10:40","AI for Engineers","EE- Dr. Ashfaq Ahmed","B-109"],
-["BEEP-F-24-A",1,"10:40","12:00","Civics and Community Engagements","Ms. Javeria Khan (VFM)","B-105"],
-["BEEP-F-24-A",1,"12:00","13:20","Communication Systems Laboratory","EE Dr. Arslan","Communication Lab"],
-["BEEP-F-24-A",1,"14:40","16:00","Advisory Class","EE- Mr. Sami Ullah","B-108"],
-["BEEP-F-24-A",2,"12:00","13:20","Communication Systems","EE Dr. Arslan","B-110"],
-["BEEP-F-24-A",2,"13:20","14:40","AI for Engineers","EE- Dr. Ashfaq Ahmed","B-106"],
-["BEEP-F-24-A",2,"14:40","16:00","Microprocessors Interfacing and Applications","EE- Mr. Atique Ur Rehman","B-110"],
-["BEEP-F-24-A",3,"10:40","12:00","AI for Engineers Laboratory","CE Ms Ayesha Tahir Amin","Computer Systems Design Lab"],
-["BEEP-F-24-A",3,"13:20","14:40","Microprocessors Interfacing and Applications","EE- Mr. Atique Ur Rehman","B-105"],
-["BEEP-F-24-A",3,"14:40","16:00","Electrical Machines","EE Ms. Hira Sana","B-204"],
-["BEEP-F-24-A",4,"08:00","09:20","Communication Systems","EE Dr. Arslan","B-108"],
-["BEEP-F-24-A",4,"09:20","10:40","Microprocessors Interfacing and Applications Laboratory","EE- Mr. Atique Ur Rehman","Embedded Systems & Design Lab"],
-["BEEP-F-24-A",4,"12:00","13:20","Civics and Community Engagements","Ms. Javeria Khan (VFM)","B-105"],
-["BEEP-F-24-A",4,"13:20","14:40","Electrical Machines Laboratory","EE- Mr. Mubashir Rasool","Electrical Machines & Power Electronics Lab"],
-
-["BEET-F-24-A",1,"08:00","09:20","Communication Systems","EE- Dr. Waseem Khan","B-110"],
-["BEET-F-24-A",1,"09:20","10:40","Electrical Machines","EE- Ms. Seema Tahir","B-106"],
-["BEET-F-24-A",1,"10:40","12:00","Civics and Community Engagements","Ms. Hadiqa Sohail (VFM)","B-109"],
-["BEET-F-24-A",1,"12:00","13:20","Microprocessors Interfacing and Applications","EE- Muhammad Ali Raza","B-108"],
-["BEET-F-24-A",1,"13:20","14:40","Digital Signal Processing","EE- Dr. Imran Farid","B-105"],
-["BEET-F-24-A",2,"09:20","10:40","Microprocessors Interfacing and Applications Laboratory","EE- Muhammad Ali Raza","Embedded Systems & Design Lab"],
-["BEET-F-24-A",2,"12:00","13:20","Digital Signal Processing","EE- Dr. Imran Farid","B-204"],
-["BEET-F-24-A",2,"13:20","14:40","Advisory Class","EE- Dr. Sara SaEEd","B-107"],
-["BEET-F-24-A",3,"08:00","09:20","Electrical Machines","EE- Ms. Seema Tahir","B-107"],
-["BEET-F-24-A",3,"09:20","10:40","Communication Systems Lab","EE- Muhammad Aqib Javed","Communication Lab"],
-["BEET-F-24-A",3,"13:20","14:40","Digital Signal Processing Laboratory","EE- Ms. Laiba Rani","Digital Signal Processing Lab"],
-["BEET-F-24-A",4,"08:00","09:20","Communication Systems","EE- Dr. Waseem Khan","B-106"],
-["BEET-F-24-A",4,"09:20","10:40","Civics and Community Engagements","Ms. Hadiqa Sohail (VFM)","B-106"],
-["BEET-F-24-A",4,"10:40","12:00","Electrical Machines Laboratory","EE Ms. Anum Zehra","Electrical Machines & Power Electronics Lab"],
-["BEET-F-24-A",4,"13:20","14:40","Microprocessors Interfacing and Applications","EE- Muhammad Ali Raza","B-109"],
-
-["BEET-F-24-B",1,"08:00","09:20","Digital Signal Processing","EE- Ms. Hiba Hareem","B-202"],
-["BEET-F-24-B",1,"09:20","10:40","Microprocessors Interfacing and Applications Laboratory","EE- Muhammad Ali Raza","Embedded Systems & Design Lab"],
-["BEET-F-24-B",1,"10:40","12:00","Digital Signal Processing Laboratory","EE- Ms. Hiba Hareem","Digital Signal Processing Lab"],
-["BEET-F-24-B",1,"14:40","16:00","Communication Systems","EE- Dr. Waseem Khan","B-203"],
-["BEET-F-24-B",3,"09:20","10:40","Electrical Machines","EE- Ms. Seema Tahir","B-204"],
-["BEET-F-24-B",3,"10:40","12:00","Digital Signal Processing","EE- Ms. Hiba Hareem","B-105"],
-["BEET-F-24-B",3,"13:20","14:40","Microprocessors Interfacing and Applications","EE- Muhammad Ali Raza","B-109"],
-["BEET-F-24-B",3,"14:40","16:00","Civics and Community Engagements","Dr. Asim Muneeb Khan (VFM)","B-107"],
-["BEET-F-24-B",4,"08:00","09:20","Electrical Machines Laboratory","EE- Mr. Mubashir Rasool","Electrical Machines & Power Electronics Lab"],
-["BEET-F-24-B",4,"09:20","10:40","Communication Systems","EE- Dr. Waseem Khan","B-107"],
-["BEET-F-24-B",4,"10:40","12:00","Microprocessors Interfacing and Applications","EE- Muhammad Ali Raza","B-202"],
-["BEET-F-24-B",5,"08:00","09:20","Electrical Machines","EE- Ms. Seema Tahir","B-110"],
-["BEET-F-24-B",5,"09:20","10:40","Civics and Community Engagements","Dr. Asim Muneeb Khan (VFM)","B-202"],
-["BEET-F-24-B",5,"10:40","12:00","Advisory Class","EE- Ms. Madeeha Uzma","B-107"],
-["BEET-F-24-B",5,"13:20","14:40","Communication Systems Laboratory","EE- Ms. Lariab","Communication Lab"],
-
-["BEET-F-23-A",1,"08:00","09:20","Final Year Project II","EE Ms. Anum Zehra","B-106"],
-["BEET-F-23-A",1,"10:40","12:00","Wireless and Mobile Communication","EE- Dr. Imran Farid","B-106"],
-["BEET-F-23-A",1,"12:00","13:20","Transmission and Switching Systems","EE- Dr. Hafiz Ashiq Hussain","B-110"],
-["BEET-F-23-A",1,"13:20","14:40","Computer Communication Networks","EE- Mr. Sharoze Sohail","B-109"],
-["BEET-F-23-A",2,"08:00","09:20","Engineering Procurement & Contract Management","Air Cdr. Ahmed Arslan (VFM)","B-108"],
-["BEET-F-23-A",2,"09:20","10:40","Engineering Procurement & Contract Management","Air Cdr. Ahmed Arslan (VFM)","B-203"],
-["BEET-F-23-A",2,"10:40","12:00","Wireless and Mobile Communication","EE- Dr. Imran Farid","B-203"],
-["BEET-F-23-A",2,"12:00","13:20","RF Circuit Design","EE- Dr. Sara SaEEd","B-109"],
-["BEET-F-23-A",2,"13:20","14:40","Computer Communication Networks Laboratory","EE- Mr. Sharoze Sohail","Telecom Networks Lab"],
-["BEET-F-23-A",3,"09:20","10:40","Transmission and Switching Systems","EE- Dr. Hafiz Ashiq Hussain","B-110"],
-["BEET-F-23-A",3,"10:40","12:00","RF Circuit Design Laboratory","EE- Dr. Sara SaEEd","RF & Optical Lab"],
-["BEET-F-23-A",3,"14:40","16:00","Computer Communication Networks","EE- Mr. Sharoze Sohail","B-108"],
-["BEET-F-23-A",5,"09:20","10:40","Advisory Class","EE- Dr. Muhammad Zaheer","B-108"],
-["BEET-F-23-A",5,"10:40","12:00","RF Circuit Design","EE- Dr. Sara SaEEd","B-203"],
-["BEET-F-23-A",5,"13:20","14:40","Transmission and Switching Systems Laboratory","EE- Muhammad Aqib Javed","Telecom Networks Lab"],
-
-["BEEE-F-23-A",1,"09:20","10:40","Antenna and Wave Propagation","Mr. Touseef Ur Rehman","B-107"],
-["BEEE-F-23-A",1,"13:20","14:40","Antenna and Wave Propagation Laboratory","EE Mr. Hussnain","RF & Optical Lab"],
-["BEEE-F-23-A",2,"08:00","09:20","Antenna and Wave Propagation","Mr. Touseef Ur Rehman","B-202"],
-["BEEE-F-23-A",2,"10:40","12:00","Linear Integrated Circuit Design","EE- Dr. Shahzad Ahmad","B-107"],
-["BEEE-F-23-A",2,"13:20","14:40","FPGA Based Design","EE- Mr. Atique Ur Rehman","B-109"],
-["BEEE-F-23-A",2,"14:40","16:00","Final Year Project II","EE Ms. Anum Zehra","B-109"],
-["BEEE-F-23-A",3,"09:20","10:40","FPGA Based Design Laboratory","EE- Mr. Atique Ur Rehman","Embedded Systems & Design Lab"],
-["BEEE-F-23-A",3,"10:40","12:00","Linear Integrated Circuit Design","EE- Dr. Shahzad Ahmad","B-204"],
-["BEEE-F-23-A",3,"12:00","13:20","Engineering Management & Entrepreneurship","Ms. Aqeela Anwar (VFM)","B-204"],
-["BEEE-F-23-A",3,"13:20","14:40","FPGA Based Design","EE- Mr. Atique Ur Rehman","B-110"],
-["BEEE-F-23-A",5,"08:00","09:20","Linear Integrated Circuit Design Laboratory","EE- Dr. Shahzad Ahmad","Electronics System Lab"],
-["BEEE-F-23-A",5,"09:20","10:40","Community Service Learning","Ms. Javeria Khan (VFM)","B-108"],
-["BEEE-F-23-A",5,"13:20","14:40","Advisory Class","EE- Ms. Saba Mumtaz","B-106"],
-["BEEE-F-23-A",5,"14:40","16:00","Engineering Management & Entrepreneurship","Ms. Aqeela Anwar (VFM)","B-106"],
-
-["BEEP-F-23-A",2,"09:20","10:40","Analog and Digital Communication Laboratory","EE- Muhammad Aqib Javed","Communication Lab"],
-["BEEP-F-23-A",2,"12:00","13:20","Final Year Project-II","EE Ms. Anum Zehra","B-107"],
-["BEEP-F-23-A",2,"14:40","16:00","Power Transmission Systems","EE- Mr. Faizan Munir","B-204"],
-["BEEP-F-23-A",3,"08:00","09:20","Power System Analysis","EE- Dr. Ashfaq Ahmed","B-109"],
-["BEEP-F-23-A",3,"10:40","12:00","Power System Analysis Laboratory","EE- Mr. Mubashir Rasool","Power Systems Lab"],
-["BEEP-F-23-A",3,"13:20","14:40","Power Transmission Systems Laboratory","EE- Mr. Faizan Munir","Power Systems Lab"],
-["BEEP-F-23-A",4,"08:00","09:20","Power System Analysis","EE- Dr. Ashfaq Ahmed","B-105"],
-["BEEP-F-23-A",4,"10:40","12:00","Analog and Digital Communication","EE- Dr. Sher Ali","B-106"],
-["BEEP-F-23-A",4,"13:20","14:40","Advisory Class","EE- Mr. Mashood Ahmed","B-106"],
-["BEEP-F-23-A",4,"14:40","16:00","Power Transmission Systems","EE- Mr. Faizan Munir","B-105"],
-["BEEP-F-23-A",5,"08:00","09:20","Analog and Digital Communication","EE- Dr. Sher Ali","B-108"],
-["BEEP-F-23-A",5,"09:20","10:40","Engineering Economics","Ms. Aqeela Anwar (VFM)","B-204"],
-["BEEP-F-23-A",5,"12:00","13:20","Community Service Learning","Ms. Javeria Khan (VFM)","B-107"],
-["BEEP-F-23-A",5,"13:20","14:40","Engineering Economics","Ms. Aqeela Anwar (VFM)","B-108"]
-].map(r => ({section:r[0], day:r[1], start:r[2], end:r[3], subject:r[4], faculty:r[5], room:r[6], dept:'EE'}));
-
-// CE (Computer Engineering) timetable. Empty out of the box — an admin adds
-// it from the Admin tab (upload a CE timetable PDF, or add rows manually),
-// exactly the same way the EE timetable is managed, but kept as a fully
-// separate schedule so the two departments' data never mix or overwrite
-// each other.
-const SCHEDULE_BUILTIN_CE = [];
-
-// SCHEDULE_EE / SCHEDULE_CE are the two live, working timetables. Each starts
-// out as its baked-in data above, but an admin can replace either one by
-// uploading a new timetable PDF (see "Upload latest timetable" in the Admin
-// tab) — that upload is saved to Firebase so everyone sees the same
-// up-to-date timetable, not just this browser.
-let SCHEDULE_EE = SCHEDULE_BUILTIN_EE.slice();
-let SCHEDULE_CE = SCHEDULE_BUILTIN_CE.slice();
+// SCHEDULE_EE / SCHEDULE_CE are the two live, working timetables. Both start
+// empty; they are filled from Firebase (shared, so everyone sees the same
+// up-to-date timetable) or, without Firebase, from this browser's local copy.
+let SCHEDULE_EE = [];
+let SCHEDULE_CE = [];
 
 function getSchedule(dept){ return dept === 'CE' ? SCHEDULE_CE : SCHEDULE_EE; }
 function setSchedule(dept, arr){
@@ -1894,7 +1568,9 @@ async function showClasses(){
   updateDateNote();
 
   if(!fac || !dateStr){
-    list.innerHTML = '<p class="empty-note">Choose your name and a date above to load your scheduled classes.</p>';
+    list.innerHTML = allSchedule().length === 0
+      ? '<p class="empty-note">No timetable has been uploaded yet. Please ask the administrator to upload the EE and CE timetables from the Admin tab.</p>'
+      : '<p class="empty-note">Choose your name and a date above to load your scheduled classes.</p>';
     return;
   }
 
@@ -3844,12 +3520,9 @@ function saveSchedule(dept){
 function attachScheduleListener(dept){
   fbDb.ref(SCHEDULE_PATH[dept]).on('value', function(snap){
     const val = snap.val();
-    if(val === null){
-      // nothing saved yet for this tool — seed it with the baked-in timetable
-      fbDb.ref(SCHEDULE_PATH[dept]).set({items: getSchedule(dept), savedAt: Date.now()});
-      return;
-    }
-    setSchedule(dept, val.items || []);
+    // Nothing saved yet for this department -> an empty timetable, waiting for
+    // an administrator to upload it (nothing is written to the database here).
+    setSchedule(dept, (val && val.items) || []);
     rebuildFacultyList();
     try{ localStorage.setItem(SCHEDULE_LOCAL_KEY[dept], JSON.stringify(getSchedule(dept))); }catch(e){ console.warn('localStorage cache write failed', e); }
     renderScheduleEditTable(dept);
