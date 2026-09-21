@@ -3590,6 +3590,10 @@ function renderStatCards(){
     const prog = courseCodeProgram(c.code);
     return prog === 'EE' || prog === 'otherDeptDemand';
   };
+  // CE-code courses and labs (code starts with "CE") are NOT part of the
+  // Total / Assigned / Unassigned *Courses* cards, but their unassigned
+  // sections do show up in and count toward the Unassigned Sections card.
+  const isCeCode = c => (c.code||'').trim().toUpperCase().startsWith('CE');
 
   // Count unique courses in master list (EE + other-dept-demand only)
   const totalCourses = lists.courses.filter(isCountedCourse).length;
@@ -3731,7 +3735,8 @@ function renderStatCards(){
   // shown next to each course in the Detail table: every badge's remaining
   // number is a section with no FM yet. Scope = every course that shows a
   // badge (any course held by at least one FM row, from ANY tab — EE, CE,
-  // other depts, custom tabs) PLUS the EE / FMs-Demand-by-Other-Depts
+  // other depts, custom tabs), PLUS every CE-code course/lab (even with no
+  // FM yet), PLUS the EE / FMs-Demand-by-Other-Depts
   // courses that have no FM row at all yet (they have no badge to see, but
   // all of their sections are still unassigned). Each course is counted
   // once, no matter how many FM rows share it.
@@ -3740,7 +3745,7 @@ function renderStatCards(){
   //  • otherwise it falls back to the plain "Sec" count minus the number of
   //    FM rows already on that course (same rule as getRemainingSectionsCount).
   const codesInTable = new Set(data.map(r => (r.code||'').trim()).filter(Boolean));
-  const inSecScope = c => isCountedCourse(c) || codesInTable.has((c.code||'').trim());
+  const inSecScope = c => isCountedCourse(c) || isCeCode(c) || codesInTable.has((c.code||'').trim());
   const unassignedSecItems = [];
   let unassignedSecCount = 0;
   lists.courses.filter(inSecScope).forEach(c=>{
