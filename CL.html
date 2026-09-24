@@ -27,14 +27,14 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
     --muted:#7A849A;
     --accent-orange:#FF6B35;
     --accent-cyan:#00C9B1;
-    --gradient-topbar: linear-gradient(135deg, #1A0B40 0%, #0F2560 50%, #0A3D5E 100%);
+    --gradient-topbar: linear-gradient(135deg, #2A0B5E 0%, #4C1D95 50%, #6D28D9 100%);
     --gradient-primary: linear-gradient(135deg, #6C3FEB 0%, #A855F7 100%);
-    --gradient-teal: linear-gradient(135deg, #00C9B1 0%, #0EA5E9 100%);
+    --gradient-teal: linear-gradient(135deg, #8B5CF6 0%, #D946EF 100%);
   }
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;}
   body{
-    background: linear-gradient(160deg, #EEF0FF 0%, #F5F0FF 40%, #EFF8FF 100%);
+    background: linear-gradient(160deg, #F1ECFF 0%, #F7EFFF 40%, #FBEFFF 100%);
     min-height: 100vh;
     color:var(--ink);
     font-family:'IBM Plex Sans',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
@@ -58,11 +58,13 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
     letter-spacing:.2px;
   }
   .eyebrow{
-    font-family:'IBM Plex Mono', monospace;
-    font-size:11px;
-    letter-spacing:.12em;
-    text-transform:uppercase;
-    color:#9FB0A8;
+    font-family:'IBM Plex Sans', system-ui, sans-serif;
+    font-size:clamp(20px, 3vw, 27px);
+    font-weight:800;
+    line-height:1.15;
+    letter-spacing:.01em;
+    text-transform:none;
+    color:#FFFFFF;
     margin:0 0 4px 0;
   }
   .save-indicator{
@@ -143,7 +145,7 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
   table{ width:100%; border-collapse:collapse; font-size:13px; }
   #detailTable{ min-width:1200px; }
   thead th{
-    background: linear-gradient(135deg, #1A0B40 0%, #0F2560 100%); color:#EDEFF3; text-align:left; font-weight:600;
+    background: linear-gradient(135deg, #2A0B5E 0%, #4C1D95 100%); color:#EDEFF3; text-align:left; font-weight:600;
     font-size:11.5px; letter-spacing:.04em; text-transform:uppercase;
     padding:9px 8px; position:sticky; top:0; white-space:nowrap;
   }
@@ -315,13 +317,13 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
 
   tr.group-head{ cursor:default; }
   tr.group-head td{
-    background: linear-gradient(135deg, #1A0B40 0%, #0F2560 100%) !important;
+    background: linear-gradient(135deg, #2A0B5E 0%, #4C1D95 100%) !important;
     color:#EDEFF3;
     border-top:0;
     border-bottom:2px solid #A855F7;
     padding:10px 14px;
   }
-  tr.group-head:hover td{ background: linear-gradient(135deg, #221050 0%, #142B70 100%) !important; }
+  tr.group-head:hover td{ background: linear-gradient(135deg, #37117A 0%, #5B21B6 100%) !important; }
   .group-head-inner{
     display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;
   }
@@ -361,13 +363,13 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
 
   /* ── Section-wise view ───────────────────────────────────────────────────── */
   .section-group-head td{
-    background: linear-gradient(135deg, #3A1F9A 0%, #0EA5E9 100%) !important; color:#E0F0FF;
+    background: linear-gradient(135deg, #4C1D95 0%, #C026D3 100%) !important; color:#F8EDFF;
     border-top:0; border-bottom:2px solid rgba(255,255,255,.2);
     padding:9px 14px;
     font-family:'Source Serif 4',serif; font-size:13.5px; font-weight:600;
     letter-spacing:.01em;
   }
-  .section-group-head:hover td{ background: linear-gradient(135deg, #4626B5 0%, #1BB9FF 100%) !important; }
+  .section-group-head:hover td{ background: linear-gradient(135deg, #5B21B6 0%, #D946EF 100%) !important; }
   .section-course-row td{ padding:7px 8px 7px 20px; font-size:12.6px; }
   .section-course-row:nth-child(even){ background:#FBFBFC; }
   .section-course-row:hover td{ background:#EEF6F4; }
@@ -445,7 +447,7 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
   .compact-course-hrs{
     font-family:'IBM Plex Mono',monospace; font-size:11px;
     color:#4D2CB5; font-weight:600; white-space:nowrap;
-    background: linear-gradient(135deg, #EDE9FF, #E8F4FF); border-radius:4px; padding:1px 6px;
+    background: linear-gradient(135deg, #EDE9FF, #FBE9FF); border-radius:4px; padding:1px 6px;
   }
 
   /* ── Load distribution bars ──────────────────────────────────────────────── */
@@ -471,7 +473,7 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
     position:relative;
   }
   .bar-fill{
-    background: linear-gradient(90deg, #4D2CB5, #A855F7, #00C9B1);
+    background: linear-gradient(90deg, #4D2CB5, #A855F7, #E879F9);
     height:100%; border-radius:6px;
     transition:width .3s ease;
     box-shadow: 0 0 8px rgba(108,63,235,.3);
@@ -499,7 +501,7 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
   .stat-card.clickable{ cursor:pointer; }
   .stat-card.clickable:hover{ border-color:var(--teal); box-shadow:0 4px 16px rgba(108,63,235,.2); }
   .stat-card.clickable:hover .stat-label{ color:var(--teal-deep); }
-  .stat-card.active-card{ border-color:var(--teal); background: linear-gradient(135deg, #F0EEFF 0%, #EBF4FF 100%); box-shadow:0 4px 16px rgba(108,63,235,.22); }
+  .stat-card.active-card{ border-color:var(--teal); background: linear-gradient(135deg, #F0EEFF 0%, #F8EEFF 100%); box-shadow:0 4px 16px rgba(108,63,235,.22); }
   .stat-card.active-card .stat-label{ color:var(--teal-deep); }
   .stat-value{
     font-family:'IBM Plex Mono',monospace; font-size:28px; font-weight:700;
@@ -549,7 +551,7 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
   }
   .program-card.clickable{ cursor:pointer; transition:box-shadow .15s, border-color .15s; }
   .program-card.clickable:hover{ border-color:var(--teal); box-shadow:0 4px 16px rgba(108,63,235,.18); }
-  .program-card.active-card{ border-color:var(--teal); background: linear-gradient(135deg, #F0EEFF 0%, #EBF4FF 100%); box-shadow:0 4px 16px rgba(108,63,235,.2); }
+  .program-card.active-card{ border-color:var(--teal); background: linear-gradient(135deg, #F0EEFF 0%, #F8EEFF 100%); box-shadow:0 4px 16px rgba(108,63,235,.2); }
   .program-stat.clickable{ cursor:pointer; transition:box-shadow .15s, background .15s; }
   .program-stat.clickable:hover{ background:#F0EEFF; box-shadow:0 0 0 1px var(--teal) inset; }
   .program-stat.active-card{ background:#F0EEFF; box-shadow:0 0 0 1px var(--teal) inset; }

@@ -8,7 +8,7 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
 
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <title>CSE Faculty Workload — Spring 2027</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2306B6D4' stroke-width='2'%3E%3Crect x='4' y='4' width='16' height='16' rx='2'/%3E%3Crect x='9' y='9' width='6' height='6'/%3E%3Cline x1='9' y1='1' x2='9' y2='4'/%3E%3Cline x1='15' y1='1' x2='15' y2='4'/%3E%3Cline x1='9' y1='20' x2='9' y2='23'/%3E%3Cline x1='15' y1='20' x2='15' y2='23'/%3E%3Cline x1='20' y1='9' x2='23' y2='9'/%3E%3Cline x1='20' y1='14' x2='23' y2='14'/%3E%3Cline x1='1' y1='9' x2='4' y2='9'/%3E%3Cline x1='1' y1='14' x2='4' y2='14'/%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2310B981' stroke-width='2'%3E%3Crect x='4' y='4' width='16' height='16' rx='2'/%3E%3Crect x='9' y='9' width='6' height='6'/%3E%3Cline x1='9' y1='1' x2='9' y2='4'/%3E%3Cline x1='15' y1='1' x2='15' y2='4'/%3E%3Cline x1='9' y1='20' x2='9' y2='23'/%3E%3Cline x1='15' y1='20' x2='15' y2='23'/%3E%3Cline x1='20' y1='9' x2='23' y2='9'/%3E%3Cline x1='20' y1='14' x2='23' y2='14'/%3E%3Cline x1='1' y1='9' x2='4' y2='9'/%3E%3Cline x1='1' y1='14' x2='4' y2='14'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com/">
 <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600;8..60,700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -16,26 +16,26 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
   :root{
     --ink:#0F1B35;
     --ink-soft:#2D3A55;
-    --paper:#EAF2FF;
+    --paper:#E8F8F0;
     --paper-card:#FFFFFF;
-    --line:#C3D8E8;
-    --teal:#2563EB;
-    --teal-deep:#1D4ED8;
+    --line:#BFE3D2;
+    --teal:#059669;
+    --teal-deep:#047857;
     --amber:#FFF0B0;
     --amber-line:#F5B800;
     --red:#E02B55;
     --red-bg:#FFE8EE;
     --muted:#7A849A;
     --accent-orange:#F59E0B;
-    --accent-cyan:#06B6D4;
-    --gradient-topbar: linear-gradient(135deg, #081326 0%, #0B3A66 50%, #0E4E73 100%);
-    --gradient-primary: linear-gradient(135deg, #2563EB 0%, #06B6D4 100%);
-    --gradient-teal: linear-gradient(135deg, #06B6D4 0%, #10B981 100%);
+    --accent-cyan:#14B8A6;
+    --gradient-topbar: linear-gradient(135deg, #052E24 0%, #065F46 50%, #0F766E 100%);
+    --gradient-primary: linear-gradient(135deg, #059669 0%, #14B8A6 100%);
+    --gradient-teal: linear-gradient(135deg, #0D9488 0%, #22C55E 100%);
   }
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;}
   body{
-    background: linear-gradient(160deg, #E9F2FF 0%, #E7F7F1 40%, #EAFBFF 100%);
+    background: linear-gradient(160deg, #E8F8F0 0%, #EEFBF4 40%, #E9FAF7 100%);
     min-height: 100vh;
     color:var(--ink);
     font-family:'IBM Plex Sans',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
@@ -46,8 +46,8 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
     background: var(--gradient-topbar);
     color:#EDEFF3;
     padding:14px 16px 0 16px;
-    box-shadow: 0 4px 24px rgba(108,63,235,0.35), 0 1px 0 rgba(255,255,255,0.08);
-    border-bottom: 1px solid rgba(108,63,235,0.3);
+    box-shadow: 0 4px 24px rgba(5,150,105,0.35), 0 1px 0 rgba(255,255,255,0.08);
+    border-bottom: 1px solid rgba(5,150,105,0.3);
   }
   .topbar-inner{max-width:1400px; margin:0 auto;}
   .title-row{display:flex; align-items:baseline; justify-content:space-between; gap:12px; flex-wrap:wrap;}
@@ -59,11 +59,13 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
     letter-spacing:.2px;
   }
   .eyebrow{
-    font-family:'IBM Plex Mono', monospace;
-    font-size:11px;
-    letter-spacing:.12em;
-    text-transform:uppercase;
-    color:#9FB0A8;
+    font-family:'IBM Plex Sans', system-ui, sans-serif;
+    font-size:clamp(20px, 3vw, 27px);
+    font-weight:800;
+    line-height:1.15;
+    letter-spacing:.01em;
+    text-transform:none;
+    color:#FFFFFF;
     margin:0 0 4px 0;
   }
   .save-indicator{
@@ -85,8 +87,8 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
     border-radius:4px 4px 0 0;
     transition: color .15s, background .15s;
   }
-  .tab-btn:hover{ color:#fff; background:rgba(108,63,235,.25); }
-  .tab-btn.active{ color:#fff; border-bottom-color:#06B6D4; text-shadow: 0 0 12px rgba(168,85,247,0.6); }
+  .tab-btn:hover{ color:#fff; background:rgba(5,150,105,.25); }
+  .tab-btn.active{ color:#fff; border-bottom-color:#34D399; text-shadow: 0 0 12px rgba(52,211,153,0.6); }
 
   .toolbar{
     max-width:1400px; margin:0 auto; padding:14px 16px 0 16px;
@@ -107,12 +109,12 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
     white-space:nowrap;
     transition: all .15s;
   }
-  .btn:hover{ border-color:var(--teal); color:var(--teal-deep); box-shadow: 0 2px 8px rgba(108,63,235,.15); }
-  .btn.primary{ background: var(--gradient-primary); border-color:transparent; color:#fff; box-shadow: 0 2px 12px rgba(108,63,235,.35); }
-  .btn.primary:hover{ filter: brightness(1.1); box-shadow: 0 4px 18px rgba(108,63,235,.5); }
+  .btn:hover{ border-color:var(--teal); color:var(--teal-deep); box-shadow: 0 2px 8px rgba(5,150,105,.15); }
+  .btn.primary{ background: var(--gradient-primary); border-color:transparent; color:#fff; box-shadow: 0 2px 12px rgba(5,150,105,.35); }
+  .btn.primary:hover{ filter: brightness(1.1); box-shadow: 0 4px 18px rgba(5,150,105,.5); }
   .btn.ghost{ border-color:transparent; color:var(--ink-soft); }
   .btn.danger:hover{ border-color:var(--red); color:var(--red); }
-  .btn.active-toggle{ background: var(--gradient-primary); border-color:transparent; color:#fff; box-shadow: 0 2px 12px rgba(108,63,235,.35); }
+  .btn.active-toggle{ background: var(--gradient-primary); border-color:transparent; color:#fff; box-shadow: 0 2px 12px rgba(5,150,105,.35); }
   .btn svg{width:14px; height:14px; flex:none;}
 
   main{max-width:1400px; margin:0 auto; padding:14px 16px 60px 16px;}
@@ -127,7 +129,7 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
   }
   .odf-pill.taken{ background:#E9F2FF; color:var(--ink-soft); }
   .odf-pill.suggested{ background:#FFF6E5; color:#946200; border-color:#F0C36D; font-style:italic; }
-  .odf-pill.open{ background:rgba(108,63,235,.12); color:var(--teal-deep); border-color:var(--teal); font-weight:600; }
+  .odf-pill.open{ background:rgba(5,150,105,.12); color:var(--teal-deep); border-color:var(--teal); font-weight:600; }
   .odf-dept-card{
     background:var(--paper-card); border:1px solid var(--line); border-radius:10px;
     padding:12px 14px;
@@ -138,13 +140,13 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
   .card{
     background:var(--paper-card); border:1px solid var(--line); border-radius:12px;
     overflow:hidden;
-    box-shadow: 0 2px 16px rgba(108,63,235,.08), 0 1px 3px rgba(0,0,0,.04);
+    box-shadow: 0 2px 16px rgba(5,150,105,.08), 0 1px 3px rgba(0,0,0,.04);
   }
   .table-scroll{ overflow-x:auto; }
   table{ width:100%; border-collapse:collapse; font-size:13px; }
   #detailTable{ min-width:1200px; }
   thead th{
-    background: linear-gradient(135deg, #081326 0%, #0B3A66 100%); color:#EDEFF3; text-align:left; font-weight:600;
+    background: linear-gradient(135deg, #052E24 0%, #065F46 100%); color:#EDEFF3; text-align:left; font-weight:600;
     font-size:11.5px; letter-spacing:.04em; text-transform:uppercase;
     padding:9px 8px; position:sticky; top:0; white-space:nowrap;
   }
@@ -154,7 +156,7 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
   tbody tr:nth-child(even){ background:#FBFBFC; }
   tbody tr.flagged{ background:var(--amber) !important; }
   tbody tr.flagged td{ border-bottom-color:var(--amber-line); }
-  tbody tr:hover td{ background:#EAF2FF; }
+  tbody tr:hover td{ background:#E8F8F0; }
   tbody tr.flagged:hover td{ background:#F8E9A4; }
 
   /* Editable cells */
@@ -220,7 +222,7 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
     padding:4px 6px; border-radius:6px; cursor:pointer;
     transition: all .15s;
   }
-  .btn-add-course:hover{ border-color:var(--teal); background:#EAF2FF; border-style:solid; }
+  .btn-add-course:hover{ border-color:var(--teal); background:#E8F8F0; border-style:solid; }
   body.view-only .btn-add-course{ display:none; }
   /* Designation input: allow wrapping */
   #detailTable td:nth-child(4) input{
@@ -295,7 +297,7 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
     padding:13px 16px; font-size:14.5px; border-radius:8px; cursor:pointer;
     color:var(--ink); white-space:normal;
   }
-  .cc-opt:hover, .cc-opt.cc-active{ background:#EAF2FF; }
+  .cc-opt:hover, .cc-opt.cc-active{ background:#E8F8F0; }
   .cc-opt.cc-none{ color:var(--ink-soft); font-style:italic; }
   .cc-opt.cc-add{ color:var(--teal-deep); font-weight:600; border-top:1px solid var(--line); margin-top:4px; }
   .cc-opt-empty{ padding:8px 9px; font-size:12.3px; color:var(--muted); }
@@ -316,13 +318,13 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
 
   tr.group-head{ cursor:default; }
   tr.group-head td{
-    background: linear-gradient(135deg, #081326 0%, #0B3A66 100%) !important;
+    background: linear-gradient(135deg, #052E24 0%, #065F46 100%) !important;
     color:#EDEFF3;
     border-top:0;
-    border-bottom:2px solid #06B6D4;
+    border-bottom:2px solid #34D399;
     padding:10px 14px;
   }
-  tr.group-head:hover td{ background: linear-gradient(135deg, #081C3A 0%, #0B3A66 100%) !important; }
+  tr.group-head:hover td{ background: linear-gradient(135deg, #073B2E 0%, #047857 100%) !important; }
   .group-head-inner{
     display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;
   }
@@ -346,7 +348,7 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
     font-weight:700; color:#fff;
     background: var(--gradient-primary); border-radius:20px;
     padding:3px 12px; font-size:12px;
-    box-shadow: 0 2px 8px rgba(108,63,235,.4);
+    box-shadow: 0 2px 8px rgba(5,150,105,.4);
   }
 
   .sum-table tbody tr.course-row td{ padding:7px 8px 7px 22px; font-size:12.8px; color:var(--ink-soft); }
@@ -362,19 +364,19 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
 
   /* ── Section-wise view ───────────────────────────────────────────────────── */
   .section-group-head td{
-    background: linear-gradient(135deg, #0E4E9A 0%, #10B981 100%) !important; color:#E3FBF5;
+    background: linear-gradient(135deg, #047857 0%, #14B8A6 100%) !important; color:#E3FBF5;
     border-top:0; border-bottom:2px solid rgba(255,255,255,.2);
     padding:9px 14px;
     font-family:'Source Serif 4',serif; font-size:13.5px; font-weight:600;
     letter-spacing:.01em;
   }
-  .section-group-head:hover td{ background: linear-gradient(135deg, #0B3A8A 0%, #22D3AC 100%) !important; }
+  .section-group-head:hover td{ background: linear-gradient(135deg, #059669 0%, #2DD4BF 100%) !important; }
   .section-course-row td{ padding:7px 8px 7px 20px; font-size:12.6px; }
   .section-course-row:nth-child(even){ background:#FBFBFC; }
   .section-course-row:hover td{ background:#EEF6F4; }
   .section-total-row td{
     font-weight:600; border-top:1px solid var(--line);
-    background:#EAF2FF !important; font-size:11.5px;
+    background:#E8F8F0 !important; font-size:11.5px;
     padding:5px 8px 5px 20px; color:var(--teal-deep);
     font-family:'IBM Plex Mono',monospace;
   }
@@ -389,7 +391,7 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
     padding:0; overflow:hidden;
     transition:box-shadow .15s, border-color .15s;
   }
-  .compact-card:hover{ border-color:var(--teal); box-shadow:0 6px 24px rgba(108,63,235,.18); transform: translateY(-1px); transition: all .2s; }
+  .compact-card:hover{ border-color:var(--teal); box-shadow:0 6px 24px rgba(5,150,105,.18); transform: translateY(-1px); transition: all .2s; }
   .compact-card-head{
     display:flex; justify-content:space-between; align-items:stretch;
     border-bottom:1px solid var(--line);
@@ -445,8 +447,8 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
   }
   .compact-course-hrs{
     font-family:'IBM Plex Mono',monospace; font-size:11px;
-    color:#1D4ED8; font-weight:600; white-space:nowrap;
-    background: linear-gradient(135deg, #E3F0FF, #E3FBF5); border-radius:4px; padding:1px 6px;
+    color:#047857; font-weight:600; white-space:nowrap;
+    background: linear-gradient(135deg, #DFF7EA, #E3FBF5); border-radius:4px; padding:1px 6px;
   }
 
   /* ── Load distribution bars ──────────────────────────────────────────────── */
@@ -462,7 +464,7 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
     cursor:pointer; padding:4px 6px; border-radius:7px;
     transition:background .12s;
   }
-  .bar-row:hover{ background:#EAF2FF; }
+  .bar-row:hover{ background:#E8F8F0; }
   .bar-row .label{
     font-size:12px; color:var(--ink-soft); overflow:hidden;
     text-overflow:ellipsis; white-space:nowrap;
@@ -472,10 +474,10 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
     position:relative;
   }
   .bar-fill{
-    background: linear-gradient(90deg, #1D4ED8, #06B6D4, #06B6D4);
+    background: linear-gradient(90deg, #047857, #10B981, #5EEAD4);
     height:100%; border-radius:6px;
     transition:width .3s ease;
-    box-shadow: 0 0 8px rgba(108,63,235,.3);
+    box-shadow: 0 0 8px rgba(5,150,105,.3);
   }
   .bar-row .val{
     font-family:'IBM Plex Mono',monospace; font-size:11.5px; font-weight:600;
@@ -498,9 +500,9 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
     transition:box-shadow .15s, border-color .15s;
   }
   .stat-card.clickable{ cursor:pointer; }
-  .stat-card.clickable:hover{ border-color:var(--teal); box-shadow:0 4px 16px rgba(108,63,235,.2); }
+  .stat-card.clickable:hover{ border-color:var(--teal); box-shadow:0 4px 16px rgba(5,150,105,.2); }
   .stat-card.clickable:hover .stat-label{ color:var(--teal-deep); }
-  .stat-card.active-card{ border-color:var(--teal); background: linear-gradient(135deg, #EAF2FF 0%, #E3FBF5 100%); box-shadow:0 4px 16px rgba(108,63,235,.22); }
+  .stat-card.active-card{ border-color:var(--teal); background: linear-gradient(135deg, #E8F8F0 0%, #E3FBF5 100%); box-shadow:0 4px 16px rgba(5,150,105,.22); }
   .stat-card.active-card .stat-label{ color:var(--teal-deep); }
   .stat-value{
     font-family:'IBM Plex Mono',monospace; font-size:28px; font-weight:700;
@@ -549,11 +551,11 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
     font-size:10px; color:var(--muted); margin-top:4px; letter-spacing:.02em;
   }
   .program-card.clickable{ cursor:pointer; transition:box-shadow .15s, border-color .15s; }
-  .program-card.clickable:hover{ border-color:var(--teal); box-shadow:0 4px 16px rgba(108,63,235,.18); }
-  .program-card.active-card{ border-color:var(--teal); background: linear-gradient(135deg, #EAF2FF 0%, #E3FBF5 100%); box-shadow:0 4px 16px rgba(108,63,235,.2); }
+  .program-card.clickable:hover{ border-color:var(--teal); box-shadow:0 4px 16px rgba(5,150,105,.18); }
+  .program-card.active-card{ border-color:var(--teal); background: linear-gradient(135deg, #E8F8F0 0%, #E3FBF5 100%); box-shadow:0 4px 16px rgba(5,150,105,.2); }
   .program-stat.clickable{ cursor:pointer; transition:box-shadow .15s, background .15s; }
-  .program-stat.clickable:hover{ background:#EAF2FF; box-shadow:0 0 0 1px var(--teal) inset; }
-  .program-stat.active-card{ background:#EAF2FF; box-shadow:0 0 0 1px var(--teal) inset; }
+  .program-stat.clickable:hover{ background:#E8F8F0; box-shadow:0 0 0 1px var(--teal) inset; }
+  .program-stat.active-card{ background:#E8F8F0; box-shadow:0 0 0 1px var(--teal) inset; }
 
   /* ── Unassigned Drawer ────────────────────────────────────────────────────── */
   .ua-drawer{
@@ -794,7 +796,7 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
   /* ── Admin mode ── */
   .admin-badge{
     display:inline-flex; align-items:center; gap:5px;
-    background:#1E3A5F; color:#BFE1FF; border:1px solid #2A5F8F;
+    background:#064E3B; color:#A7F3D0; border:1px solid #059669;
     border-radius:20px; padding:3px 11px; font-size:11px;
     font-family:'IBM Plex Mono',monospace; letter-spacing:.06em;
     cursor:pointer; user-select:none; white-space:nowrap;
@@ -846,7 +848,7 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
     width:100%; padding:9px 12px; border:1px solid var(--line); border-radius:8px;
     font-family:inherit; font-size:13.5px; color:var(--ink);
   }
-  .ma-modal input:focus{ border-color:var(--teal); outline:none; box-shadow:0 0 0 2px rgba(108,63,235,.15); }
+  .ma-modal input:focus{ border-color:var(--teal); outline:none; box-shadow:0 0 0 2px rgba(5,150,105,.15); }
   .ma-secs{ display:flex; flex-direction:column; gap:5px; max-height:180px; overflow:auto; border:1px solid var(--line); border-radius:8px; padding:8px 10px; }
   .ma-secs label{ display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; }
   .ma-selall{ font-size:11px; color:var(--teal-deep); cursor:pointer; background:none; border:none; padding:0; margin-left:8px; text-decoration:underline; font-family:inherit; }
@@ -922,7 +924,7 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
   <div class="topbar-inner">
     <div class="title-row">
       <div style="display:flex;align-items:center;gap:12px;">
-        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#06B6D4" stroke-width="1.6" style="flex:none;">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#34D399" stroke-width="1.6" style="flex:none;">
           <rect x="4" y="4" width="16" height="16" rx="2"></rect>
           <rect x="9" y="9" width="6" height="6"></rect>
           <line x1="9" y1="1" x2="9" y2="4"></line>
@@ -1022,7 +1024,7 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
     <div class="stat-label">Assigned Courses</div>
     <div class="stat-hint" style="display:none;gap:10px;margin-top:5px;flex-wrap:wrap;">
       <span style="display:inline-flex;align-items:center;gap:4px;">
-        <span style="font-family:&#39;IBM Plex Mono&#39;,monospace;font-size:10px;font-weight:600;background:#1E3A5F;color:#BFE1FF;border-radius:4px;padding:1px 5px;">CSE</span>
+        <span style="font-family:&#39;IBM Plex Mono&#39;,monospace;font-size:10px;font-weight:600;background:#064E3B;color:#A7F3D0;border-radius:4px;padding:1px 5px;">CSE</span>
         <span id="statAssignedEeVal" style="font-family:&#39;IBM Plex Mono&#39;,monospace;font-size:12px;font-weight:700;color:var(--teal-deep);">0</span>
       </span>
       <span style="display:none;align-items:center;gap:4px;">
@@ -1085,7 +1087,7 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
   </div>
   <div class="stat-card" id="statEeAssignedCard" style="display:none;border-left:4px solid var(--teal-deep);">
     <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:2px;">
-      <span style="font-family:&#39;IBM Plex Mono&#39;,monospace;font-size:10px;font-weight:700;background:#1E3A5F;color:#BFE1FF;border-radius:4px;padding:2px 7px;letter-spacing:.05em;">CSE</span>
+      <span style="font-family:&#39;IBM Plex Mono&#39;,monospace;font-size:10px;font-weight:700;background:#064E3B;color:#A7F3D0;border-radius:4px;padding:2px 7px;letter-spacing:.05em;">CSE</span>
       <div class="print-split" id="splitEe">
         <button class="print-split-main" id="btnPrintEeFaculty" title="Print Faculty Summary">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
@@ -4619,7 +4621,7 @@ document.getElementById('exportCsvBtn').addEventListener('click', ()=>{
   const val = v => (v===undefined||v===null) ? '' : String(v);
 
   const rankCategoryLabel = order => ({1:'Professor',2:'Associate Professor',3:'Assistant Professor',4:'Lecturer',5:'Lab Engineer',6:'Other',99:'Unspecified'}[order] || 'Other');
-  const catStyle = 'background:#EAE3FB;color:#1D4ED8;font-weight:700;font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;padding:6px 8px;border:1px solid #C3D8E8;';
+  const catStyle = 'background:#D9F3E6;color:#047857;font-weight:700;font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;padding:6px 8px;border:1px solid #C3D8E8;';
 
   let bodyRows = '';
   let prevOrder = null;
@@ -4646,7 +4648,7 @@ document.getElementById('exportCsvBtn').addEventListener('click', ()=>{
       bodyRows += `<td style="${tdNum}background:${band};">${escHtml(val(row.s2))}</td>`;
       bodyRows += `<td style="${tdNum}background:${band};">${escHtml(val(row.s3))}</td>`;
       bodyRows += `<td style="${tdNum}background:${band};">${escHtml(val(row.tut))}</td>`;
-      bodyRows += `<td style="${tdNum}background:${band};font-weight:700;color:#1D4ED8;">${escHtml(val(row.contact))}</td>`;
+      bodyRows += `<td style="${tdNum}background:${band};font-weight:700;color:#047857;">${escHtml(val(row.contact))}</td>`;
       bodyRows += `<td style="${tdText}background:${band};">${escHtml(val(row.notes))}</td>`;
       bodyRows += '</tr>';
     });
@@ -4654,7 +4656,7 @@ document.getElementById('exportCsvBtn').addEventListener('click', ()=>{
     const groupTotal = g.rows.reduce((a,r)=>a+(Number(r.contact)||0),0);
     bodyRows += `<tr>
       <td colspan="10" style="${tdText}background:#EDEFF6;font-weight:700;text-align:right;">Total — ${escHtml(displayFmName?displayFmName(g.name||''):(g.name||''))}</td>
-      <td style="${tdNum}background:#EDEFF6;font-weight:700;color:#1D4ED8;">${groupTotal}</td>
+      <td style="${tdNum}background:#EDEFF6;font-weight:700;color:#047857;">${groupTotal}</td>
       <td style="${tdText}background:#EDEFF6;"></td>
     </tr>`;
   });
