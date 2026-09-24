@@ -6,7 +6,8 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Coordinator Office Central Database — Air University</title>
-<link href="./Coordinator Office Central Database — Air University_files/css2" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@500;600;700&family=Source+Code+Pro:wght@400;500;700&family=Source+Sans+3:wght@400;500;600;700&display=swap" rel="stylesheet">
 <!-- Firebase SDK loaded below, just before init -->
 <style>
   :root {
@@ -485,6 +486,21 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
   .parent-card-arrow { font-size:1.5rem; color:var(--rule); transition:transform 0.2s, color 0.2s; }
   .parent-card:hover .parent-card-arrow { transform:translateX(4px); color:var(--gold); }
   .parent-card-chips { display:flex; gap:0.5rem; flex-wrap:wrap; margin-top:0.9rem; }
+  /* ── SPLIT CARD (two panels side by side: EE | C&SE) ───── */
+  .parent-card.split { cursor:default; }
+  .split-inner { display:flex; align-items:stretch; }
+  .split-half {
+    flex:1; min-width:0; display:flex; align-items:center; gap:1rem;
+    padding:1.8rem 1.6rem; color:inherit; text-decoration:none;
+    cursor:pointer; transition:background 0.2s;
+  }
+  .split-half + .split-half { border-left:1px solid var(--faint); }
+  .split-half:hover { background:rgba(10,74,138,0.05); }
+  .split-half:hover .parent-card-arrow { transform:translateX(4px); color:var(--gold); }
+  @media (max-width:640px){
+    .split-inner { flex-direction:column; }
+    .split-half + .split-half { border-left:none; border-top:1px solid var(--faint); }
+  }
 
   /* ── CURRICULA LIST MODAL ──────────────────────────────── */
   .curricula-list {
@@ -1332,6 +1348,73 @@ function loadNotesFromFirebase(){
   }, function(err){ console.warn('Firebase notes load error:', err); });
 }
 </script>
+<style id="ui-refresh">
+/* Academic refresh: cool navy + brass, Garamond headings, roomy readable cards */
+:root{--ink:#10233f;--ink2:#22395a;--rule:#9db6d1;--faint:#d6e0ec;--parchment:#eaf0f7;--cream:#f2f5f9;--paper:#fff;--muted:#4a627f;--accent:#123e73;--accent-lt:#1f5fa8;--gold:#8a6a1f;--gold-lt:#c9a24a}
+body{background:var(--cream);font-weight:400}
+header{background:linear-gradient(120deg,#0b2545,#123e73);border-bottom:4px solid var(--gold-lt)}
+header::before{display:none}
+.header-inner{max-width:1240px;padding:2.2rem 2rem;gap:1.6rem}
+.header-logo{width:104px;height:80px;background:#fff;border-radius:8px;padding:6px 8px;object-fit:contain}
+.badge{font-family:'Source Sans 3',sans-serif;font-size:.9rem;letter-spacing:.01em;text-transform:none;color:#c9dcf0;border:0;padding:0;margin-bottom:.5rem}
+header h1{font-size:clamp(2rem,4.5vw,3rem);font-weight:600;color:#fff;margin-bottom:.4rem}
+header h1 span{color:#dbe8f6!important;font-style:normal}
+header p{font-size:1.02rem;font-weight:500;color:#c9dcf0;letter-spacing:0}
+main{max-width:1240px;padding:2.5rem 2rem 4rem}
+.main-layout{gap:2rem}
+.notes-panel{width:270px;background:#fff;border:1px solid var(--faint);border-top:4px solid var(--gold-lt);border-radius:6px;padding:1.2rem 1.1rem;top:1rem;box-shadow:0 1px 2px rgba(16,35,63,.06)}
+.notes-panel-title{font-size:1.15rem}
+.notes-body{font-size:.92rem;line-height:1.7}
+.notes-body a{display:inline-block;padding:.1rem 0;color:var(--accent-lt);text-underline-offset:3px}
+.group-title{display:flex;flex-wrap:wrap;align-items:baseline;gap:.2rem 1rem;font-family:'EB Garamond',serif;font-size:1.5rem;font-weight:600;color:var(--ink);margin:2.4rem 0 1rem;padding-bottom:.55rem;border-bottom:1px solid var(--rule)}
+.group-title:first-child{margin-top:0}
+.group-title small{font:500 .92rem 'Source Sans 3',sans-serif;color:var(--muted)}
+.parent-card{background:#fff;border:1px solid var(--faint);border-left:4px solid var(--accent);border-radius:6px;margin-bottom:1rem;box-shadow:0 1px 2px rgba(16,35,63,.06)}
+.parent-card:hover{box-shadow:0 8px 24px rgba(16,35,63,.12);border-left-color:var(--gold-lt);transform:none}
+.parent-card-inner{padding:1.4rem 1.5rem;gap:1.2rem}
+.parent-card-icon{display:none}
+.parent-card-text h2{font-size:1.4rem;line-height:1.25;margin-bottom:.3rem}
+.parent-card-text p{font-size:.95rem;font-weight:500;line-height:1.55}
+.parent-card-arrow{flex-shrink:0;width:34px;height:34px;border-radius:50%;background:var(--parchment);color:var(--accent);display:flex;align-items:center;justify-content:center;font-size:1.4rem;line-height:1;padding-bottom:3px}
+.parent-card:hover .parent-card-arrow{background:var(--accent);color:#fff;transform:none}
+.parent-card.split:hover{border-left-color:var(--accent)}
+.parent-card.split:hover .parent-card-arrow{background:var(--parchment);color:var(--accent)}
+.parent-card.split .split-half:hover .parent-card-arrow{background:var(--accent);color:#fff}
+.split-half{padding:1.4rem 1.5rem}
+.split-half:hover{background:#f3f7fc}
+.chip{font-family:'Source Sans 3',sans-serif;font-size:.78rem;font-weight:600;letter-spacing:0;padding:.18rem .65rem;border-radius:999px;background:var(--parchment);border:1px solid var(--faint);color:var(--accent)}
+.chip.gold{background:#f6efdc;border-color:#e2d3a6;color:#6f5518}
+#sessionCard label{font-family:'Source Sans 3',sans-serif!important;font-size:.92rem!important;font-weight:600;text-transform:none!important;letter-spacing:0!important;color:var(--ink)!important}
+#sessionSelect{font-family:'Source Sans 3',sans-serif!important;font-size:.92rem!important;padding:.45rem .7rem!important;border-radius:4px;min-width:240px}
+#sessionViewBtn{font-family:'Source Sans 3',sans-serif!important;font-size:.92rem!important;font-weight:600;letter-spacing:0!important;padding:.5rem 1.1rem!important;border-radius:4px;background:var(--accent)!important}
+#sessionViewBtn:hover{background:var(--accent-lt)!important}
+.overlay{background:rgba(11,37,69,.62)}
+.modal{border-radius:8px;border-top:4px solid var(--gold-lt);box-shadow:0 24px 64px rgba(11,37,69,.3)}
+.modal-header{border-radius:8px 8px 0 0}
+.modal-header h2{font-size:1.75rem}
+.modal-header p{font-family:'Source Sans 3',sans-serif;font-size:.92rem;font-weight:600;letter-spacing:0}
+.close-btn{border-radius:50%}
+.tbl-wrap{border-radius:6px}
+table{font-size:.92rem}
+thead th{font-family:'Source Sans 3',sans-serif;font-size:.82rem;letter-spacing:.02em;text-transform:none;color:var(--ink);border-bottom:2px solid var(--accent)}
+tbody tr:nth-child(even){background:#f7f9fc}
+tbody td{font-weight:500}
+td.code{font-size:.82rem;font-weight:700}
+.area-tag{font-family:'Source Sans 3',sans-serif;font-size:.78rem;border-radius:999px;padding:.12rem .6rem}
+.card,.curr-card,.sem-overview-card{border-radius:6px}
+.site-footer{background:#fff;border-top:1px solid var(--faint);color:var(--muted);font-size:.9rem;text-align:center;padding:1.4rem 1rem}
+a:focus-visible,button:focus-visible,select:focus-visible,input:focus-visible,.parent-card:focus-visible{outline:3px solid var(--accent-lt);outline-offset:2px}
+.split-half:focus-visible{outline-offset:-3px}
+@media(max-width:780px){
+  .header-inner{flex-direction:column;align-items:flex-start;padding:1.5rem 1.2rem}
+  main{padding:1.5rem 1rem 3rem}
+  .main-layout{flex-direction:column}
+  .cards-column{order:-1;width:100%}
+  .parent-card-inner,.split-half{padding:1.15rem 1.2rem}
+  .group-title{font-size:1.3rem}
+}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
 </head>
 <body style="" class="">
 
@@ -1389,6 +1472,8 @@ function loadNotesFromFirebase(){
         <!-- ── RIGHT: CARDS COLUMN ────────────────────────────────────── -->
     <div class="cards-column">
 
+      <h2 class="group-title">Curricula and courses<small>Approved degree programmes and what is offered each semester</small></h2>
+
       <!-- COURSE CURRICULA PARENT CARD -->
       <div class="parent-card" onclick="openCurriculaModal()">
         <div class="parent-card-inner">
@@ -1434,35 +1519,63 @@ function loadNotesFromFirebase(){
         </div>
       </div>
 
-<!-- Faculty Course Loading CARD -->
-<div class="parent-card" onclick="window.open('CL.html','_blank')">
-        <div class="parent-card-inner">
-          <div class="parent-card-icon"></div>
-          <div class="parent-card-text">
-            <h2>Faculty Members Course Loading</h2>
-            <p>Faculty Members Course Loading Fall-2026</p>
-           </div>
-          </div>
-        </div>
- 
+      <h2 class="group-title">Course loading and timetables<small>Faculty assignments and weekly schedules for EE and C&amp;SE</small></h2>
 
-      <!-- TIMETABLE CARD -->
-      <div class="parent-card" onclick="window.open('https://aupgece.github.io/pco/tt.html','_blank')">
-        <div class="parent-card-inner">
-          <div class="parent-card-icon">🗓️</div>
-          <div class="parent-card-text">
-            <h2>Timetable</h2>
-            <p>Weekly class schedules for all programmes and semesters. View room allocations, faculty assignments, and session timings.</p>
-            <div class="parent-card-chips">
-              <span class="chip">All Programmes</span>
-              <span class="chip">Room · Faculty · Timing</span>
+      <!-- FACULTY COURSE LOADING CARD (EE | C&SE) -->
+      <div class="parent-card split">
+        <div class="split-inner">
+          <a class="split-half" data-card="load_ee" href="https://aupgece.github.io/pco/CL" target="_blank" rel="noopener">
+            <div class="parent-card-text">
+              <h2>EE Course Loading</h2>
+              <p>EE Faculty Members Course Loading Fall-2026</p>
             </div>
+            <div class="parent-card-arrow">›</div>
+          </a>
+          <a class="split-half" data-card="load_cse" href="https://aupgece.github.io/pco/CL2" target="_blank" rel="noopener">
+            <div class="parent-card-text">
+              <h2>C&amp;SE Course Loading</h2>
+              <p>C&amp;SE Faculty Members Course Loading Fall-2026</p>
+            </div>
+            <div class="parent-card-arrow">›</div>
+          </a>
+        </div>
+      </div>
+
+      <!-- TIMETABLE CARD (EE | C&SE) -->
+      <div class="parent-card split">
+        <div class="split-inner">
+          <a class="split-half" data-card="tt_ee" href="https://aupgece.github.io/pco/tt.html" target="_blank" rel="noopener">
+            <div class="parent-card-text">
+              <h2>EE Timetable</h2>
+              <p>EE weekly class schedules for all programmes and semesters.</p>
+            </div>
+            <div class="parent-card-arrow">›</div>
+          </a>
+          <a class="split-half" data-card="tt_cse" href="https://aupgece.github.io/pco/ce.html" target="_blank" rel="noopener">
+            <div class="parent-card-text">
+              <h2>C&amp;SE Timetable</h2>
+              <p>C&amp;SE weekly class schedules for all programmes and semesters.</p>
+            </div>
+            <div class="parent-card-arrow">›</div>
+          </a>
+        </div>
+      </div>
+
+      <h2 class="group-title">Online classes and faculty<small>Monitor online sessions and find visiting faculty</small></h2>
+
+      <!-- ONLINE CLASSES MONITORING CARD -->
+      <div class="parent-card" data-card="online" data-url="https://aupgece.github.io/pco/olc1" role="link" tabindex="0" onclick="openCardLink(this,event)" onkeydown="if(event.key==='Enter')openCardLink(this,event)">
+        <div class="parent-card-inner">
+          <div class="parent-card-text">
+            <h2>Online Classes Monitoring</h2>
+            <p>Online Classes Monitoring Fall-2026</p>
           </div>
+          <div class="parent-card-arrow">›</div>
         </div>
       </div>
 
       <!-- VISITING FACULTY CARD -->
-      <div class="parent-card" onclick="window.open('https://aupgece.github.io/pco/vfm.html','_blank')">
+      <div class="parent-card" data-card="visiting" data-url="https://aupgece.github.io/pco/vfm.html" role="link" tabindex="0" onclick="openCardLink(this,event)" onkeydown="if(event.key==='Enter')openCardLink(this,event)">
         <div class="parent-card-inner">
           <div class="parent-card-icon">👤</div>
           <div class="parent-card-text">
@@ -1478,6 +1591,8 @@ function loadNotesFromFirebase(){
     </div><!-- /.cards-column -->
   </div><!-- /.main-layout -->
 </main>
+
+<footer class="site-footer">Coordinator Office, Department of Electrical &amp; Computer Engineering · Air University, Islamabad</footer>
 
 <!-- CURRICULA PARENT MODAL -->
 <div class="overlay" id="curriculaOverlay" onclick="closeCurriculaIfOutside(event)">
@@ -27309,5 +27424,162 @@ loadCurriculaFromFirebase();
 
 
 
-<veepn-lock-screen><style>@font-face{font-family:FigtreeVF;src:url(chrome-extension://majdfhpaihoncoakbjgbdhglocklcgno/fonts/FigtreeVF.woff2) format("woff2 supports variations"),url(chrome-extension://majdfhpaihoncoakbjgbdhglocklcgno/fonts/FigtreeVF.woff2) format("woff2-variations");font-weight:100 1000;font-display:swap}</style></veepn-lock-screen>
+
+<style id="card-editor-css">
+.card-edit-btn{display:none;position:absolute;top:.55rem;right:.7rem;z-index:2;align-items:center;font:600 .78rem 'Source Sans 3',sans-serif;color:var(--accent);background:#fff;border:1px solid var(--rule);border-radius:999px;padding:.2rem .7rem;cursor:pointer}
+.card-edit-btn:hover{background:var(--accent);color:#fff;border-color:var(--accent)}
+body.admin-mode .card-edit-btn{display:inline-flex}
+.split-half{position:relative}
+.ce-overlay{display:none;position:fixed;inset:0;z-index:3000;background:rgba(11,37,69,.62);align-items:center;justify-content:center;padding:1rem}
+.ce-overlay.open{display:flex}
+.ce-box{width:100%;max-width:520px;background:#fff;border-radius:8px;border-top:4px solid var(--gold-lt);box-shadow:0 24px 64px rgba(11,37,69,.3);padding:1.6rem 1.7rem}
+.ce-box h3{font-family:'EB Garamond',serif;font-size:1.5rem;font-weight:600;color:var(--ink);margin-bottom:1rem}
+.ce-box label{display:block;font:600 .9rem 'Source Sans 3',sans-serif;color:var(--ink);margin:.9rem 0 .3rem}
+.ce-box input,.ce-box textarea{width:100%;font:500 .95rem 'Source Sans 3',sans-serif;color:var(--ink);border:1px solid var(--rule);border-radius:4px;padding:.55rem .7rem;background:#fff}
+.ce-box textarea{resize:vertical}
+.ce-err{min-height:1.2rem;margin-top:.6rem;color:var(--red);font-size:.88rem;font-weight:600}
+.ce-btns{display:flex;gap:.6rem;flex-wrap:wrap;margin-top:.6rem}
+.ce-btns button{font:600 .92rem 'Source Sans 3',sans-serif;border-radius:4px;padding:.55rem 1.1rem;cursor:pointer;border:1px solid var(--accent);background:#fff;color:var(--accent)}
+.ce-btns .ce-save{background:var(--accent);color:#fff}
+.ce-btns .ce-save:hover{background:var(--accent-lt)}
+.ce-btns .ce-reset{margin-left:auto;border-color:var(--faint);color:var(--muted)}
+</style>
+
+<div class="ce-overlay" id="cardEditOverlay">
+  <div class="ce-box" role="dialog" aria-modal="true" aria-labelledby="ceHeading">
+    <h3 id="ceHeading">Edit card</h3>
+    <label for="ceTitle">Title</label>
+    <input id="ceTitle" type="text" autocomplete="off">
+    <label for="ceDesc">Description</label>
+    <textarea id="ceDesc" rows="3"></textarea>
+    <label for="ceUrl">Link address</label>
+    <input id="ceUrl" type="text" placeholder="https://aupgece.github.io/pco/page" autocomplete="off">
+    <p class="ce-err" id="ceErr" role="alert"></p>
+    <div class="ce-btns">
+      <button type="button" class="ce-save" id="ceSave">Save changes</button>
+      <button type="button" id="ceCancel">Cancel</button>
+      <button type="button" class="ce-reset" id="ceReset">Reset to original</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── EDITABLE LINK CARDS (admin only) ──────────────────────────────────────
+function openCardLink(el, ev){
+  if(ev && ev.target && ev.target.closest && ev.target.closest('.card-edit-btn')) return;
+  var u = el.getAttribute('data-url');
+  if(u) window.open(u, '_blank', 'noopener');
+}
+(function(){
+  var STORE = 'pco_link_cards', defaults = {}, saved = {}, current = null, lastFocus = null;
+  var $ = function(id){ return document.getElementById(id); };
+  var cards = Array.prototype.slice.call(document.querySelectorAll('[data-card]'));
+
+  function urlOf(c){ return c.tagName === 'A' ? c.getAttribute('href') : c.getAttribute('data-url'); }
+  function setUrl(c,u){ if(c.tagName === 'A') c.setAttribute('href',u); else c.setAttribute('data-url',u); }
+  function cardById(id){ return document.querySelector('[data-card="'+id+'"]'); }
+
+  // Accepts https://…, //…, relative pages (CL.html) and bare domains (aupgece.github.io/pco/CL)
+  function cleanUrl(u){
+    u = (u||'').trim();
+    if(!u) return null;
+    if(/^[a-z][a-z0-9+.\-]*:/i.test(u)) return /^https?:\/\//i.test(u) ? u : null;
+    if(/^\/\//.test(u)) return 'https:'+u;
+    var first = u.split(/[\/?#]/)[0];
+    if(/\./.test(first) && !/\.(html?|php|pdf)$/i.test(first)) return 'https://'+u;
+    return u;
+  }
+
+  function apply(id, v){
+    var c = cardById(id); if(!c) return;
+    var h = c.querySelector('.parent-card-text h2'), p = c.querySelector('.parent-card-text p');
+    if(h) h.textContent = v.title;
+    if(p) p.textContent = v.desc;
+    setUrl(c, cleanUrl(v.url) || defaults[id].url);
+  }
+  function applyAll(){
+    Object.keys(defaults).forEach(function(id){
+      var o = saved[id];
+      apply(id, o ? { title:o.title||defaults[id].title, desc:(o.desc!==undefined?o.desc:defaults[id].desc), url:o.url||defaults[id].url } : defaults[id]);
+    });
+  }
+
+  function persist(){
+    try{ localStorage.setItem(STORE, JSON.stringify(saved)); }catch(e){}
+    if(typeof fbDb !== 'undefined' && fbDb){
+      fbDb.ref(STORE).set(saved)
+        .then(function(){ if(typeof flashSaved==='function') flashSaved('✓ Saved to Firebase'); })
+        .catch(function(err){ console.warn('Link cards save error:', err); if(typeof flashSaved==='function') flashSaved('⚠ Saved on this device only'); });
+    } else if(typeof flashSaved==='function'){ flashSaved('✓ Saved on this device'); }
+  }
+
+  function openEditor(id){
+    if(typeof adminMode !== 'undefined' && !adminMode) return;
+    var c = cardById(id); if(!c) return;
+    current = id; lastFocus = document.activeElement;
+    var h = c.querySelector('.parent-card-text h2'), p = c.querySelector('.parent-card-text p');
+    $('ceHeading').textContent = 'Edit card: ' + defaults[id].title;
+    $('ceTitle').value = h ? h.textContent : '';
+    $('ceDesc').value = p ? p.textContent : '';
+    $('ceUrl').value = urlOf(c) || '';
+    $('ceErr').textContent = '';
+    $('cardEditOverlay').classList.add('open');
+    $('ceTitle').focus();
+  }
+  function closeEditor(){
+    $('cardEditOverlay').classList.remove('open');
+    current = null;
+    if(lastFocus && lastFocus.focus) lastFocus.focus();
+  }
+  function save(){
+    var title = $('ceTitle').value.trim(), desc = $('ceDesc').value.trim(), url = cleanUrl($('ceUrl').value);
+    if(!title){ $('ceErr').textContent = 'Enter a title for the card.'; $('ceTitle').focus(); return; }
+    if(!url){ $('ceErr').textContent = 'Enter a web address that starts with https:// (or a page name like CL.html).'; $('ceUrl').focus(); return; }
+    saved[current] = { title:title, desc:desc, url:url };
+    apply(current, saved[current]);
+    persist(); closeEditor();
+  }
+  function reset(){
+    if(!confirm('Restore the original text and link for this card?')) return;
+    delete saved[current];
+    apply(current, defaults[current]);
+    persist(); closeEditor();
+  }
+
+  // Capture originals, add ✎ Edit buttons (hidden unless admin mode is on)
+  cards.forEach(function(c){
+    var id = c.getAttribute('data-card');
+    var h = c.querySelector('.parent-card-text h2'), p = c.querySelector('.parent-card-text p');
+    defaults[id] = { title: h ? h.textContent : '', desc: p ? p.textContent : '', url: urlOf(c) };
+    Array.prototype.forEach.call(c.querySelectorAll('.card-edit-btn'), function(x){ x.remove(); });
+    var b = document.createElement('span');
+    b.className = 'card-edit-btn'; b.setAttribute('role','button'); b.tabIndex = 0;
+    b.textContent = '✎ Edit'; b.title = 'Edit text and link';
+    var go = function(e){ e.preventDefault(); e.stopPropagation(); openEditor(id); };
+    b.addEventListener('click', go);
+    b.addEventListener('keydown', function(e){ if(e.key==='Enter'||e.key===' ') go(e); });
+    c.appendChild(b);
+  });
+
+  $('ceSave').addEventListener('click', save);
+  $('ceCancel').addEventListener('click', closeEditor);
+  $('ceReset').addEventListener('click', reset);
+  $('cardEditOverlay').addEventListener('click', function(e){ if(e.target === this) closeEditor(); });
+  $('cardEditOverlay').addEventListener('keydown', function(e){
+    if(e.key === 'Escape'){ e.stopPropagation(); closeEditor(); }
+    if(e.key === 'Enter' && e.target.tagName === 'INPUT') save();
+  });
+
+  // Load saved edits: this device first, then live from Firebase
+  try{ saved = JSON.parse(localStorage.getItem(STORE) || '{}') || {}; }catch(e){ saved = {}; }
+  applyAll();
+  if(typeof fbDb !== 'undefined' && fbDb){
+    fbDb.ref(STORE).on('value', function(snap){
+      saved = snap.val() || {};
+      try{ localStorage.setItem(STORE, JSON.stringify(saved)); }catch(e){}
+      applyAll();
+    }, function(err){ console.warn('Link cards load error:', err); });
+  }
+})();
+</script>
 </body></html>
