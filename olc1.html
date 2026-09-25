@@ -841,12 +841,8 @@
       <p class="hint">Scans the timetable against submitted records over a date range and lists every scheduled class that has either no record at all ("No record submitted" — the faculty member never logged it) or a record marked "Held on scheduled time: No". Narrow it to a specific timetable time slot to check who did not conduct/submit for that particular period. Use this to follow up with faculty who did not initiate/effect their online classes.</p>
       <div class="controls">
         <div class="field">
-          <label for="reportFromDate">From date</label>
-          <input type="date" id="reportFromDate">
-        </div>
-        <div class="field">
-          <label for="reportToDate">To date</label>
-          <input type="date" id="reportToDate">
+          <label for="reportDate">Date</label>
+          <input type="date" id="reportDate">
         </div>
         <div class="field">
           <label for="reportDept">Department</label>
@@ -2672,32 +2668,24 @@ populateReportTimeOptions();
 
 async function generateNonComplianceReport(){
   const statusEl = document.getElementById('reportStatus');
-  const fromStr = document.getElementById('reportFromDate').value;
-  const toStr = document.getElementById('reportToDate').value;
+  const dateStr = document.getElementById('reportDate').value;
   const deptSel = document.getElementById('reportDept').value;
   const timeSel = document.getElementById('reportTime').value;
   const facFilterVal = document.getElementById('reportFaculty').value;
 
-  if(!fromStr || !toStr){
+  if(!dateStr){
     statusEl.className = 'upload-status err';
-    statusEl.textContent = 'Pick both a "From date" and a "To date".';
+    statusEl.textContent = 'Pick a date.';
     return;
   }
-  const from = new Date(fromStr + 'T00:00:00');
-  const to = new Date(toStr + 'T00:00:00');
-  if(isNaN(from.getTime()) || isNaN(to.getTime()) || from > to){
+  const from = new Date(dateStr + 'T00:00:00');
+  const to = new Date(dateStr + 'T00:00:00');
+  if(isNaN(from.getTime())){
     statusEl.className = 'upload-status err';
-    statusEl.textContent = 'The "From date" must be on or before the "To date".';
+    statusEl.textContent = 'That date is not valid.';
     return;
   }
-  // Cap the scan to a reasonable span so a mis-picked date range can't hang the browser.
-  const MAX_DAYS = 366;
-  const spanDays = Math.round((to - from) / 86400000) + 1;
-  if(spanDays > MAX_DAYS){
-    statusEl.className = 'upload-status err';
-    statusEl.textContent = `That range is ${spanDays} days — please pick a range of ${MAX_DAYS} days or fewer.`;
-    return;
-  }
+  const fromStr = dateStr, toStr = dateStr;
 
   statusEl.className = 'upload-status';
   statusEl.textContent = 'Generating…';
@@ -2770,10 +2758,10 @@ function renderNonComplianceReport(rows, fromStr, toStr, totalScheduled){
   document.getElementById('reportStatNotHeld').textContent = notHeld;
 
   if(rows.length === 0){
-    body.innerHTML = '<tr><td colspan="8">No missed or non-initiated online classes found for this range/filters.</td></tr>';
+    body.innerHTML = '<tr><td colspan="8">No missed or non-initiated online classes found for this date/filters.</td></tr>';
     countLine.textContent = '';
     statusEl.className = 'upload-status';
-    statusEl.textContent = `Checked ${fromStr} to ${toStr}${timeNote}.`;
+    statusEl.textContent = `Checked ${fromStr}${timeNote}.`;
     return;
   }
 
@@ -2789,9 +2777,9 @@ function renderNonComplianceReport(rows, fromStr, toStr, totalScheduled){
   </tr>`).join('');
 
   const facultyCount = new Set(rows.map(r=> normFacultyKey(r.faculty))).size;
-  countLine.textContent = `${rows.length} non-initiated/non-held class${rows.length===1?'':'es'} across ${facultyCount} faculty member${facultyCount===1?'':'s'}, ${fromStr} to ${toStr}${timeNote}.`;
+  countLine.textContent = `${rows.length} non-initiated/non-held class${rows.length===1?'':'es'} across ${facultyCount} faculty member${facultyCount===1?'':'s'}, ${fromStr}${timeNote}.`;
   statusEl.className = 'upload-status';
-  statusEl.textContent = `Checked ${fromStr} to ${toStr}${timeNote}.`;
+  statusEl.textContent = `Checked ${fromStr}${timeNote}.`;
 }
 
 function nonComplianceExportTable(){
@@ -2810,8 +2798,7 @@ function exportNonComplianceReportPdf(){
   const rows = window._nonComplianceRows || [];
   if(rows.length === 0){ alert('Generate a report first (or nothing was found for the current range/filters).'); return; }
 
-  const fromStr = document.getElementById('reportFromDate').value;
-  const toStr = document.getElementById('reportToDate').value;
+  const dateStr = document.getElementById('reportDate').value;
   const deptSel = document.getElementById('reportDept').value;
   const timeSel = document.getElementById('reportTime').value;
   const facFilterVal = document.getElementById('reportFaculty').value;
@@ -2823,7 +2810,7 @@ function exportNonComplianceReportPdf(){
   const totalNotHeld = document.getElementById('reportStatNotHeld').textContent;
 
   const filterBits = [];
-  filterBits.push(`Date range: ${fromStr} to ${toStr}`);
+  filterBits.push(`Date: ${dateStr}`);
   filterBits.push(`Department: ${deptSel || 'All departments'}`);
   filterBits.push(`Time slot: ${timeSel || 'All time slots'}`);
   filterBits.push(`Faculty: ${facFilterVal || 'All faculty'}`);
