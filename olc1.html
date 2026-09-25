@@ -682,6 +682,7 @@
     <button id="tabBtnRecord" class="active">Record a class</button>
     <button id="tabBtnViewEE">EE view all records</button>
     <button id="tabBtnViewCE">CE view all records</button>
+    <button id="tabBtnReports">Non-compliance report</button>
     <button id="tabBtnAdmin">Admin</button>
   </nav>
 </header>
@@ -833,6 +834,74 @@
     <p class="count-line" id="countLineCE"></p>
   </section>
 
+  <!-- NON-COMPLIANCE REPORT PANEL (available to all users, not admin-gated) -->
+  <section id="panelReports" class="panel">
+    <div class="admin-block">
+      <h3>Non-compliance report — faculty who did not initiate online classes</h3>
+      <p class="hint">Scans the timetable against submitted records over a date range and lists every scheduled class that has either no record at all ("No record submitted" — the faculty member never logged it) or a record marked "Held on scheduled time: No". Narrow it to a specific timetable time slot to check who did not conduct/submit for that particular period. Use this to follow up with faculty who did not initiate/effect their online classes.</p>
+      <div class="controls">
+        <div class="field">
+          <label for="reportFromDate">From date</label>
+          <input type="date" id="reportFromDate">
+        </div>
+        <div class="field">
+          <label for="reportToDate">To date</label>
+          <input type="date" id="reportToDate">
+        </div>
+        <div class="field">
+          <label for="reportDept">Department</label>
+          <select id="reportDept">
+            <option value="">All departments</option>
+            <option value="EE">EE</option>
+            <option value="CE">CE</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="reportTime">Time slot (as per timetable)</label>
+          <select id="reportTime">
+            <option value="">All time slots</option>
+          </select>
+        </div>
+        <div class="field combo-field">
+          <label for="reportFaculty">Faculty</label>
+          <div class="combo-wrap">
+            <input type="text" id="reportFaculty" placeholder="All faculty" autocomplete="off">
+            <div class="combo-list" id="reportFacultyList"></div>
+          </div>
+        </div>
+        <button class="primary" id="reportGenerateBtn">Generate report</button>
+        <button class="ghost" id="reportExportXlsBtn">Export Excel</button>
+        <button class="ghost" id="reportExportPdfBtn">Export PDF</button>
+      </div>
+      <p class="upload-status" id="reportStatus"></p>
+      <div class="stats-row" id="reportStatsRow" style="display:none;">
+        <div class="stat-card scheduled">
+          <div class="stat-num" id="reportStatScheduled">–</div>
+          <div class="stat-lbl">Classes scheduled</div>
+        </div>
+        <div class="stat-card held">
+          <div class="stat-num" id="reportStatHeld">–</div>
+          <div class="stat-lbl">Held online</div>
+        </div>
+        <div class="stat-card notheld">
+          <div class="stat-num" id="reportStatNotHeld">–</div>
+          <div class="stat-lbl">Not held / no record</div>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table class="records" id="reportTable">
+          <thead>
+            <tr>
+              <th>Date</th><th>Weekday</th><th>Dept</th><th>Section</th><th>Time</th><th>Subject</th><th>Faculty</th><th>Reason</th>
+            </tr>
+          </thead>
+          <tbody id="reportBody"></tbody>
+        </table>
+      </div>
+      <p class="count-line" id="reportCountLine"></p>
+    </div>
+  </section>
+
   <!-- ADMIN PANEL -->
   <section id="panelAdmin" class="panel">
     <div id="adminGate" class="controls" style="align-items:flex-end;">
@@ -900,71 +969,6 @@
         </table>
       </div>
       <p class="count-line" id="adminCountLine"></p>
-
-      <div class="admin-block">
-        <h3>Non-compliance report — faculty who did not initiate online classes</h3>
-        <p class="hint">Scans the timetable against submitted records over a date range and lists every scheduled class that has either no record at all ("No record submitted" — the faculty member never logged it) or a record marked "Held on scheduled time: No". Narrow it to a specific timetable time slot to check who did not conduct/submit for that particular period. Use this to follow up with faculty who did not initiate/effect their online classes.</p>
-        <div class="controls">
-          <div class="field">
-            <label for="reportFromDate">From date</label>
-            <input type="date" id="reportFromDate">
-          </div>
-          <div class="field">
-            <label for="reportToDate">To date</label>
-            <input type="date" id="reportToDate">
-          </div>
-          <div class="field">
-            <label for="reportDept">Department</label>
-            <select id="reportDept">
-              <option value="">All departments</option>
-              <option value="EE">EE</option>
-              <option value="CE">CE</option>
-            </select>
-          </div>
-          <div class="field">
-            <label for="reportTime">Time slot (as per timetable)</label>
-            <select id="reportTime">
-              <option value="">All time slots</option>
-            </select>
-          </div>
-          <div class="field combo-field">
-            <label for="reportFaculty">Faculty</label>
-            <div class="combo-wrap">
-              <input type="text" id="reportFaculty" placeholder="All faculty" autocomplete="off">
-              <div class="combo-list" id="reportFacultyList"></div>
-            </div>
-          </div>
-          <button class="primary" id="reportGenerateBtn">Generate report</button>
-          <button class="ghost" id="reportExportXlsBtn">Export Excel</button>
-          <button class="ghost" id="reportExportPdfBtn">Export PDF</button>
-        </div>
-        <p class="upload-status" id="reportStatus"></p>
-        <div class="stats-row" id="reportStatsRow" style="display:none;">
-          <div class="stat-card scheduled">
-            <div class="stat-num" id="reportStatScheduled">–</div>
-            <div class="stat-lbl">Classes scheduled</div>
-          </div>
-          <div class="stat-card held">
-            <div class="stat-num" id="reportStatHeld">–</div>
-            <div class="stat-lbl">Held online</div>
-          </div>
-          <div class="stat-card notheld">
-            <div class="stat-num" id="reportStatNotHeld">–</div>
-            <div class="stat-lbl">Not held / no record</div>
-          </div>
-        </div>
-        <div class="table-wrap">
-          <table class="records" id="reportTable">
-            <thead>
-              <tr>
-                <th>Date</th><th>Weekday</th><th>Dept</th><th>Section</th><th>Time</th><th>Subject</th><th>Faculty</th><th>Reason</th>
-              </tr>
-            </thead>
-            <tbody id="reportBody"></tbody>
-          </table>
-        </div>
-        <p class="count-line" id="reportCountLine"></p>
-      </div>
 
       <div class="admin-block">
         <h3>Upload latest EE timetable</h3>
@@ -1406,10 +1410,12 @@ async function deleteRecordByKey(safeKey){
 const tabBtnRecord = document.getElementById('tabBtnRecord');
 const tabBtnViewEE = document.getElementById('tabBtnViewEE');
 const tabBtnViewCE = document.getElementById('tabBtnViewCE');
+const tabBtnReports = document.getElementById('tabBtnReports');
 const tabBtnAdmin = document.getElementById('tabBtnAdmin');
 const panelRecord = document.getElementById('panelRecord');
 const panelViewEE = document.getElementById('panelViewEE');
 const panelViewCE = document.getElementById('panelViewCE');
+const panelReports = document.getElementById('panelReports');
 const panelAdmin = document.getElementById('panelAdmin');
 
 function activateTab(name){
@@ -1417,6 +1423,7 @@ function activateTab(name){
     record: [tabBtnRecord, panelRecord],
     viewEE: [tabBtnViewEE, panelViewEE],
     viewCE: [tabBtnViewCE, panelViewCE],
+    reports: [tabBtnReports, panelReports],
     admin: [tabBtnAdmin, panelAdmin]
   };
   Object.keys(map).forEach(k=>{
@@ -1429,6 +1436,7 @@ function activateTab(name){
 tabBtnRecord.addEventListener('click', ()=> activateTab('record'));
 tabBtnViewEE.addEventListener('click', ()=>{ activateTab('viewEE'); loadRecordsTable('EE'); });
 tabBtnViewCE.addEventListener('click', ()=>{ activateTab('viewCE'); loadRecordsTable('CE'); });
+tabBtnReports.addEventListener('click', ()=> activateTab('reports'));
 tabBtnAdmin.addEventListener('click', ()=>{
   activateTab('admin');
   if(adminUnlocked){
