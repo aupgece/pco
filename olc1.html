@@ -31,6 +31,30 @@
   }
   *{box-sizing:border-box;}
   html{ font-size: 17px; }
+  .site-footer{
+    max-width: 1100px;
+    margin: 18px auto 34px;
+    padding: 0 16px;
+    text-align: center;
+  }
+  .drive-backup-link{
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    background: var(--paper-2);
+    border: 1.5px solid var(--amber);
+    color: var(--amber);
+    border-radius: var(--radius);
+    font-weight: 600;
+    text-decoration: none;
+    box-shadow: var(--shadow-sm);
+    transition: background .15s, color .15s;
+  }
+  .drive-backup-link:hover{
+    background: var(--amber);
+    color: #fff;
+  }
   body{
     margin:0;
     font-family: "Iowan Old Style", "Palatino Linotype", Georgia, serif;
@@ -910,6 +934,19 @@
     </div>
 
     <div id="adminContent" style="display:none;">
+      <div class="admin-block">
+        <h3>Archive folder link</h3>
+        <p class="hint">Google Drive folder where exported Excel/PDF reports are kept. Paste the folder's share link here — it updates the "Archive" button shown to everyone at the bottom of the page.</p>
+        <div class="controls">
+          <div class="field" style="flex:1;min-width:260px;">
+            <label for="archiveLinkInput">Google Drive folder link</label>
+            <input type="url" id="archiveLinkInput" placeholder="https://drive.google.com/drive/folders/...">
+          </div>
+          <button class="primary" id="archiveLinkSaveBtn">Save link</button>
+        </div>
+        <p class="upload-status" id="archiveLinkStatus"></p>
+      </div>
+
       <div class="stats-row" id="adminStatsRow">
         <div class="stat-card scheduled">
           <div class="stat-num" id="adminStatScheduled">–</div>
@@ -1021,6 +1058,12 @@
   </section>
 
 </main>
+
+<footer class="site-footer" id="siteFooter" style="display:none;">
+  <a href="#" target="_blank" rel="noopener" class="drive-backup-link" id="archiveLinkAnchor">
+    📁 Archive
+  </a>
+</footer>
 
 <script>
 // ---------- Schedule data ----------
@@ -1319,6 +1362,8 @@ var firebaseConfig = {
 };
 const RECORDS_PATH = 'online_class_monitoring_records';
 const RECORDS_LOCAL_KEY = 'ocm_records_local_fallback';
+const SETTINGS_PATH = 'online_class_monitoring_settings';
+const SETTINGS_LOCAL_KEY = 'ocm_settings_local_fallback';
 var fbDb = null;
 var usingFirebase = false;
 
@@ -1401,6 +1446,71 @@ async function deleteRecordByKey(safeKey){
     localRecordsSave(all);
   }
 }
+
+// ---------- Settings (archive/backup Drive link) ----------
+async function getSetting(key){
+  if(usingFirebase){
+    const snap = await fbDb.ref(SETTINGS_PATH + '/' + key).once('value');
+    return snap.val();
+  }
+  try{ return (JSON.parse(localStorage.getItem(SETTINGS_LOCAL_KEY) || '{}'))[key] || null; }
+  catch(e){ return null; }
+}
+async function setSetting(key, value){
+  if(usingFirebase){
+    await fbDb.ref(SETTINGS_PATH + '/' + key).set(value);
+  } else {
+    let all = {};
+    try{ all = JSON.parse(localStorage.getItem(SETTINGS_LOCAL_KEY) || '{}'); }catch(e){}
+    all[key] = value;
+    localStorage.setItem(SETTINGS_LOCAL_KEY, JSON.stringify(all));
+  }
+}
+
+function applyArchiveLink(url){
+  const footer = document.getElementById('siteFooter');
+  const anchor = document.getElementById('archiveLinkAnchor');
+  if(url){
+    anchor.href = url;
+    footer.style.display = '';
+  } else {
+    footer.style.display = 'none';
+  }
+  const input = document.getElementById('archiveLinkInput');
+  if(input && document.activeElement !== input) input.value = url || '';
+}
+
+// Load the archive link for everyone (not admin-gated) as soon as the page opens.
+(async function loadArchiveLinkOnStart(){
+  try{ applyArchiveLink(await getSetting('archiveLink')); }
+  catch(e){ console.error('Could not load archive link', e); }
+})();
+if(usingFirebase){
+  fbDb.ref(SETTINGS_PATH + '/archiveLink').on('value', snap=>{
+    applyArchiveLink(snap.val());
+  });
+}
+
+document.getElementById('archiveLinkSaveBtn').addEventListener('click', async ()=>{
+  const statusEl = document.getElementById('archiveLinkStatus');
+  const val = document.getElementById('archiveLinkInput').value.trim();
+  if(val && !/^https?:\/\//i.test(val)){
+    statusEl.className = 'upload-status err';
+    statusEl.textContent = 'That doesn\'t look like a valid link (should start with https://).';
+    return;
+  }
+  statusEl.className = 'upload-status';
+  statusEl.textContent = 'Saving…';
+  try{
+    await setSetting('archiveLink', val);
+    applyArchiveLink(val);
+    statusEl.textContent = val ? 'Saved. The Archive button is now live for everyone.' : 'Cleared. The Archive button is now hidden.';
+  }catch(e){
+    console.error(e);
+    statusEl.className = 'upload-status err';
+    statusEl.textContent = 'Could not save the link.';
+  }
+});
 
 // ---------- Tabs ----------
 const tabBtnRecord = document.getElementById('tabBtnRecord');
