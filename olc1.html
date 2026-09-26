@@ -691,6 +691,64 @@
     select, input[type=date], input[type=text], input[type=number], input[type=url]{ min-width: 0; width: 100%; }
     .bulk-bar{ padding: 12px 14px; gap: 10px; }
   }
+
+  /* ---- Help tab: tutorial + animated demo ---- */
+  .help-intro{ margin-bottom: 18px; }
+  .help-h1{ margin:0 0 6px; font-size:1.3rem; color:var(--navy); }
+  .help-lede{ margin:0; color:var(--slate); font-size:.92rem; }
+  .help-parts{ margin-top: 30px; }
+  .help-part{ margin-top: 30px; }
+  .help-part h3{ display:flex; align-items:center; gap:10px; color:var(--navy); font-size:1.1rem; margin:0 0 4px; }
+  .help-n{ background:var(--navy); color:#fff; width:26px; height:26px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:.8rem; flex-shrink:0; }
+  .help-part-lede{ color:var(--slate); font-size:.88rem; margin:4px 0 14px; }
+  .help-footnote{ color:var(--slate); font-size:.82rem; margin-top:26px; }
+  .step{ display:flex; gap:14px; padding:14px 0; border-top:1px solid var(--line); }
+  .step:first-of-type{ border-top:none; }
+  .step .num{ flex-shrink:0; width:24px; height:24px; border-radius:50%; border:2px solid var(--amber); color:var(--amber); font-weight:700; font-size:.76rem; display:flex; align-items:center; justify-content:center; }
+  .step .body h4{ margin:0 0 4px; font-size:.95rem; color:var(--ink); }
+  .step .body p{ margin:0; color:var(--slate); font-size:.88rem; }
+  .callout{ background:rgba(185,118,58,0.1); border-left:3px solid var(--amber); padding:9px 13px; border-radius:0 8px 8px 0; font-size:.82rem; color:var(--ink); margin-top:10px; }
+
+  .demo-wrap{ margin: 8px 0 0; }
+  .demo-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; flex-wrap:wrap; gap:8px; }
+  .demo-head .eyebrow{ color:var(--amber); font-weight:700; font-size:.78rem; }
+  .demo-controls{ display:flex; align-items:center; gap:6px; }
+  .demo-toggle, .demo-navbtn{ background:var(--paper-2); border:1px solid var(--line); color:var(--navy); border-radius:16px; padding:6px 14px; font-size:.78rem; font-weight:600; cursor:pointer; }
+  .demo-navbtn:hover, .demo-toggle:hover{ background:var(--paper); }
+  .demo-pills{ display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px; }
+  .demo-pill{ background:var(--paper-2); border:1px solid var(--line); color:var(--slate); border-radius:14px; padding:5px 11px; font-size:.72rem; font-weight:600; cursor:pointer; transition:background .15s, color .15s, border-color .15s; }
+  .demo-pill:hover{ border-color:var(--amber); }
+  .demo-pill.active{ background:var(--navy); border-color:var(--navy); color:#fff; }
+  .demo-pill.done{ color:var(--green); }
+  .demo-caption{ font-size:.85rem; color:var(--navy); font-weight:600; margin:0 0 10px; }
+  .mock{ background:var(--paper-2); border:1px solid var(--line); border-radius:10px; padding:14px 16px; font-size:.85rem; box-shadow: var(--shadow-sm); }
+  .mock .lbl{ color:var(--slate); font-size:.74rem; margin-bottom:4px; display:block; }
+  .mock .fake-input{ background:var(--paper); border:1px solid var(--line); border-radius:6px; padding:8px 10px; color:var(--ink); margin-bottom:8px; position:relative; transition:box-shadow .25s, border-color .25s; min-height:1.3em; }
+  .mock .fake-input:last-child{ margin-bottom:0; }
+  .mock .fake-input.hl{ border-color:var(--amber); box-shadow:0 0 0 3px rgba(185,118,58,.28); }
+  .mock .typed{ white-space:pre; }
+  .mock .row{ display:flex; gap:8px; flex-wrap:wrap; }
+  .mock .row .fake-input{ flex:1; min-width:120px; }
+  .mock .fake-btn{ display:inline-block; background:var(--navy); color:#fff; padding:8px 18px; border-radius:6px; font-weight:600; font-size:.84rem; margin-top:4px; transition:transform .15s, box-shadow .15s; cursor:default; }
+  .mock .fake-btn.ghost{ background:transparent; color:var(--amber); border:1.5px solid var(--amber); }
+  .mock .fake-btn.pulse{ transform:scale(1.06); box-shadow:0 0 0 4px rgba(15,41,66,.18); }
+  .mock .radio{ display:inline-flex; align-items:center; gap:5px; margin-right:14px; color:var(--ink); transition:transform .15s; }
+  .mock .radio.hl{ transform:scale(1.08); }
+  .mock .radio .dot{ width:13px; height:13px; border-radius:50%; border:2px solid var(--slate); display:inline-block; }
+  .mock .radio.on .dot{ border-color:var(--green); background:var(--green); }
+  .caret{ display:inline-block; width:1px; height:1em; background:var(--ink); vertical-align:middle; margin-left:1px; animation:blink 1s step-end infinite; }
+  @keyframes blink{ 50%{ opacity:0; } }
+  .demo-card{ margin-top:14px; padding-top:14px; border-top:1px dashed var(--line); transition:box-shadow .25s; }
+  .demo-card.hl{ box-shadow:0 0 0 3px rgba(185,118,58,.18); border-radius:8px; padding:12px; margin-top:8px; }
+  .demo-card-title{ font-weight:700; color:var(--ink); margin-bottom:10px; font-size:.9rem; }
+  .time-chip{ background:var(--paper); border:1px solid var(--line); border-radius:12px; padding:2px 8px; font-size:.7rem; color:var(--slate); font-weight:500; margin-left:6px; }
+  .demo-status{ margin-left:12px; font-size:.85rem; font-weight:700; color:var(--green); opacity:0; transition:opacity .3s; }
+  .demo-status.show{ opacity:1; }
+  .demo-note{ color:var(--slate); font-size:.82rem; margin:12px 2px 0; }
+  .demo-badge{ display:none; background:var(--amber); color:#fff; font-size:.65rem; font-weight:700; padding:2px 8px; border-radius:10px; margin-left:8px; vertical-align:middle; }
+  .demo-badge.show{ display:inline-block; }
+  .mock .fake-textarea{ min-height:2.4em; align-items:flex-start; }
+  .card-footer-demo{ margin-top:10px; display:flex; align-items:center; }
 </style>
 </head>
 <body>
@@ -704,6 +762,7 @@
   </div>
   <nav class="tabs">
     <button id="tabBtnRecord" class="active">Record a class</button>
+    <button id="tabBtnHelp">❓ How to use</button>
     <button id="tabBtnViewEE">EE view all records</button>
     <button id="tabBtnViewCE">CE view all records</button>
     <button id="tabBtnReports">Non-compliance report</button>
@@ -754,6 +813,159 @@
     <div id="progressWrap"></div>
     <div id="classList"></div>
 
+  </section>
+
+  <!-- HELP PANEL — tutorial with self-playing demo -->
+  <section id="panelHelp" class="panel">
+    <div class="help-intro">
+      <h2 class="help-h1">How to submit &amp; edit an online class record</h2>
+      <p class="help-lede">A short walkthrough of the "Record a class" tab — the only part faculty need to use day to day.</p>
+    </div>
+
+    <div class="demo-wrap" id="demo">
+      <div class="demo-head">
+        <span class="eyebrow">INTERACTIVE DEMO</span>
+        <div class="demo-controls">
+          <button id="demoPrev" class="demo-navbtn" type="button" aria-label="Previous step">‹ Prev</button>
+          <button id="demoToggle" class="demo-toggle" type="button">⏸ Pause</button>
+          <button id="demoNext" class="demo-navbtn" type="button" aria-label="Next step">Next ›</button>
+        </div>
+      </div>
+
+      <div class="demo-pills" id="demoPills"></div>
+      <p class="demo-caption" id="demoCaption">Watching: Who &amp; when</p>
+
+      <div class="mock demo-mock" id="demoMock">
+        <span class="lbl">Your name</span>
+        <div class="fake-input" data-field="name"><span class="typed"></span><span class="caret"></span></div>
+        <div class="row">
+          <div style="flex:1;">
+            <span class="lbl">Date of the online class</span>
+            <div class="fake-input" data-field="date"><span class="typed"></span><span class="caret"></span></div>
+          </div>
+          <div style="flex:1;">
+            <span class="lbl">Weekday timetable</span>
+            <div class="fake-input">Same weekday as the date above</div>
+          </div>
+        </div>
+
+        <div class="demo-card" id="demoCard">
+          <div class="demo-card-title">Digital Logic Design
+            <span class="time-chip">10:00–11:00</span>
+            <span class="demo-badge" id="demoBadge">Already submitted — edit below</span>
+          </div>
+          <span class="lbl">Online class held on scheduled time?</span>
+          <div style="margin-bottom:10px;">
+            <span class="radio" data-radio="held-yes"><span class="dot"></span>Yes</span>
+            <span class="radio" data-radio="held-no"><span class="dot"></span>No</span>
+          </div>
+          <div class="row">
+            <div style="flex:1;">
+              <span class="lbl">Total enrolled</span>
+              <div class="fake-input" data-field="enrolled"><span class="typed"></span><span class="caret"></span></div>
+            </div>
+            <div style="flex:1;">
+              <span class="lbl">Students present</span>
+              <div class="fake-input" data-field="present"><span class="typed"></span><span class="caret"></span></div>
+            </div>
+            <div style="flex:1;">
+              <span class="lbl">Absent</span>
+              <div class="fake-input" data-field="absent"><span class="typed"></span></div>
+            </div>
+          </div>
+          <span class="lbl">Lectures uploaded on GCR</span>
+          <div style="margin-bottom:10px;">
+            <span class="radio" data-radio="gcr-yes"><span class="dot"></span>Yes</span>
+            <span class="radio" data-radio="gcr-no"><span class="dot"></span>No</span>
+            <span class="radio" data-radio="gcr-not-active"><span class="dot"></span>Not active</span>
+          </div>
+          <div class="row">
+            <div style="flex:1;">
+              <span class="lbl">GCR code</span>
+              <div class="fake-input" data-field="gcrcode"><span class="typed"></span><span class="caret"></span></div>
+            </div>
+            <div style="flex:2;">
+              <span class="lbl">Link for online class</span>
+              <div class="fake-input" data-field="link"><span class="typed"></span><span class="caret"></span></div>
+            </div>
+          </div>
+          <span class="lbl">Remarks/Comments</span>
+          <div class="fake-input fake-textarea" data-field="remarks"><span class="typed"></span><span class="caret"></span></div>
+
+          <div class="card-footer-demo">
+            <span class="fake-btn" id="demoSubmitBtn">Submit this class</span>
+            <span class="demo-status" id="demoStatus"></span>
+          </div>
+        </div>
+      </div>
+      <p class="demo-note">Click any step above to jump straight to it, use Prev/Next to go one at a time, or let it play on its own.</p>
+    </div>
+
+    <div class="help-parts">
+      <div class="help-part">
+        <h3><span class="help-n">1</span>Submitting a record for the first time</h3>
+        <p class="help-part-lede">Open "Record a class" (the first tab).</p>
+
+        <div class="step">
+          <div class="num">1</div>
+          <div class="body">
+            <h4>Pick your name, the date, and the timetable day</h4>
+            <p>Type a few letters of your name and click it from the list, then pick the actual calendar date the class happened on. Leave the third box on "Same weekday as the date above" unless your class ran on a different day's timetable.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="num">2</div>
+          <div class="body">
+            <h4>Your classes for that day appear automatically</h4>
+            <p>One card shows up per class on your timetable for that day, with the subject, section and time already filled in — you don't type those.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="num">3</div>
+          <div class="body">
+            <h4>Fill in each class card</h4>
+            <p>For every class, answer whether it was held on the scheduled time, then fill in attendance, GCR upload status, and the class link.</p>
+            <div class="callout">"Students absent" fills itself in as enrolled − present — you only need to overwrite it if it's wrong.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="num">4</div>
+          <div class="body">
+            <h4>Submit the class</h4>
+            <p>Click the button at the bottom of each card. Nothing is saved until you press it — nothing is auto-saved in the background. Do this for every class card on the page — each one submits separately.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="help-part">
+        <h3><span class="help-n">2</span>Editing a record you already submitted</h3>
+        <p class="help-part-lede">You can correct a submitted record any time — there's no lock, and no need to contact anyone.</p>
+
+        <div class="step">
+          <div class="num">1</div>
+          <div class="body">
+            <h4>Reopen the same name and date</h4>
+            <p>Go back to "Record a class," select the same name and the exact same date you submitted for. Your previous answers load straight back into the cards.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="num">2</div>
+          <div class="body">
+            <h4>Change whatever needs correcting</h4>
+            <p>Edit any field directly — attendance numbers, the held yes/no answer, the link, remarks — exactly like the first time.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="num">3</div>
+          <div class="body">
+            <h4>Submit again to save the correction</h4>
+            <p>The button now reads "Update this class" instead of "Submit this class." Click it to save your changes. Same rule as before: it only saves once you click the button.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <p class="help-footnote">Admin-only features (reports, timetable uploads, deleting entries) live under the separate "Admin" tab and aren't covered here.</p>
   </section>
 
   <!-- VIEW PANEL — EE -->
@@ -935,14 +1147,18 @@
 
     <div id="adminContent" style="display:none;">
       <div class="admin-block">
-        <h3>Archive folder link</h3>
-        <p class="hint">Google Drive folder where exported Excel/PDF reports are kept. Paste the folder's share link here — it updates the "Archive" button shown to everyone at the bottom of the page.</p>
+        <h3>Records Vault link</h3>
+        <p class="hint">Google Drive folder where exported Excel/PDF reports are kept. Paste the folder's share link here, and name the button whatever you like — both update live for everyone at the bottom of the page.</p>
         <div class="controls">
-          <div class="field" style="flex:1;min-width:260px;">
+          <div class="field" style="flex:1;min-width:180px;">
+            <label for="archiveLinkLabelInput">Button text</label>
+            <input type="text" id="archiveLinkLabelInput" placeholder="Records Vault" maxlength="40">
+          </div>
+          <div class="field" style="flex:2;min-width:260px;">
             <label for="archiveLinkInput">Google Drive folder link</label>
             <input type="url" id="archiveLinkInput" placeholder="https://drive.google.com/drive/folders/...">
           </div>
-          <button class="primary" id="archiveLinkSaveBtn">Save link</button>
+          <button class="primary" id="archiveLinkSaveBtn">Save</button>
         </div>
         <p class="upload-status" id="archiveLinkStatus"></p>
       </div>
@@ -1061,7 +1277,7 @@
 
 <footer class="site-footer" id="siteFooter" style="display:none;">
   <a href="#" target="_blank" rel="noopener" class="drive-backup-link" id="archiveLinkAnchor">
-    📁 Archive
+    📁 <span id="archiveLinkLabelText">Records Vault</span>
   </a>
 </footer>
 
@@ -1467,9 +1683,12 @@ async function setSetting(key, value){
   }
 }
 
-function applyArchiveLink(url){
+function applyArchiveLink(url, label){
   const footer = document.getElementById('siteFooter');
   const anchor = document.getElementById('archiveLinkAnchor');
+  const labelText = document.getElementById('archiveLinkLabelText');
+  const shownLabel = (label && label.trim()) ? label.trim() : 'Records Vault';
+  labelText.textContent = shownLabel;
   if(url){
     anchor.href = url;
     footer.style.display = '';
@@ -1478,22 +1697,31 @@ function applyArchiveLink(url){
   }
   const input = document.getElementById('archiveLinkInput');
   if(input && document.activeElement !== input) input.value = url || '';
+  const labelInput = document.getElementById('archiveLinkLabelInput');
+  if(labelInput && document.activeElement !== labelInput) labelInput.value = label || '';
 }
 
-// Load the archive link for everyone (not admin-gated) as soon as the page opens.
+// Load the archive link + label for everyone (not admin-gated) as soon as the page opens.
 (async function loadArchiveLinkOnStart(){
-  try{ applyArchiveLink(await getSetting('archiveLink')); }
-  catch(e){ console.error('Could not load archive link', e); }
+  try{
+    const [url, label] = await Promise.all([getSetting('archiveLink'), getSetting('archiveLinkLabel')]);
+    applyArchiveLink(url, label);
+  }catch(e){ console.error('Could not load archive link', e); }
 })();
 if(usingFirebase){
   fbDb.ref(SETTINGS_PATH + '/archiveLink').on('value', snap=>{
-    applyArchiveLink(snap.val());
+    applyArchiveLink(snap.val(), document.getElementById('archiveLinkLabelText').textContent);
+  });
+  fbDb.ref(SETTINGS_PATH + '/archiveLinkLabel').on('value', snap=>{
+    const currentHref = document.getElementById('archiveLinkAnchor').getAttribute('href');
+    applyArchiveLink(currentHref === '#' ? '' : currentHref, snap.val());
   });
 }
 
 document.getElementById('archiveLinkSaveBtn').addEventListener('click', async ()=>{
   const statusEl = document.getElementById('archiveLinkStatus');
   const val = document.getElementById('archiveLinkInput').value.trim();
+  const labelVal = document.getElementById('archiveLinkLabelInput').value.trim();
   if(val && !/^https?:\/\//i.test(val)){
     statusEl.className = 'upload-status err';
     statusEl.textContent = 'That doesn\'t look like a valid link (should start with https://).';
@@ -1502,9 +1730,10 @@ document.getElementById('archiveLinkSaveBtn').addEventListener('click', async ()
   statusEl.className = 'upload-status';
   statusEl.textContent = 'Saving…';
   try{
-    await setSetting('archiveLink', val);
-    applyArchiveLink(val);
-    statusEl.textContent = val ? 'Saved. The Archive button is now live for everyone.' : 'Cleared. The Archive button is now hidden.';
+    await Promise.all([setSetting('archiveLink', val), setSetting('archiveLinkLabel', labelVal)]);
+    applyArchiveLink(val, labelVal);
+    const shownLabel = labelVal || 'Records Vault';
+    statusEl.textContent = val ? `Saved. The "${shownLabel}" button is now live for everyone.` : `Cleared. The "${shownLabel}" button is now hidden.`;
   }catch(e){
     console.error(e);
     statusEl.className = 'upload-status err';
@@ -1514,11 +1743,13 @@ document.getElementById('archiveLinkSaveBtn').addEventListener('click', async ()
 
 // ---------- Tabs ----------
 const tabBtnRecord = document.getElementById('tabBtnRecord');
+const tabBtnHelp = document.getElementById('tabBtnHelp');
 const tabBtnViewEE = document.getElementById('tabBtnViewEE');
 const tabBtnViewCE = document.getElementById('tabBtnViewCE');
 const tabBtnReports = document.getElementById('tabBtnReports');
 const tabBtnAdmin = document.getElementById('tabBtnAdmin');
 const panelRecord = document.getElementById('panelRecord');
+const panelHelp = document.getElementById('panelHelp');
 const panelViewEE = document.getElementById('panelViewEE');
 const panelViewCE = document.getElementById('panelViewCE');
 const panelReports = document.getElementById('panelReports');
@@ -1527,6 +1758,7 @@ const panelAdmin = document.getElementById('panelAdmin');
 function activateTab(name){
   const map = {
     record: [tabBtnRecord, panelRecord],
+    help: [tabBtnHelp, panelHelp],
     viewEE: [tabBtnViewEE, panelViewEE],
     viewCE: [tabBtnViewCE, panelViewCE],
     reports: [tabBtnReports, panelReports],
@@ -1540,6 +1772,7 @@ function activateTab(name){
 }
 
 tabBtnRecord.addEventListener('click', ()=> activateTab('record'));
+tabBtnHelp.addEventListener('click', ()=> activateTab('help'));
 tabBtnViewEE.addEventListener('click', ()=>{ activateTab('viewEE'); loadRecordsTable('EE'); });
 tabBtnViewCE.addEventListener('click', ()=>{ activateTab('viewCE'); loadRecordsTable('CE'); });
 tabBtnReports.addEventListener('click', ()=> activateTab('reports'));
@@ -3658,6 +3891,187 @@ initScheduleSystem();
 
 // initial state
 showClasses();
+
+// ---------- Help tab: interactive, comprehensive demo animation ----------
+(function(){
+  const toggleBtn = document.getElementById('demoToggle');
+  if(!toggleBtn) return; // Help tab markup not present
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const prevBtn = document.getElementById('demoPrev');
+  const nextBtn = document.getElementById('demoNext');
+  const pillsWrap = document.getElementById('demoPills');
+  const caption = document.getElementById('demoCaption');
+  const mock = document.getElementById('demoMock');
+
+  const STEP_LABELS = [
+    'Who & when',
+    'Held on time?',
+    'Attendance',
+    'GCR upload',
+    'Class link',
+    'Remarks',
+    'Submit',
+    'Reopen to edit',
+    'Fix a value',
+    'Update'
+  ];
+
+  // Build the step pills once.
+  STEP_LABELS.forEach((label, i)=>{
+    const pill = document.createElement('button');
+    pill.type = 'button';
+    pill.className = 'demo-pill';
+    pill.textContent = `${i+1}. ${label}`;
+    pill.addEventListener('click', ()=>{ pause(); jumpTo(i); });
+    pillsWrap.appendChild(pill);
+  });
+  const pills = Array.from(pillsWrap.children);
+
+  function field(name){ return mock.querySelector(`[data-field="${name}"]`); }
+  function setField(name, text){ field(name).querySelector('.typed').textContent = text; }
+  function radio(name){ return mock.querySelector(`[data-radio="${name}"]`); }
+  function setRadioInstant(group, value){
+    mock.querySelectorAll(`[data-radio^="${group}-"]`).forEach(r => r.classList.remove('on'));
+    if(value) radio(`${group}-${value}`).classList.add('on');
+  }
+  function setBadge(on){ document.getElementById('demoBadge').classList.toggle('show', !!on); }
+  function setBtn(text, ghost){
+    const btn = document.getElementById('demoSubmitBtn');
+    btn.textContent = text;
+    btn.classList.toggle('ghost', !!ghost);
+  }
+  function setStatus(text){
+    const status = document.getElementById('demoStatus');
+    status.textContent = text;
+    status.classList.toggle('show', !!text);
+  }
+  function resetAll(){
+    ['name','date','enrolled','present','absent','gcrcode','link','remarks'].forEach(f => setField(f, ''));
+    setRadioInstant('held', null);
+    setRadioInstant('gcr', null);
+    setBadge(false);
+    setBtn('Submit this class', false);
+    setStatus('');
+  }
+
+  // Instant (non-animated) cumulative state setters — used for jump/prev/next.
+  const STEP_INSTANT = [
+    ()=>{ setField('name','Dr. Ahsan Khan'); setField('date','12/09/2026'); },
+    ()=>{ setRadioInstant('held','yes'); },
+    ()=>{ setField('enrolled','40'); setField('present','32'); setField('absent','8'); },
+    ()=>{ setRadioInstant('gcr','yes'); setField('gcrcode','ab12cd3'); },
+    ()=>{ setField('link','https://meet.google.com/abc-defg-hij'); },
+    ()=>{ setField('remarks','Great participation today.'); },
+    ()=>{ setStatus('✅ Submitted'); },
+    ()=>{ setStatus(''); setBadge(true); setBtn('Update this class', true); },
+    ()=>{ setField('present','35'); setField('absent','5'); },
+    ()=>{ setStatus('✅ Updated'); }
+  ];
+
+  // Animated transitions — assume the DOM already reflects the previous step.
+  async function typeInto(name, text, speed){
+    const el = field(name);
+    const typed = el.querySelector('.typed');
+    el.classList.add('hl');
+    for(let i = 0; i <= text.length; i++){
+      await gate();
+      typed.textContent = text.slice(0, i);
+      await sleep(speed || 55);
+    }
+    await sleep(250);
+    el.classList.remove('hl');
+  }
+  async function pickRadioAnimated(group, value){
+    const el = radio(`${group}-${value}`);
+    el.classList.add('hl');
+    await sleep(220);
+    setRadioInstant(group, value);
+    await sleep(300);
+    el.classList.remove('hl');
+  }
+  async function pulseCard(){
+    const card = document.getElementById('demoCard');
+    card.classList.add('hl'); await sleep(220); card.classList.remove('hl');
+  }
+  async function pulseBtn(){
+    const btn = document.getElementById('demoSubmitBtn');
+    btn.classList.add('pulse'); await sleep(280); btn.classList.remove('pulse');
+  }
+
+  const STEP_ANIMATE = [
+    async ()=>{ await typeInto('name','Dr. Ahsan Khan',45); await typeInto('date','12/09/2026',60); },
+    async ()=>{ await pulseCard(); await pickRadioAnimated('held','yes'); },
+    async ()=>{ await typeInto('enrolled','40',90); await typeInto('present','32',90); setField('absent','8'); },
+    async ()=>{ await pickRadioAnimated('gcr','yes'); await typeInto('gcrcode','ab12cd3',70); },
+    async ()=>{ await typeInto('link','https://meet.google.com/abc-defg-hij',30); },
+    async ()=>{ await typeInto('remarks','Great participation today.',40); },
+    async ()=>{ await pulseBtn(); setStatus('✅ Submitted'); },
+    async ()=>{ await sleep(250); setStatus(''); setBadge(true); setBtn('Update this class', true); await pulseCard(); },
+    async ()=>{ await typeInto('present','35',90); setField('absent','5'); },
+    async ()=>{ await pulseBtn(); setStatus('✅ Updated'); }
+  ];
+
+  let currentIndex = -1;   // -1 = blank, before step 0
+  let playing = true;
+
+  async function gate(){ while(!playing){ await sleep(150); } }
+
+  function updateUI(){
+    pills.forEach((p,i)=>{
+      p.classList.toggle('active', i === currentIndex);
+      p.classList.toggle('done', i < currentIndex);
+    });
+    caption.textContent = currentIndex === -1
+      ? 'Watching: getting ready…'
+      : `Watching: ${STEP_LABELS[currentIndex]} (${currentIndex+1} of ${STEP_LABELS.length})`;
+  }
+
+  function renderState(i){
+    resetAll();
+    for(let j = 0; j <= i; j++){ STEP_INSTANT[j](); }
+    currentIndex = i;
+    updateUI();
+  }
+
+  function pause(){
+    if(playing){ playing = false; toggleBtn.textContent = '▶ Play'; }
+  }
+  function jumpTo(i){ renderState(i); }
+
+  toggleBtn.addEventListener('click', () => {
+    playing = !playing;
+    toggleBtn.textContent = playing ? '⏸ Pause' : '▶ Play';
+  });
+  prevBtn.addEventListener('click', () => {
+    pause();
+    jumpTo(Math.max(currentIndex - 1, -1));
+  });
+  nextBtn.addEventListener('click', () => {
+    pause();
+    jumpTo(currentIndex >= STEP_LABELS.length - 1 ? -1 : currentIndex + 1);
+  });
+
+  updateUI();
+
+  (async function loop(){
+    while(true){
+      await gate();
+      if(currentIndex >= STEP_LABELS.length - 1){
+        await sleep(2400);
+        renderState(-1);
+        await sleep(500);
+        continue;
+      }
+      const nextIndex = currentIndex + 1;
+      await gate();
+      await STEP_ANIMATE[nextIndex]();
+      STEP_INSTANT[nextIndex]();
+      currentIndex = nextIndex;
+      updateUI();
+      await sleep(currentIndex === STEP_LABELS.length - 1 ? 1600 : 700);
+    }
+  })();
+})();
 </script>
 </body>
 </html>
