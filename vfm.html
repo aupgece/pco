@@ -6,6 +6,7 @@
 <title>Visiting Faculty Members — Department of Electrical Engineering</title>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -304,6 +305,8 @@
     <div class="top-actions">
       <span class="count-pill" id="countPill">— records</span>
       <button class="btn-primary" id="exportBtn" style="background:var(--teal);">Export to Excel</button>
+      <button class="btn-primary admin-only" id="importBtn" style="background:var(--gold);">Import from Timetable</button>
+      <button class="btn-primary admin-only" id="cleanupBtn" style="background:var(--danger);">Clean Up Duplicates</button>
       <button class="btn-primary" id="addBtn">+ Add Faculty Member</button>
     </div>
   </header>
@@ -508,6 +511,277 @@ async function deleteRecordDoc(id){
 
 function uid(){
   return 'fm_' + Date.now() + '_' + Math.random().toString(36).slice(2,8);
+}
+
+// ── Live link to tt.html's actual data store ──────────────────────────────
+// tt.html keeps its real class list in the SAME Firebase project as this page
+// (auecepco), in the Realtime Database (not Firestore) at path
+// 'pco_timetable_data', as {items: [...], savedAt}. Each item looks like:
+//   { s: section, d: day, t: startSlot, n: span, su: subject, te: teacher, r: room, ty: type }
+// This reads that path fresh every time Import is clicked — so if the
+// timetable changes, the next import automatically reflects it. Nothing here
+// is a stored snapshot.
+const TT_DATA_PATH = 'pco_timetable_data';
+
+function isEEorCETeacher(teacherStr){
+  const t = (teacherStr || '').trim();
+  if(!t) return true;                 // no teacher listed — nothing to import
+  if(/^EE[\s-]/i.test(t)) return true; // "EE- Mr X", "EE Ms X"
+  if(/^CE\b/i.test(t)) return true;    // "CE Ms X", "CE (FACULITY)"
+  return false;
+}
+
+function extractParenTag(teacherStr){
+  const m = (teacherStr || '').match(/\(([^)]+)\)/);
+  return m ? m[1].trim() : '';
+}
+
+function cleanTeacherDisplayName(teacherStr){
+  return (teacherStr || '').replace(/\([^)]*\)/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+async function fetchTimetableFMsLive(){
+  if(typeof firebase === 'undefined') throw new Error('Firebase SDK not loaded.');
+  if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+  const rtdb = firebase.database();
+  const snap = await rtdb.ref(TT_DATA_PATH).once('value');
+  const val = snap.val();
+  const items = (val && val.items) || [];
+
+  const byKey = new Map(); // normalized teacher name -> aggregated record
+  items.forEach(entry => {
+    const teacher = entry && entry.te;
+    if(isEEorCETeacher(teacher)) return;
+    const key = normalizeName(teacher);
+    if(!key) return;
+    const tag = extractParenTag(teacher);
+    const isVFM = /vfm/i.test(tag);
+    if(!byKey.has(key)){
+      byKey.set(key, {
+        displayName: cleanTeacherDisplayName(teacher) || teacher.trim(),
+        department: (!isVFM && tag) ? tag : '',
+        sections: new Set(),
+        courses: new Set(),
+        isVFM
+      });
+    }
+    const rec = byKey.get(key);
+    if(entry.s) rec.sections.add(entry.s);
+    if(entry.su) rec.courses.add(entry.su);
+    if(isVFM) rec.isVFM = true;
+    if(!rec.department && tag && !isVFM) rec.department = tag;
+  });
+
+  return [...byKey.values()].map(r => ({
+    name: r.displayName,
+    department: r.department,
+    section: [...r.sections].sort().join(', '),
+    courses: [...r.courses].sort().join(', '),
+    status: r.isVFM ? 'Visiting FM' : 'Shared FM'
+  }));
+}
+
+// ── Fuzzy name matching, so "Dr. Ambreen", "Ambreen (MATH)" and "Ms Ambreen"
+// are all recognized as the same person and never imported as duplicates. ──
+function normalizeName(str){
+  let s = (str || '').toLowerCase();
+  s = s.replace(/\([^)]*\)/g, ' ');                                   // drop (VFM), (MATH), etc.
+  s = s.replace(/\b(dr|mr|mrs|ms|miss|prof|professor|engr|eng|air cdr|cdr)\b\.?/g, ' '); // drop titles
+  s = s.replace(/[^a-z\s]/g, ' ');                                    // drop punctuation
+  s = s.replace(/\s+/g, ' ').trim();
+  return s;
+}
+
+function levenshtein(a, b){
+  const m = a.length, n = b.length;
+  if(m === 0) return n;
+  if(n === 0) return m;
+  const dp = Array.from({length: m + 1}, () => new Array(n + 1).fill(0));
+  for(let i = 0; i <= m; i++) dp[i][0] = i;
+  for(let j = 0; j <= n; j++) dp[0][j] = j;
+  for(let i = 1; i <= m; i++){
+    for(let j = 1; j <= n; j++){
+      dp[i][j] = a[i-1] === b[j-1] ? dp[i-1][j-1] : 1 + Math.min(dp[i-1][j], dp[i][j-1], dp[i-1][j-1]);
+    }
+  }
+  return dp[m][n];
+}
+
+// Rough phonetic key per word: keeps the first letter, drops vowels from the
+// rest, collapses doubled letters, and folds a few common sound-alike swaps
+// (z/s, v/f, q/c/k, etc). Catches transliteration variants like Ahmed/Ahmad,
+// Sohail/Suhail, Faizan/Faizaan, Zerkaish/Zarkaish.
+function phoneticKey(word){
+  let w = (word || '').toLowerCase().replace(/[^a-z]/g, '');
+  if(!w) return '';
+  const first = w[0];
+  let rest = w.slice(1).replace(/[aeiou]/g, '');
+  rest = rest.replace(/(.)\1+/g, '$1');
+  rest = rest.replace(/kh/g, 'k').replace(/gh/g, 'g').replace(/ph/g, 'f')
+             .replace(/z/g, 's').replace(/v/g, 'f').replace(/q/g, 'k').replace(/c/g, 'k');
+  return first + rest;
+}
+function phoneticSignature(normalizedName){
+  return (normalizedName || '').split(' ').filter(Boolean).map(phoneticKey).join('');
+}
+
+function nameSimilarity(a, b){
+  const na = normalizeName(a), nb = normalizeName(b);
+  if(!na || !nb) return 0;
+  if(na === nb) return 1;
+  const shorter = na.length <= nb.length ? na : nb;
+  const longer  = na.length <= nb.length ? nb : na;
+  let score = 0;
+  if(shorter.length >= 5 && longer.includes(shorter)) score = Math.max(score, 0.9); // e.g. "ambreen" inside "ambreen ali ch"
+  const dist = levenshtein(na, nb);
+  score = Math.max(score, 1 - (dist / Math.max(na.length, nb.length)));
+
+  const pa = phoneticSignature(na), pb = phoneticSignature(nb);
+  if(pa && pb){
+    if(pa === pb){
+      score = Math.max(score, 0.93);
+    } else {
+      const pdist = levenshtein(pa, pb);
+      score = Math.max(score, (1 - pdist / Math.max(pa.length, pb.length)) * 0.95);
+    }
+  }
+  return score;
+}
+
+const SAME_NAME_THRESHOLD = 0.82;
+function isSameFM(nameA, nameB){
+  return nameSimilarity(nameA, nameB) >= SAME_NAME_THRESHOLD;
+}
+
+// ── Duplicate cleanup for records already sitting in the register ──────────
+function fieldScore(r){
+  return ['cell','email','department','qualification'].filter(k => (r[k]||'').trim()).length;
+}
+function clusterDuplicates(list){
+  const n = list.length;
+  const parent = Array.from({length: n}, (_, i) => i);
+  function find(x){ return parent[x] === x ? x : (parent[x] = find(parent[x])); }
+  function union(a, b){ const ra = find(a), rb = find(b); if(ra !== rb) parent[ra] = rb; }
+  for(let i = 0; i < n; i++){
+    for(let j = i + 1; j < n; j++){
+      if(isSameFM(list[i].name, list[j].name)) union(i, j);
+    }
+  }
+  const groups = new Map();
+  for(let i = 0; i < n; i++){
+    const root = find(i);
+    if(!groups.has(root)) groups.set(root, []);
+    groups.get(root).push(list[i]);
+  }
+  return [...groups.values()].filter(g => g.length > 1);
+}
+function mergeGroup(group){
+  const base = group.reduce((best, r) => fieldScore(r) > fieldScore(best) ? r : best, group[0]);
+  const sections = new Set(), courses = new Set();
+  group.forEach(r => {
+    splitSections(r.section).forEach(s => sections.add(s));
+    (r.courses || '').split(/[,;]+/).map(c => c.trim()).filter(Boolean).forEach(c => courses.add(c));
+  });
+  const pick = (key) => (base[key] && base[key].trim()) || (group.find(r => (r[key]||'').trim()) || {})[key] || '';
+  const merged = {
+    id: base.id,
+    name: base.name,
+    cell: pick('cell'),
+    email: pick('email'),
+    department: pick('department'),
+    section: [...sections].sort().join(', '),
+    courses: [...courses].sort().join(', '),
+    qualification: pick('qualification'),
+    status: group.some(r => r.status === 'Visiting FM') ? 'Visiting FM' : (pick('status') || 'Shared FM')
+  };
+  return { merged, removeIds: group.filter(r => r.id !== base.id).map(r => r.id) };
+}
+async function cleanUpDuplicates(){
+  if(!isAdmin){ showToast('Admin access required.'); return; }
+  const groups = clusterDuplicates(records);
+  if(groups.length === 0){ showToast('No duplicate faculty members found.'); return; }
+
+  const preview = groups.map(g => `• ${g.map(r => r.name).join('  ≈  ')}`).join('\n');
+  const totalRemoved = groups.reduce((sum, g) => sum + g.length - 1, 0);
+  if(!confirm(`Found ${groups.length} duplicate group(s), ${totalRemoved} record(s) will be merged away:\n\n${preview}\n\nMerge now? (Sections, courses and any filled-in details will be combined into one record per person.)`)) return;
+
+  const cleanupBtn = document.getElementById('cleanupBtn');
+  cleanupBtn.disabled = true;
+  cleanupBtn.textContent = 'Merging…';
+
+  let mergedCount = 0, removedCount = 0, fail = 0;
+  for(const group of groups){
+    const { merged, removeIds } = mergeGroup(group);
+    const saved = await saveRecord(merged);
+    if(saved) mergedCount++; else fail++;
+    for(const id of removeIds){
+      const deleted = await deleteRecordDoc(id);
+      if(deleted) removedCount++; else fail++;
+    }
+  }
+  cleanupBtn.disabled = false;
+  cleanupBtn.textContent = 'Clean Up Duplicates';
+  showToast(fail === 0 ? `Merged ${groups.length} duplicate group(s), removed ${removedCount} extra record(s).` : `Done with ${fail} error(s) — check console.`);
+}
+
+async function importFromTimetable(){
+  if(!isAdmin){ showToast('Admin access required.'); return; }
+
+  const importBtn = document.getElementById('importBtn');
+  importBtn.disabled = true;
+  importBtn.textContent = 'Reading timetable…';
+
+  let liveList;
+  try{
+    liveList = await fetchTimetableFMsLive();
+  }catch(e){
+    console.error('Could not read tt.html timetable data:', e);
+    importBtn.disabled = false;
+    importBtn.textContent = 'Import from Timetable';
+    showToast('Could not reach the timetable database — check your connection.');
+    return;
+  }
+
+  if(liveList.length === 0){
+    importBtn.disabled = false;
+    importBtn.textContent = 'Import from Timetable';
+    showToast('No timetable data found yet — nothing to import.');
+    return;
+  }
+
+  const toAdd = [];
+  const skipped = [];
+  for(const r of liveList){
+    const matchExisting = records.find(existing => isSameFM(existing.name, r.name));
+    const matchStaged = toAdd.find(staged => isSameFM(staged.name, r.name));
+    if(matchExisting){ skipped.push(`${r.name} (matches existing "${matchExisting.name}")`); }
+    else if(matchStaged){ skipped.push(`${r.name} (duplicate of "${matchStaged.name}" in this batch)`); }
+    else toAdd.push(r);
+  }
+
+  if(toAdd.length === 0){
+    importBtn.disabled = false;
+    importBtn.textContent = 'Import from Timetable';
+    showToast('All timetable FMs are already in the register.');
+    return;
+  }
+  console.log('Import — skipped as near-duplicates:', skipped);
+  importBtn.disabled = false;
+  importBtn.textContent = 'Import from Timetable';
+  if(!confirm(`Read ${liveList.length} FM(s) live from the timetable. Import ${toAdd.length} new one(s)? (${skipped.length} skipped as already present or near-duplicate — see console for details.)`)) return;
+
+  importBtn.disabled = true;
+  importBtn.textContent = 'Importing…';
+
+  let ok = 0, fail = 0;
+  for(const r of toAdd){
+    const record = { id: uid(), name: r.name, cell: '', email: '', department: r.department, section: r.section, qualification: '', courses: r.courses, status: r.status };
+    const success = await saveRecord(record);
+    if(success) ok++; else fail++;
+  }
+  importBtn.disabled = false;
+  importBtn.textContent = 'Import from Timetable';
+  showToast(fail === 0 ? `Imported ${ok} faculty member(s).` : `Imported ${ok}, ${fail} failed — try again.`);
 }
 
 async function exportToExcel(){
@@ -762,6 +1036,8 @@ document.getElementById('fmForm').addEventListener('submit', async (e)=>{
 document.getElementById('addBtn').addEventListener('click', openAdd);
 document.getElementById('emptyAddBtn').addEventListener('click', openAdd);
 document.getElementById('exportBtn').addEventListener('click', exportToExcel);
+document.getElementById('importBtn').addEventListener('click', importFromTimetable);
+document.getElementById('cleanupBtn').addEventListener('click', cleanUpDuplicates);
 document.getElementById('mainTitle').addEventListener('click', toggleAdmin);
 document.addEventListener('keydown', (e)=>{
   if(e.ctrlKey && e.shiftKey && (e.key === 'A' || e.key === 'a')){
