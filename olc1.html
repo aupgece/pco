@@ -194,6 +194,17 @@
   }
   button.ghost:hover{ background: rgba(15,41,66,0.06); }
 
+
+  /* ---- Manual entry (additional / MS / PhD courses) ---- */
+  .manual-wrap{ margin-top: 34px; border-top: 2px dashed var(--line); padding-top: 22px; }
+  .manual-wrap h2{ font-size: 1.25rem; color: var(--navy); margin: 0 0 6px; }
+  .manual-wrap .m-intro{ font-family: Arial, Helvetica, sans-serif; color: var(--slate); font-size: .95rem; margin: 0 0 14px; }
+  .manual-toggle{ margin-bottom: 14px; }
+  .manual-form{ display:none; background: var(--paper-2); border: 1px solid var(--line); border-left: 6px solid var(--amber); border-radius: var(--radius); box-shadow: var(--shadow-sm); padding: 18px 20px; margin-bottom: 18px; }
+  .manual-form.open{ display:block; }
+  .manual-form .grid2 input, .manual-form .grid2 select{ min-width: 0; width: 100%; }
+  .manual-tag{ display:inline-block; font-family: Arial, Helvetica, sans-serif; font-size:.72rem; font-weight:700; background: rgba(185,118,58,.14); color: var(--amber); border: 1px solid var(--amber); border-radius: 20px; padding: 1px 9px; margin-left: 8px; vertical-align: middle; }
+
   .day-heading{
     margin: 30px 0 14px;
     font-size: 1.3rem;
@@ -812,6 +823,97 @@
     <div id="dayHeading"></div>
     <div id="progressWrap"></div>
     <div id="classList"></div>
+
+    <!-- MANUAL ENTRY: additional courses / MS / PhD courses not in the timetable -->
+    <div id="manualWrap" class="manual-wrap" style="display:none;">
+      <h2>Teaching an additional course or an MS / PhD course?</h2>
+      <p class="m-intro">Classes that are not in the EE/CE timetable can be entered by hand here. Each one is saved as its own record for the name and date selected above.</p>
+      <button type="button" class="ghost manual-toggle" id="manualToggleBtn">+ Add an online class manually</button>
+      <div class="manual-form" id="manualForm">
+        <div class="grid2">
+          <div class="field">
+            <label>Course type</label>
+            <select id="mfCategory">
+              <option value="Additional course">Additional course</option>
+              <option value="MS course">MS course</option>
+              <option value="PhD course">PhD course</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Department</label>
+            <select id="mfDept">
+              <option value="EE">EE</option>
+              <option value="CE">CE</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Course name / code</label>
+            <input type="text" id="mfSubject" placeholder="e.g. EE-601 Advanced Control Systems">
+          </div>
+          <div class="field">
+            <label>Section / program</label>
+            <input type="text" id="mfSection" placeholder="e.g. MS-EE Fall 2026 or BEE-7A">
+          </div>
+          <div class="field">
+            <label>Start time</label>
+            <input type="time" id="mfStart">
+          </div>
+          <div class="field">
+            <label>End time</label>
+            <input type="time" id="mfEnd">
+          </div>
+          <div class="field">
+            <label>Room/Venue (optional)</label>
+            <input type="text" id="mfRoom" placeholder="e.g. Online / Room 12">
+          </div>
+          <div class="field">
+            <label>Online class held on scheduled time?</label>
+            <div class="radio-row">
+              <label><input type="radio" name="mfHeld" value="yes"> Yes</label>
+              <label><input type="radio" name="mfHeld" value="no"> No</label>
+            </div>
+          </div>
+          <div class="field">
+            <label>Total students enrolled</label>
+            <input type="number" min="0" inputmode="numeric" id="mfEnrolled" placeholder="e.g. 15">
+          </div>
+          <div class="field">
+            <label>Students present</label>
+            <input type="number" min="0" inputmode="numeric" id="mfPresent" placeholder="e.g. 12">
+          </div>
+          <div class="field">
+            <label>Students absent</label>
+            <input type="number" min="0" inputmode="numeric" id="mfAbsent" placeholder="Fills in automatically">
+          </div>
+          <div class="field" style="grid-column: 1 / -1;">
+            <label>Lectures uploaded on GCR</label>
+            <div class="radio-row">
+              <label><input type="radio" name="mfGcr" value="yes"> Yes</label>
+              <label><input type="radio" name="mfGcr" value="no"> No</label>
+              <label><input type="radio" name="mfGcr" value="not-active"> GCR not yet active</label>
+            </div>
+          </div>
+          <div class="field">
+            <label>GCR code</label>
+            <input type="text" id="mfGcrCode" placeholder="e.g. ab12cd3">
+          </div>
+          <div class="field">
+            <label>Link for online class</label>
+            <input type="url" id="mfLink" placeholder="https://meet.google.com/... or Zoom/Teams link">
+          </div>
+          <div class="field" style="grid-column: 1 / -1;">
+            <label>Remarks/Comments</label>
+            <textarea id="mfRemarks" placeholder="Any observations, issues, or notes"></textarea>
+          </div>
+        </div>
+        <div class="card-footer">
+          <button type="button" class="primary" id="mfSaveBtn">Submit this class</button>
+          <button type="button" class="ghost" id="mfCancelBtn">Cancel</button>
+          <span class="save-msg" id="mfMsg"></span>
+        </div>
+      </div>
+      <div id="manualList"></div>
+    </div>
 
   </section>
 
@@ -1913,6 +2015,7 @@ async function showClasses(){
   heading.innerHTML = "";
   if(progress) progress.innerHTML = "";
   updateDateNote();
+  updateManualSection();
 
   if(!fac || !dateStr){
     list.innerHTML = allSchedule().length === 0
@@ -2161,6 +2264,164 @@ document.getElementById('timetableDaySelect').addEventListener('change', showCla
 updateDateNote();
 showClasses();   // paints the "choose your name and a date" prompt on first load
 
+
+// ---------- Manual entry: additional / MS / PhD courses ----------
+// These classes are not in any timetable, so they are typed in by hand. They are
+// stored as normal records (same fields as timetable classes, plus manual:true and
+// category) so the view tabs, exports and reports all pick them up.
+function manualRecordKey(dateStr, fac, section, start){
+  return `record::${dateStr}::${section}::${start}::manual::${normFacultyKey(fac)}`;
+}
+function manualEsc(v){ return String(v ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;'); }
+
+function resetManualForm(){
+  ['mfSubject','mfSection','mfStart','mfEnd','mfRoom','mfEnrolled','mfPresent','mfAbsent','mfGcrCode','mfLink','mfRemarks']
+    .forEach(id=>{ document.getElementById(id).value = ''; });
+  document.querySelectorAll('input[name="mfHeld"], input[name="mfGcr"]').forEach(r=> r.checked = false);
+  document.getElementById('mfCategory').selectedIndex = 0;
+  document.getElementById('mfDept').selectedIndex = 0;
+  document.getElementById('mfMsg').textContent = '';
+}
+
+async function refreshManualList(){
+  const fac = document.getElementById('facultySelect').value;
+  const dateStr = document.getElementById('dateInput').value;
+  const box = document.getElementById('manualList');
+  if(!fac || !dateStr){ box.innerHTML = ''; return; }
+  let recs = [];
+  try{ recs = await listRecords(); }catch(e){ recs = []; }
+  const facKey = normFacultyKey(fac);
+  recs = recs.filter(r => r && r.manual && r.date === dateStr && normFacultyKey(r.faculty) === facKey)
+             .sort((a,b)=> (a.start||'').localeCompare(b.start||''));
+  if(!recs.length){ box.innerHTML = ''; return; }
+  box.innerHTML = '<div class="day-heading" style="margin-top:8px;">Manually entered classes</div>' + recs.map(r=>`
+    <div class="class-card ${r.held === 'yes' ? 'status-yes' : 'status-no'}">
+      <div class="meta">
+        <div>
+          <h3>${manualEsc(r.subject)}<span class="manual-tag">${manualEsc(r.category || 'Manual')}</span></h3>
+          <div class="sub"><strong>${manualEsc(r.dept || 'EE')}</strong> &nbsp;·&nbsp; ${manualEsc(r.section)}${r.room ? ' &nbsp;·&nbsp; Room/Venue: ' + manualEsc(r.room) : ''}</div>
+        </div>
+        <div class="time-badge">${manualEsc(r.start)} – ${manualEsc(r.end)}</div>
+      </div>
+      <div class="sub" style="font-family:Arial,sans-serif;">
+        Held: <strong>${r.held === 'yes' ? 'Yes' : 'No'}</strong>
+        &nbsp;·&nbsp; Enrolled: ${manualEsc(r.totalEnrolled || '—')}
+        &nbsp;·&nbsp; Present: ${manualEsc(r.students || '—')}
+        &nbsp;·&nbsp; Absent: ${manualEsc(r.absent || '—')}
+        ${r.remarks ? '<br>Remarks: ' + manualEsc(r.remarks) : ''}
+      </div>
+      <div class="card-footer">
+        <button type="button" class="ghost" data-mf-edit="${manualEsc(r._k)}">Edit</button>
+        <span class="card-status saved">Submitted</span>
+      </div>
+    </div>`).join('');
+  // stash records for the Edit buttons
+  box._recs = recs;
+  box.querySelectorAll('[data-mf-edit]').forEach((btn, i)=>{
+    btn.addEventListener('click', ()=> loadManualIntoForm(recs[i]));
+  });
+}
+
+function loadManualIntoForm(r){
+  document.getElementById('manualForm').classList.add('open');
+  document.getElementById('mfCategory').value = r.category || 'Additional course';
+  document.getElementById('mfDept').value = r.dept || 'EE';
+  document.getElementById('mfSubject').value = r.subject || '';
+  document.getElementById('mfSection').value = r.section || '';
+  document.getElementById('mfStart').value = r.start || '';
+  document.getElementById('mfEnd').value = r.end || '';
+  document.getElementById('mfRoom').value = r.room || '';
+  document.getElementById('mfEnrolled').value = r.totalEnrolled || '';
+  document.getElementById('mfPresent').value = r.students || '';
+  document.getElementById('mfAbsent').value = r.absent || '';
+  document.getElementById('mfGcrCode').value = r.gcrCode || '';
+  document.getElementById('mfLink').value = r.link || '';
+  document.getElementById('mfRemarks').value = r.remarks || '';
+  document.querySelectorAll('input[name="mfHeld"]').forEach(x=> x.checked = (x.value === r.held));
+  document.querySelectorAll('input[name="mfGcr"]').forEach(x=> x.checked = (x.value === r.gcrUploaded));
+  document.getElementById('manualForm').scrollIntoView({behavior:'smooth', block:'center'});
+}
+
+async function saveManualClass(){
+  const fac = document.getElementById('facultySelect').value;
+  const dateStr = document.getElementById('dateInput').value;
+  const msg = document.getElementById('mfMsg');
+  const err = t => { msg.style.color = 'var(--red)'; msg.textContent = t; };
+  const subject = document.getElementById('mfSubject').value.trim();
+  const section = document.getElementById('mfSection').value.trim();
+  const start = document.getElementById('mfStart').value;
+  const end = document.getElementById('mfEnd').value;
+  const heldEl = document.querySelector('input[name="mfHeld"]:checked');
+  if(!fac || !dateStr) return err('Please choose your name and the date at the top first.');
+  if(!subject) return err('Please enter the course name / code.');
+  if(!section) return err('Please enter the section / program.');
+  if(!start || !end) return err('Please enter the start and end time.');
+  if(end <= start) return err('End time must be after the start time.');
+  if(!heldEl) return err('Please answer “Online class held on scheduled time?”.');
+  const enrolled = parseInt(document.getElementById('mfEnrolled').value, 10);
+  const present = parseInt(document.getElementById('mfPresent').value, 10);
+  if(!isNaN(enrolled) && !isNaN(present) && present > enrolled) return err('Students present cannot be more than students enrolled.');
+
+  const wdNum = new Date(dateStr + 'T00:00:00').getDay();
+  const record = {
+    date: dateStr,
+    weekday: DAY_NAMES[wdNum],
+    dept: document.getElementById('mfDept').value,
+    section, start, end, subject,
+    faculty: fac,
+    room: document.getElementById('mfRoom').value.trim(),
+    held: heldEl.value,
+    totalEnrolled: document.getElementById('mfEnrolled').value,
+    students: document.getElementById('mfPresent').value,
+    absent: document.getElementById('mfAbsent').value,
+    gcrUploaded: (document.querySelector('input[name="mfGcr"]:checked') || {}).value || '',
+    gcrCode: document.getElementById('mfGcrCode').value,
+    link: document.getElementById('mfLink').value,
+    remarks: document.getElementById('mfRemarks').value,
+    manual: true,
+    category: document.getElementById('mfCategory').value,
+    loggedAt: new Date().toISOString()
+  };
+  msg.style.color = 'var(--slate)'; msg.textContent = 'Saving…';
+  try{
+    await setRecord(manualRecordKey(dateStr, fac, section, start), record);
+    msg.style.color = 'var(--green)';
+    msg.textContent = (heldEl.value === 'yes' && document.getElementById('mfPresent').value.trim() === '')
+      ? 'Saved — but please also mention the number of students present.'
+      : 'Submitted successfully.';
+    await refreshManualList();
+    setTimeout(()=>{ resetManualForm(); document.getElementById('manualForm').classList.remove('open'); }, 1200);
+  }catch(e){
+    err('Error saving record.');
+  }
+}
+
+function updateManualSection(){
+  const wrap = document.getElementById('manualWrap');
+  const fac = document.getElementById('facultySelect').value;
+  const dateStr = document.getElementById('dateInput').value;
+  const show = !!(fac && dateStr);
+  wrap.style.display = show ? 'block' : 'none';
+  if(!show){ document.getElementById('manualForm').classList.remove('open'); }
+  refreshManualList();
+}
+
+document.getElementById('manualToggleBtn').addEventListener('click', ()=>{
+  const f = document.getElementById('manualForm');
+  f.classList.toggle('open');
+  if(f.classList.contains('open')) document.getElementById('mfSubject').focus();
+});
+document.getElementById('mfCancelBtn').addEventListener('click', ()=>{
+  resetManualForm();
+  document.getElementById('manualForm').classList.remove('open');
+});
+document.getElementById('mfSaveBtn').addEventListener('click', saveManualClass);
+['mfEnrolled','mfPresent'].forEach(id=> document.getElementById(id).addEventListener('input', ()=>{
+  const e = parseInt(document.getElementById('mfEnrolled').value, 10);
+  const p = parseInt(document.getElementById('mfPresent').value, 10);
+  if(!isNaN(e) && !isNaN(p)) document.getElementById('mfAbsent').value = Math.max(0, e - p);
+}));
+
 // ---------- View all records ----------
 // ---------- Stat cards (scheduled / held online for a specific day) ----------
 function weekdayForDateStr(dateStr){
@@ -2249,7 +2510,7 @@ async function loadRecordsTable(dept){
     const loggedAt = r.loggedAt ? new Date(r.loggedAt).toLocaleString() : '';
     return `<tr>
       <td>${r.date} <div style="color:var(--slate);font-size:.75rem;">${weekdaySubline(r)}</div></td>
-      <td>${r.section}${(r.dept || 'EE') !== P ? ` <div style="color:var(--slate);font-size:.75rem;">${r.dept || 'EE'} timetable</div>` : ''}</td>
+      <td>${r.section}${r.manual ? ` <div style="color:var(--amber);font-size:.75rem;font-weight:700;">${(r.category || 'Manual').replace(/</g,'&lt;')}</div>` : ''}${(r.dept || 'EE') !== P ? ` <div style="color:var(--slate);font-size:.75rem;">${r.dept || 'EE'} timetable</div>` : ''}</td>
       <td>${r.start}–${r.end}</td>
       <td>${r.subject}</td>
       <td>${r.faculty}</td>
