@@ -1737,23 +1737,66 @@ async function setRecord(key, record){
   }
   return true;
 }
+// Date -> timetable weekday actually followed on that date (learned from saved records).
+// e.g. 3 Oct 2026 is a Saturday, but if its records say "Tuesday", the Tuesday timetable ran.
+let DATE_TT_DAY = {};
+const WEEKDAY_NUM = {sunday:0,monday:1,tuesday:2,wednesday:3,thursday:4,friday:5,saturday:6};
+function buildDateTimetableDayMap(records){
+  const tally = {}, byDate = {};
+  (records || []).forEach(r=>{
+    if(!r || !r.date) return;
+    (byDate[r.date] = byDate[r.date] || []).push(r);
+    const n = WEEKDAY_NUM[String(r.weekday || '').trim().toLowerCase()];
+    if(n === undefined || n < 1 || n > 5) return;          // timetable runs Mon-Fri only
+    (tally[r.date] = tally[r.date] || {})[n] = (tally[r.date][n] || 0) + 1;
+  });
+  const map = {};
+  Object.keys(byDate).forEach(date=>{
+    const cal = new Date(date + 'T00:00:00').getDay();
+    if(isNaN(cal)) return;
+    let best = null, bestN = -1;
+    // 1) the weekday timetable the faculty chose when submitting (majority wins)
+    Object.keys(tally[date] || {}).forEach(k=>{
+      const n = tally[date][k], day = parseInt(k,10);
+      if(n > bestN || (n === bestN && day !== cal)){ best = day; bestN = n; }
+    });
+    // 2) no usable weekday on the records: find the weekday whose timetable they match
+    if(best === null){
+      let sched = [];
+      try{ sched = allSchedule() || []; }catch(e){}
+      let bestScore = 0;
+      [1,2,3,4,5].forEach(d=>{
+        let score = 0;
+        byDate[date].forEach(r=>{
+          if(sched.some(c => c.day === d && c.start === r.start &&
+             (normFacultyKey(c.faculty) === normFacultyKey(r.faculty) ||
+              (c.section || '').trim().toUpperCase() === (r.section || '').trim().toUpperCase()))) score++;
+        });
+        if(score > bestScore){ bestScore = score; best = d; }
+      });
+    }
+    if(best !== null) map[date] = best;
+  });
+  DATE_TT_DAY = map;
+  return records;
+}
 async function listRecords(){
   if(usingFirebase){
     const snap = await fbDb.ref(RECORDS_PATH).once('value');
     const val = snap.val() || {};
-    return Object.values(val);
+    return buildDateTimetableDayMap(Object.values(val));
   }
   const all = localRecordsLoad();
-  return Object.values(all);
+  return buildDateTimetableDayMap(Object.values(all));
 }
 async function listRecordsWithKeys(){
   if(usingFirebase){
     const snap = await fbDb.ref(RECORDS_PATH).once('value');
     const val = snap.val() || {};
-    return Object.keys(val).map(k => Object.assign({_key: k}, val[k]));
+    return buildDateTimetableDayMap(Object.keys(val).map(k => Object.assign({_key: k}, val[k])));
   }
   const all = localRecordsLoad();
-  return Object.keys(all).map(k => Object.assign({_key: k}, all[k]));
+  return buildDateTimetableDayMap(Object.keys(all).map(k => Object.assign({_key: k}, all[k])));
 }
 async function deleteRecordByKey(safeKey){
   if(usingFirebase){
@@ -2362,7 +2405,8 @@ async function saveManualClass(){
   const present = parseInt(document.getElementById('mfPresent').value, 10);
   if(!isNaN(enrolled) && !isNaN(present) && present > enrolled) return err('Students present cannot be more than students enrolled.');
 
-  const wdNum = new Date(dateStr + 'T00:00:00').getDay();
+  const _tt = resolvedTimetableDay(dateStr);
+  const wdNum = (_tt === null || _tt === undefined) ? new Date(dateStr + 'T00:00:00').getDay() : _tt;
   const record = {
     date: dateStr,
     weekday: DAY_NAMES[wdNum],
@@ -2427,7 +2471,9 @@ document.getElementById('mfSaveBtn').addEventListener('click', saveManualClass);
 function weekdayForDateStr(dateStr){
   if(!dateStr) return null;
   const d = new Date(dateStr + "T00:00:00");
-  return isNaN(d.getTime()) ? null : d.getDay();
+  if(isNaN(d.getTime())) return null;
+  // Timetable followed on that date (from saved records), else the calendar weekday.
+  return (dateStr in DATE_TT_DAY) ? DATE_TT_DAY[dateStr] : d.getDay();
 }
 function scheduledCountFor(dateStr, facFilter, scheduleArr){
   const wd = weekdayForDateStr(dateStr);
@@ -3319,7 +3365,7 @@ async function generateNonComplianceReport(){
   const cursor = new Date(from);
   while(cursor <= to){
     const dateStr = localDateStr(cursor);
-    const wd = cursor.getDay();
+    const wd = weekdayForDateStr(dateStr);
     const classesToday = allSchedule().filter(c=>{
       if(c.day !== wd) return false;
       if(deptSel && (c.dept || 'EE') !== deptSel) return false;
@@ -3742,7 +3788,7 @@ function enterAdminEditMode(key){
       return;
     }
     const d = new Date(updated.date + "T00:00:00");
-    updated.weekday = isNaN(d) ? (rec.weekday || '') : DAY_NAMES[d.getDay()];
+    updated.weekday = isNaN(d) ? (rec.weekday || '') : ((updated.date === rec.date && rec.weekday) ? rec.weekday : DAY_NAMES[d.getDay()]);
 
     try{
       const newKey = fbKey(recordKey(updated.date, updated.section, updated.start));
