@@ -387,6 +387,20 @@
     color: #6a4012;
   }
   .date-note.hidden{ display:none; }
+  /* Admin notice: alert banner + popup on page open */
+  #adminNotice{
+    margin: 0 0 16px; padding: 14px 16px; font-size: 1.05rem; font-weight: 700;
+    background: #fff4d6; border: 2px solid var(--red); border-left-width: 8px; color: #7a1f1f;
+    animation: noticePulse 1.6s ease-in-out 3;
+  }
+  #adminNotice::before{ content: "⚠ "; }
+  @keyframes noticePulse{ 0%,100%{ box-shadow: 0 0 0 0 rgba(180,40,40,.0); } 50%{ box-shadow: 0 0 0 6px rgba(180,40,40,.25); } }
+  .notice-modal{ position: fixed; inset: 0; background: rgba(0,0,0,.55); z-index: 9999; display: none; align-items: center; justify-content: center; padding: 20px; }
+  .notice-modal.open{ display: flex; }
+  .notice-box{ background: #fff; border-top: 8px solid var(--red); border-radius: var(--radius); max-width: 460px; width: 100%; padding: 24px 22px; text-align: center; font-family: Arial, Helvetica, sans-serif; box-shadow: 0 10px 40px rgba(0,0,0,.35); }
+  .notice-box .n-icon{ font-size: 2.4rem; line-height: 1; }
+  .notice-box h3{ margin: 8px 0 10px; color: var(--red); font-size: 1.2rem; }
+  .notice-box p{ margin: 0 0 18px; font-size: 1.1rem; font-weight: 700; color: #222; }
   /* numbered step badges on the three fields of the record form */
   .step-num{
     display:inline-flex;
@@ -781,6 +795,15 @@
   </nav>
 </header>
 
+<div class="notice-modal" id="noticeModal" role="alertdialog" aria-modal="true" aria-labelledby="noticeModalTitle">
+  <div class="notice-box">
+    <div class="n-icon">⚠️</div>
+    <h3 id="noticeModalTitle">Important notice</h3>
+    <p id="noticeModalText"></p>
+    <button class="primary" id="noticeModalOk" type="button">OK, understood</button>
+  </div>
+</div>
+
 <main>
 
   <!-- RECORD PANEL -->
@@ -809,6 +832,8 @@
       </div>
       <input type="date" id="dateInput" style="display:none" tabindex="-1" aria-hidden="true">
     </div>
+
+    <div class="date-note info hidden" id="adminNotice"></div>
 
     <div class="date-note info hidden" id="dateNote"></div>
 
@@ -1251,6 +1276,19 @@
           <button class="primary" id="archiveLinkSaveBtn">Save</button>
         </div>
         <p class="upload-status" id="archiveLinkStatus"></p>
+      </div>
+
+      <div class="admin-block">
+        <h3>Notice for faculty</h3>
+        <p class="hint">Shown at the top of the Record tab for everyone. Change it any time; leave it empty and save to hide it.</p>
+        <div class="controls">
+          <div class="field" style="flex:1;min-width:260px;">
+            <label for="noticeInput">Notice text</label>
+            <input type="text" id="noticeInput" maxlength="200">
+          </div>
+          <button class="primary" id="noticeSaveBtn">Save</button>
+        </div>
+        <p class="upload-status" id="noticeStatus"></p>
       </div>
 
       <div class="stats-row" id="adminStatsRow">
@@ -1807,6 +1845,50 @@ if(usingFirebase){
     applyArchiveLink(currentHref === '#' ? '' : currentHref, snap.val());
   });
 }
+
+// ---------- Admin notice (shown on the Record tab) ----------
+const DEFAULT_NOTICE = "Follow Tuesday's timetable on this Saturday 3 Oct, 2026.";
+const NOTICE_NONE = '__none__';
+function applyNotice(v){
+  const text = (v === NOTICE_NONE) ? '' : (v == null ? DEFAULT_NOTICE : String(v));
+  const box = document.getElementById('adminNotice');
+  if(text.trim()){ box.textContent = text; box.className = 'date-note info'; }
+  else { box.textContent = ''; box.className = 'date-note info hidden'; }
+  const input = document.getElementById('noticeInput');
+  if(input && document.activeElement !== input) input.value = text;
+}
+function showNoticeModal(v){
+  const text = (v === NOTICE_NONE) ? '' : (v == null ? DEFAULT_NOTICE : String(v));
+  if(!text.trim()) return;
+  document.getElementById('noticeModalText').textContent = text;
+  document.getElementById('noticeModal').classList.add('open');
+}
+document.getElementById('noticeModalOk').addEventListener('click', ()=> document.getElementById('noticeModal').classList.remove('open'));
+(async function loadNoticeOnStart(){
+  let v = null;
+  try{ v = await getSetting('notice'); }
+  catch(e){ console.error('Could not load notice', e); }
+  applyNotice(v);
+  showNoticeModal(v);
+})();
+if(usingFirebase){
+  fbDb.ref(SETTINGS_PATH + '/notice').on('value', snap=> applyNotice(snap.val()));
+}
+document.getElementById('noticeSaveBtn').addEventListener('click', async ()=>{
+  const statusEl = document.getElementById('noticeStatus');
+  const val = document.getElementById('noticeInput').value.trim();
+  statusEl.className = 'upload-status';
+  statusEl.textContent = 'Saving…';
+  try{
+    await setSetting('notice', val || NOTICE_NONE);
+    applyNotice(val || NOTICE_NONE);
+    statusEl.textContent = val ? 'Saved. The notice is now live for everyone.' : 'Cleared. The notice is now hidden.';
+  }catch(e){
+    console.error(e);
+    statusEl.className = 'upload-status err';
+    statusEl.textContent = 'Could not save the notice.';
+  }
+});
 
 document.getElementById('archiveLinkSaveBtn').addEventListener('click', async ()=>{
   const statusEl = document.getElementById('archiveLinkStatus');
