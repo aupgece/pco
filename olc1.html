@@ -400,6 +400,16 @@
   .dp-day .dp-mon{ display:block; font-size:.72rem; color:#666; }
   .dp-day:hover{ border-color: var(--navy); }
   .dp-day.today{ border-style: dashed; }
+  .dp-day.flash{ animation: dpFlash 0.9s ease-in-out infinite; }
+  @keyframes dpFlash{
+    0%,100%{ background:#fff; border-color: var(--red); box-shadow: 0 0 0 0 rgba(180,40,40,0); }
+    50%{ background:#ffe08a; border-color: var(--red); box-shadow: 0 0 0 5px rgba(180,40,40,.35); }
+  }
+  .dp-day.sel.flash{ animation-name: dpFlashSel; }
+  @keyframes dpFlashSel{
+    0%,100%{ background: var(--navy); box-shadow: 0 0 0 0 rgba(180,40,40,0); }
+    50%{ background:#b42828; box-shadow: 0 0 0 5px rgba(180,40,40,.35); }
+  }
   .dp-day.sel{ background: var(--navy); border-color: var(--navy); color:#fff; }
   .dp-day.sel .dp-mon{ color:#dfe8f1; }
   /* Admin notice: alert banner + popup on page open */
@@ -1693,6 +1703,14 @@ function localDateStr(d){
   return `${y}-${m}-${dd}`;
 }
 const todayStr = localDateStr(new Date());
+// Weekdays (Mon–Fri) named in the admin notice flash in the day picker.
+function noticeDaySet(){
+  const set = new Set();
+  const names = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
+  const t = (window._noticeText || '').toLowerCase();
+  names.forEach((n,i)=>{ if(i>=1 && i<=5 && new RegExp('\\b'+n+'\\b').test(t)) set.add(i); });
+  return set;
+}
 (function initDayPicker(){
   const input = document.getElementById('dateInput');
   const box = document.getElementById('dayPicker');
@@ -1714,7 +1732,7 @@ const todayStr = localDateStr(new Date());
       </div>
       <div class="dp-days">${days.map(d=>{
         const ds = localDateStr(d);
-        return `<button type="button" class="dp-day${ds===input.value?' sel':''}${ds===todayStr?' today':''}" data-date="${ds}">
+        return `<button type="button" class="dp-day${ds===input.value?' sel':''}${ds===todayStr?' today':''}${noticeDaySet().has(d.getDay())?' flash':''}" data-date="${ds}">
           <span class="dp-name">${DAY_NAMES[d.getDay()].slice(0,3)}</span><span class="dp-num">${d.getDate()}</span><span class="dp-mon">${MON[d.getMonth()]}</span></button>`;
       }).join('')}</div>`;
   }
@@ -1724,6 +1742,7 @@ const todayStr = localDateStr(new Date());
     const day = e.target.closest('.dp-day');
     if(day){ input.value = day.dataset.date; render(); showClasses(); }
   });
+  window.dpRender = render;
   render();
 })();
 document.getElementById('filterDateEE').value = "";
@@ -1890,6 +1909,8 @@ const DEFAULT_NOTICE = "Follow Tuesday's timetable on this Saturday 3 Oct, 2026.
 const NOTICE_NONE = '__none__';
 function applyNotice(v){
   const text = (v === NOTICE_NONE) ? '' : (v == null ? DEFAULT_NOTICE : String(v));
+  window._noticeText = text;
+  if(window.dpRender) window.dpRender();
   const box = document.getElementById('adminNotice');
   if(text.trim()){ box.textContent = text; box.className = 'date-note info'; }
   else { box.textContent = ''; box.className = 'date-note info hidden'; }
