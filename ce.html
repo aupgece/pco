@@ -195,6 +195,20 @@ body.boot header, body.boot main{opacity:0;}
 #infoModal .info-row .v{color:var(--ink);font-weight:600;word-break:break-word;}
 #bookFormModal .field-error{font-size:0.76rem;color:var(--busy-ink);margin:4px 0 0;min-height:1em;}
 
+
+/* Weekly timetable print blocks (also applied off-screen while measuring so the text can be sized to fit) */
+.weekly-head{display:flex;align-items:baseline;justify-content:space-between;border-bottom:1.5pt solid #000;padding-bottom:3pt;margin-bottom:4pt;}
+.weekly-head .name{font-size:12pt;font-weight:800;color:#000;}
+.weekly-head .sub{font-size:8pt;font-weight:600;color:#333;}
+.weekly-head .day{font-size:15pt;font-weight:800;color:#000;}
+table.grid.weekly{width:100%;table-layout:fixed;font-size:var(--wf,8pt);}
+table.grid.weekly th{padding:2pt;font-size:var(--wf,8pt);}
+table.grid.weekly td.daycell{width:9%;padding:2pt;font-size:var(--wf,8pt);word-break:break-word;}
+table.grid.weekly th:first-child{width:9%;}
+table.grid.weekly td.slotcell{height:auto;min-height:0;padding:1.5pt;}
+table.grid.weekly .entry{padding:2pt 3pt;gap:1pt;line-height:1.15;height:auto;min-height:100%;}
+table.grid.weekly .entry .su{font-size:var(--wf,8pt);overflow-wrap:anywhere;}
+table.grid.weekly .entry .te, table.grid.weekly .entry .rm{font-size:calc(var(--wf,8pt) * 0.88);overflow-wrap:anywhere;}
 @media print{
   @page{ size:landscape; margin:8mm 10mm; }
   header, nav, footer, .no-print, #tabs { display:none !important; }
@@ -242,22 +256,10 @@ body.boot header, body.boot main{opacity:0;}
   body.printing-all #allSectionsPrint{display:block !important;}
   .print-section-block{page-break-inside:avoid;page-break-after:always;}
   .print-section-block:last-child{page-break-after:auto;}
-  /* Weekly print: exactly one page per day, no blank pages. Breaks go BEFORE
-     every block except the first, and the block is shorter than the page. */
+  /* Weekly print: one page per day. Breaks go BEFORE every block except the first. */
   body.printing-weekly .print-masthead{display:none !important;}
-  .print-section-block.weekly-block{page-break-inside:avoid;break-inside:avoid;page-break-after:auto !important;break-after:auto !important;overflow:hidden;height:176mm;}
+  .print-section-block.weekly-block{page-break-inside:avoid;break-inside:avoid;page-break-after:auto !important;break-after:auto !important;}
   .print-section-block.weekly-block + .print-section-block.weekly-block{page-break-before:always;break-before:page;}
-  .weekly-head{display:flex;align-items:baseline;justify-content:space-between;border-bottom:1.5pt solid #000;padding-bottom:3pt;margin-bottom:4pt;}
-  .weekly-head .name{font-size:12pt;font-weight:800;color:#000;}
-  .weekly-head .sub{font-size:8pt;font-weight:600;color:#333;}
-  .weekly-head .day{font-size:15pt;font-weight:800;color:#000;}
-  table.grid.weekly{font-size:var(--wf,8pt);height:154mm;}
-  table.grid.weekly th{padding:2pt 2pt;font-size:var(--wf,8pt);}
-  table.grid.weekly th:first-child, table.grid.weekly td.daycell{width:9%;font-size:var(--wf,8pt);}
-  table.grid.weekly td.slotcell{min-height:0;height:auto;padding:1pt 2pt;}
-  table.grid.weekly .entry{padding:1pt 2pt;line-height:1.1;}
-  table.grid.weekly .entry .su{font-size:var(--wf,8pt);}
-  table.grid.weekly .entry .te, table.grid.weekly .entry .rm{font-size:calc(var(--wf,8pt) * 0.85);}
   .print-section-heading{
     font-size:14pt;font-weight:800;color:#000;
     margin:0 0 6pt;padding-bottom:3pt;border-bottom:0.75pt solid #999;
@@ -991,16 +993,25 @@ function buildDayTable(day){
 }
 function printWeekly(){
   const container = document.getElementById('allSectionsPrint');
-  // 154mm of table height shared by all section rows; size text so 3 lines fit per row
-  const rowMm = 154 / Math.max(1, sections().length + 1);
-  const wf = Math.max(4.5, Math.min(8, rowMm * 2.835 / 3.8)).toFixed(1) + 'pt';
-  container.innerHTML = DAYS.map(d=>`<div class="print-section-block weekly-block" style="--wf:${wf}">
+  const build = wf => DAYS.map(d=>`<div class="print-section-block weekly-block" style="--wf:${wf}pt">
       <div class="weekly-head">
         <div><div class="name">${escapeHtml(SETTINGS.siteTitle)}</div><div class="sub">${escapeHtml(SETTINGS.siteSub)} · Weekly Timetable</div></div>
         <div class="day">${DAY_FULL[d]}</div>
       </div>
       ${buildDayTable(d)}
     </div>`).join('');
+  // Measure off-screen at a conservative printable size and shrink the text
+  // until the tallest day fits on one page, so no row is ever cut off.
+  const MAX_PX = 182 * 96 / 25.4;      // usable page height (mm -> px), with margin for A4/Letter
+  const saved = container.getAttribute('style');
+  container.style.cssText = 'display:block;position:absolute;left:-10000px;top:0;width:' + (255*96/25.4) + 'px;';
+  let wf = 9, html = build(wf);
+  container.innerHTML = html;
+  while(wf > 3.5 && Math.max(...Array.from(container.children).map(el=>el.offsetHeight)) > MAX_PX){
+    wf = Math.round((wf - 0.25) * 100) / 100;
+    container.innerHTML = build(wf);
+  }
+  if(saved === null) container.removeAttribute('style'); else container.setAttribute('style', saved);
   document.body.classList.add('printing-all','printing-weekly');
   window.print();
 }
