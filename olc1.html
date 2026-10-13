@@ -833,7 +833,7 @@
 
   <!-- RECORD PANEL -->
   <section id="panelRecord" class="panel active">
-    <p class="select-line">Two quick steps: choose your name and the day as per timetable from the week strip. Your classes for that day then appear below.</p>
+    <p class="select-line">Two quick steps: choose your name and the day as per timetable. The record is saved with today's date. Your classes for that day then appear below.</p>
     <div class="controls">
       <div class="field combo-field">
         <label for="facultySelect"><span class="step-num">1</span>Your name</label>
@@ -1129,6 +1129,12 @@
         <label for="filterDateEE">Filter by date</label>
         <input type="date" id="filterDateEE">
       </div>
+      <div class="field">
+        <label for="filterDayEE">Filter by day</label>
+        <select id="filterDayEE">
+          <option value="">All days</option><option value="Monday">Monday</option><option value="Tuesday">Tuesday</option><option value="Wednesday">Wednesday</option><option value="Thursday">Thursday</option><option value="Friday">Friday</option>
+        </select>
+      </div>
       <button class="ghost" id="clearFiltersEE">Clear filters</button>
       <button class="primary" id="refreshBtnEE">Refresh</button>
       <button class="ghost" id="exportXlsBtnEE">Export Excel</button>
@@ -1179,6 +1185,12 @@
       <div class="field">
         <label for="filterDateCE">Filter by date</label>
         <input type="date" id="filterDateCE">
+      </div>
+      <div class="field">
+        <label for="filterDayCE">Filter by day</label>
+        <select id="filterDayCE">
+          <option value="">All days</option><option value="Monday">Monday</option><option value="Tuesday">Tuesday</option><option value="Wednesday">Wednesday</option><option value="Thursday">Thursday</option><option value="Friday">Friday</option>
+        </select>
       </div>
       <button class="ghost" id="clearFiltersCE">Clear filters</button>
       <button class="primary" id="refreshBtnCE">Refresh</button>
@@ -1306,6 +1318,26 @@
           <button class="primary" id="noticeSaveBtn">Save</button>
         </div>
         <p class="upload-status" id="noticeStatus"></p>
+      </div>
+
+      <div class="admin-block">
+        <h3>Saturday classes</h3>
+        <p class="hint">Allow a Saturday for recording and choose which weekday's timetable it follows. That Saturday then appears in the day picker for faculty, with the chosen weekday's classes.</p>
+        <div class="controls">
+          <div class="field" style="min-width:170px;">
+            <label for="satDateInput">Saturday date</label>
+            <input type="date" id="satDateInput">
+          </div>
+          <div class="field" style="min-width:170px;">
+            <label for="satDaySelect">Follows timetable of</label>
+            <select id="satDaySelect">
+              <option value="1">Monday</option><option value="2">Tuesday</option><option value="3">Wednesday</option><option value="4">Thursday</option><option value="5">Friday</option>
+            </select>
+          </div>
+          <button class="primary" id="satSaveBtn">Allow Saturday</button>
+        </div>
+        <p class="upload-status" id="satStatus"></p>
+        <div id="satList"></div>
       </div>
 
       <div class="stats-row" id="adminStatsRow">
@@ -1703,6 +1735,9 @@ function localDateStr(d){
   return `${y}-${m}-${dd}`;
 }
 const todayStr = localDateStr(new Date());
+// Saturdays the admin has allowed for recording: { 'YYYY-MM-DD': weekdayNumber(1-5) }.
+// The number is the weekday whose timetable that Saturday follows.
+let SAT_MAP = {};
 // Weekdays (Mon–Fri) named in the admin notice flash in the day picker.
 function noticeDaySet(){
   const set = new Set();
@@ -1712,35 +1747,33 @@ function noticeDaySet(){
   return set;
 }
 (function initDayPicker(){
+  // Faculty pick the WEEKDAY whose timetable they are recording (names only, no dates).
+  // The record is always stamped with the current date (no date entry). On an
+  // admin-allowed Saturday the picker is locked to the weekday the admin chose.
   const input = document.getElementById('dateInput');
   const box = document.getElementById('dayPicker');
-  const mondayOf = d => { const x = new Date(d); x.setHours(0,0,0,0); const w = x.getDay(); x.setDate(x.getDate() + (w === 0 ? 1 : w === 6 ? 2 : 1 - w)); return x; };
-  let weekStart = mondayOf(new Date());   // on a weekend this opens the coming week
-  const todayDow = new Date().getDay();
-  input.value = (todayDow >= 1 && todayDow <= 5) ? todayStr : '';
-  const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const dow = new Date().getDay();
+  const isWeekday = dow >= 1 && dow <= 5;
+  window._ttDay = isWeekday ? dow : null;
+  input.value = isWeekday ? todayStr : '';
   function render(){
-    const days = [];
-    for(let i=0;i<5;i++){ const d = new Date(weekStart); d.setDate(d.getDate()+i); days.push(d); }
-    const f = days[0], l = days[4];
-    const label = `${f.getDate()} ${MON[f.getMonth()]} – ${l.getDate()} ${MON[l.getMonth()]} ${l.getFullYear()}`;
+    if(SAT_MAP[todayStr] && dow === 6){
+      input.value = todayStr;
+      box.innerHTML = `<div class="dp-days" style="grid-template-columns:repeat(6,1fr);">${[1,2,3,4,5].map(n=>`<button type="button" class="dp-day" disabled><span class="dp-name">${DAY_NAMES[n].slice(0,3)}</span></button>`).join('')}<button type="button" class="dp-day sel" data-locked="1"><span class="dp-name">Sat</span></button></div><div class="field-hint" style="margin-top:6px;">Saturday follows the ${DAY_NAMES[SAT_MAP[todayStr]]} timetable.</div>`;
+      return;
+    }
     box.innerHTML = `
-      <div class="dp-head">
-        <button type="button" class="dp-nav" data-dir="-1" aria-label="Previous week">‹</button>
-        <div class="dp-label">${label}</div>
-        <button type="button" class="dp-nav" data-dir="1" aria-label="Next week">›</button>
-      </div>
-      <div class="dp-days">${days.map(d=>{
-        const ds = localDateStr(d);
-        return `<button type="button" class="dp-day${ds===input.value?' sel':''}${ds===todayStr?' today':''}${noticeDaySet().has(d.getDay())?' flash':''}" data-date="${ds}">
-          <span class="dp-name">${DAY_NAMES[d.getDay()].slice(0,3)}</span><span class="dp-num">${d.getDate()}</span><span class="dp-mon">${MON[d.getMonth()]}</span></button>`;
-      }).join('')}</div>`;
+      <div class="dp-days" style="grid-template-columns:repeat(5,1fr);">${[1,2,3,4,5].map(n=>
+        `<button type="button" class="dp-day${n===window._ttDay?' sel':''}${n===dow?' today':''}${noticeDaySet().has(n)?' flash':''}" data-day="${n}"${isWeekday?'':' disabled'}>
+          <span class="dp-name">${DAY_NAMES[n].slice(0,3)}</span></button>`).join('')}</div>
+      ${isWeekday ? '' : '<div class="field-hint" style="margin-top:6px;">Recording is open on weekdays, and on Saturdays allowed by the administrator.</div>'}`;
   }
   box.addEventListener('click', e=>{
-    const nav = e.target.closest('.dp-nav');
-    if(nav){ weekStart.setDate(weekStart.getDate() + 7*parseInt(nav.dataset.dir,10)); render(); return; }
     const day = e.target.closest('.dp-day');
-    if(day){ input.value = day.dataset.date; render(); showClasses(); }
+    if(!day || day.disabled || !day.dataset.day) return;
+    window._ttDay = parseInt(day.dataset.day, 10);
+    input.value = todayStr;
+    render(); showClasses();
   });
   window.dpRender = render;
   render();
@@ -1950,6 +1983,80 @@ document.getElementById('noticeSaveBtn').addEventListener('click', async ()=>{
   }
 });
 
+// ---------- Saturday timetable (admin allows a Saturday + picks the weekday it follows) ----------
+let _satFirstLoad = true;
+function applySatMap(v){
+  let m = v;
+  if(typeof m === 'string'){ try{ m = JSON.parse(m); }catch(e){ m = {}; } }
+  SAT_MAP = {};
+  Object.keys(m || {}).forEach(k=>{
+    const n = parseInt(m[k], 10);
+    if(/^\d{4}-\d{2}-\d{2}$/.test(k) && n >= 1 && n <= 5) SAT_MAP[k] = n;
+  });
+  const input = document.getElementById('dateInput');
+  if(SAT_MAP[todayStr] && new Date().getDay() === 6) input.value = todayStr;
+  const cur = input.value;
+  const curIsSat = cur && new Date(cur + 'T00:00:00').getDay() === 6;
+  if(curIsSat && !SAT_MAP[cur]) input.value = '';
+  if(window.dpRender) window.dpRender();
+  if(curIsSat) showClasses(); else updateDateNote();
+  renderSatList();
+}
+function renderSatList(){
+  const box = document.getElementById('satList');
+  if(!box) return;
+  const dates = Object.keys(SAT_MAP).sort();
+  if(!dates.length){ box.innerHTML = '<p class="hint">No Saturdays are allowed at the moment.</p>'; return; }
+  box.innerHTML = dates.map(d=>`
+    <div style="display:flex;align-items:center;gap:10px;margin-top:6px;flex-wrap:wrap;">
+      <span><strong>${prettyDate(d)}</strong> (Saturday) — follows <strong>${DAY_NAMES[SAT_MAP[d]]}</strong> timetable</span>
+      <button type="button" class="ghost" data-sat-remove="${d}">Remove</button>
+    </div>`).join('');
+}
+async function saveSatMap(map, okMsg){
+  const statusEl = document.getElementById('satStatus');
+  statusEl.className = 'upload-status';
+  statusEl.textContent = 'Saving…';
+  try{
+    await setSetting('saturdayTimetable', map);
+    applySatMap(map);
+    statusEl.textContent = okMsg;
+  }catch(e){
+    console.error(e);
+    statusEl.className = 'upload-status err';
+    statusEl.textContent = 'Could not save the Saturday setting.';
+  }
+}
+document.getElementById('satSaveBtn').addEventListener('click', ()=>{
+  const statusEl = document.getElementById('satStatus');
+  const ds = document.getElementById('satDateInput').value;
+  const wd = parseInt(document.getElementById('satDaySelect').value, 10);
+  const d = new Date(ds + 'T00:00:00');
+  if(!ds || isNaN(d.getTime()) || d.getDay() !== 6){
+    statusEl.className = 'upload-status err';
+    statusEl.textContent = 'Please pick a date that falls on a Saturday.';
+    return;
+  }
+  const map = Object.assign({}, SAT_MAP, {[ds]: wd});
+  saveSatMap(map, `Saved. ${prettyDate(ds)} will follow the ${DAY_NAMES[wd]} timetable.`);
+});
+document.getElementById('satList').addEventListener('click', e=>{
+  const b = e.target.closest('[data-sat-remove]');
+  if(!b) return;
+  const map = Object.assign({}, SAT_MAP);
+  delete map[b.dataset.satRemove];
+  saveSatMap(map, 'Removed.');
+});
+(async function loadSatOnStart(){
+  let v = null;
+  try{ v = await getSetting('saturdayTimetable'); }
+  catch(e){ console.error('Could not load Saturday setting', e); }
+  applySatMap(v);
+})();
+if(usingFirebase){
+  fbDb.ref(SETTINGS_PATH + '/saturdayTimetable').on('value', snap=> applySatMap(snap.val()));
+}
+
 document.getElementById('archiveLinkSaveBtn').addEventListener('click', async ()=>{
   const statusEl = document.getElementById('archiveLinkStatus');
   const val = document.getElementById('archiveLinkInput').value.trim();
@@ -2068,8 +2175,17 @@ function weekdaySubline(r){
 const TIMETABLE_DAYS = [1,2,3,4,5];
 
 function resolvedTimetableDay(dateStr){
+  if(SAT_MAP[dateStr]) return SAT_MAP[dateStr];
   const d = new Date(dateStr + 'T00:00:00');
   return isNaN(d.getTime()) ? null : d.getDay();
+}
+
+// Weekday whose timetable the faculty member is recording right now.
+function selectedTimetableDay(){
+  const ds = document.getElementById('dateInput').value;
+  if(!ds) return null;
+  if(SAT_MAP[ds]) return SAT_MAP[ds];
+  return window._ttDay != null ? window._ttDay : resolvedTimetableDay(ds);
 }
 
 function prettyDate(dateStr){
@@ -2083,6 +2199,12 @@ function prettyDate(dateStr){
 function updateDateNote(){
   const note = document.getElementById('dateNote');
   if(!note) return;
+  const ds = document.getElementById('dateInput').value;
+  if(ds && SAT_MAP[ds]){
+    note.className = 'date-note info';
+    note.textContent = `Today (Saturday) follows the ${DAY_NAMES[SAT_MAP[ds]]} timetable, as set by the administrator.`;
+    return;
+  }
   note.className = 'date-note info hidden';
   note.textContent = '';
 }
@@ -2129,9 +2251,9 @@ async function showClasses(){
     return;
   }
 
-  const weekday = resolvedTimetableDay(dateStr);
+  const weekday = selectedTimetableDay();
   heading.innerHTML = TIMETABLE_DAYS.includes(weekday)
-    ? `<div class="day-heading">${DAY_NAMES[weekday]} timetable</div>`
+    ? `<div class="day-heading">${DAY_NAMES[weekday]} timetable${SAT_MAP[dateStr] ? ' (followed on this Saturday)' : ''}</div>`
     : '';
 
   const facKey = normFacultyKey(fac);
@@ -2141,7 +2263,7 @@ async function showClasses(){
   if(classes.length === 0){
     list.innerHTML = TIMETABLE_DAYS.includes(weekday)
       ? '<p class="empty-note">No classes are listed for you on this timetable day. You can use “My name or schedule isn’t listed” below.</p>'
-      : '<p class="empty-note">Please pick a Monday–Friday date.</p>';
+      : '<p class="empty-note">Please pick a Monday–Friday date, or a Saturday allowed by the administrator.</p>';
     return;
   }
 
@@ -2466,7 +2588,7 @@ async function saveManualClass(){
   const present = parseInt(document.getElementById('mfPresent').value, 10);
   if(!isNaN(enrolled) && !isNaN(present) && present > enrolled) return err('Students present cannot be more than students enrolled.');
 
-  const wdNum = resolvedTimetableDay(dateStr);
+  const wdNum = selectedTimetableDay();
   const record = {
     date: dateStr,
     weekday: DAY_NAMES[wdNum],
@@ -2530,6 +2652,7 @@ document.getElementById('mfSaveBtn').addEventListener('click', saveManualClass);
 // ---------- Stat cards (scheduled / held online for a specific day) ----------
 function weekdayForDateStr(dateStr){
   if(!dateStr) return null;
+  if(SAT_MAP[dateStr]) return SAT_MAP[dateStr];
   const d = new Date(dateStr + "T00:00:00");
   return isNaN(d.getTime()) ? null : d.getDay();
 }
@@ -2561,6 +2684,7 @@ async function loadRecordsTable(dept){
 
   const facFilter = document.getElementById('filterFaculty' + P).value;
   const dateFilter = document.getElementById('filterDate' + P).value;
+  const dayFilter = document.getElementById('filterDay' + P).value;
 
   let allRecords = [];
   try{
@@ -2585,6 +2709,12 @@ async function loadRecordsTable(dept){
   const filtered = pool.filter(r=>{
     if(facKey && normFacultyKey(r.faculty) !== facKey) return false;
     if(dateFilter && r.date !== dateFilter) return false;
+    if(dayFilter){
+      // timetable day the record followed; older records fall back to the calendar weekday
+      const cd = r.date ? new Date(r.date + 'T00:00:00') : null;
+      const recDay = r.weekday || (cd && !isNaN(cd.getTime()) ? DAY_NAMES[cd.getDay()] : '');
+      if(recDay !== dayFilter) return false;
+    }
     return true;
   });
 
@@ -2637,18 +2767,22 @@ async function loadRecordsTable(dept){
 document.getElementById('refreshBtnEE').addEventListener('click', ()=> loadRecordsTable('EE'));
 document.getElementById('filterFacultyEE').addEventListener('change', ()=> loadRecordsTable('EE'));
 document.getElementById('filterDateEE').addEventListener('change', ()=> loadRecordsTable('EE'));
+document.getElementById('filterDayEE').addEventListener('change', ()=> loadRecordsTable('EE'));
 document.getElementById('clearFiltersEE').addEventListener('click', ()=>{
   document.getElementById('filterFacultyEE').value = "";
   document.getElementById('filterDateEE').value = "";
+  document.getElementById('filterDayEE').value = "";
   loadRecordsTable('EE');
 });
 
 document.getElementById('refreshBtnCE').addEventListener('click', ()=> loadRecordsTable('CE'));
 document.getElementById('filterFacultyCE').addEventListener('change', ()=> loadRecordsTable('CE'));
 document.getElementById('filterDateCE').addEventListener('change', ()=> loadRecordsTable('CE'));
+document.getElementById('filterDayCE').addEventListener('change', ()=> loadRecordsTable('CE'));
 document.getElementById('clearFiltersCE').addEventListener('click', ()=>{
   document.getElementById('filterFacultyCE').value = "";
   document.getElementById('filterDateCE').value = "";
+  document.getElementById('filterDayCE').value = "";
   loadRecordsTable('CE');
 });
 
@@ -3429,6 +3563,7 @@ async function generateNonComplianceReport(){
     else t.other[dayIdx[r.weekday]] = (t.other[dayIdx[r.weekday]] || 0) + 1;
   });
   const effectiveDay = (dateStr, cal)=>{
+    if(SAT_MAP[dateStr]) return SAT_MAP[dateStr];
     const t = dateTally[dateStr];
     if(!t) return cal;
     let best = null, bestN = t.same;
@@ -3865,7 +4000,7 @@ function enterAdminEditMode(key){
       return;
     }
     const d = new Date(updated.date + "T00:00:00");
-    updated.weekday = isNaN(d) ? (rec.weekday || '') : DAY_NAMES[d.getDay()];
+    updated.weekday = isNaN(d) ? (rec.weekday || '') : DAY_NAMES[resolvedTimetableDay(updated.date)];
 
     try{
       const newKey = fbKey(recordKey(updated.date, updated.section, updated.start));
