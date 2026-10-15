@@ -28036,6 +28036,7 @@ body.admin-mode .fm-hint{display:block}
         <p id="fmSub">Regular faculty members database · Dept. of Electrical &amp; Computer Engineering · AU, Islamabad</p>
       </div>
       <div style="display:flex;align-items:center;gap:.6rem;">
+        <button class="fm-btn" type="button" onclick="fmCopyLink()">🔗 Copy link</button>
         <button class="fm-btn" type="button" onclick="fmExportCsv()">⬇ Export CSV</button>
         <button class="close-btn" type="button" onclick="closeFmModal()" aria-label="Close">✕</button>
       </div>
@@ -28228,13 +28229,27 @@ body.admin-mode .fm-hint{display:block}
     document.body.appendChild(a); a.click(); a.remove();
   };
 
+  var HASH='#regular-fms';
+  function pageUrl(){ return location.href.split('#')[0]; }
   window.openFmModal=function(){
     $('fmOverlay').classList.add('open'); document.body.style.overflow='hidden'; render();
+    try{ if(location.hash!==HASH) history.replaceState(null,'',pageUrl()+HASH); }catch(e){}
   };
   window.closeFmModal=function(){
     if(editing) return;
     $('fmOverlay').classList.remove('open'); document.body.style.overflow='';
+    try{ if(location.hash===HASH) history.replaceState(null,'',pageUrl()); }catch(e){}
   };
+  window.fmCopyLink=function(){
+    var url=pageUrl()+HASH;
+    var done=function(){ flash('✓ Link copied'); };
+    var fallback=function(){ window.prompt('Copy this link:',url); };
+    if(navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(done,fallback);
+    else fallback();
+  };
+  // direct link: index.html#regular-fms opens the list
+  function checkHash(){ if(location.hash===HASH && !$('fmOverlay').classList.contains('open')) openFmModal(); }
+  window.addEventListener('hashchange',checkHash);
 
   // ── faculty self-update ──
   function showPane(){ setTimeout(function(){ var t=$('fmEdDesig'); if(t) t.focus(); },30); }
@@ -28318,6 +28333,7 @@ body.admin-mode .fm-hint{display:block}
       }
     },function(err){console.warn('Regular FMs load error:',err);});
   }
+  checkHash();
 })();
 </script>
 </body></html>
