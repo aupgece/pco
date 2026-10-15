@@ -1235,6 +1235,7 @@ function loadDataFromFirebase(){
         data[k] = JSON.parse(JSON.stringify(saved[k]));
       }
     });
+    try{ searchIndex = buildSearchIndex(); }catch(e){}
     console.log('Firebase: course data loaded from server');
   }, function(err){
     console.warn('Firebase course load error:', err);
@@ -1314,10 +1315,11 @@ function loadCurriculaFromFirebase(){
     var saved = snap.val();
     if(!saved || !Array.isArray(saved)){ console.log('Firebase: no saved curricula, using HTML defaults.'); return; }
     // HTML is the source of truth for F-25 BEET (removed) and BEEP/BEEE/BEEV (updated)
-    var STALE_IDS = ['beet_f25','beep_f25','beee_f25','beev_f25'];  // stale cloud copies are dropped; local HTML copies re-inserted below
+    var STALE_IDS = ['beet_f25','beep_f25','beee_f25','beev_f25','msphd_ee','msphd_ce'];  // stale cloud copies are dropped; local HTML copies re-inserted below
     var localKeep = ['beet_f25','beep_f25','beee_f25','beev_f25'].map(function(id){
       return curricula.filter(function(c){ return c && c.id === id; })[0];
     }).filter(Boolean);
+    var msKeep = curricula.filter(function(c){ return c && (c.id==='msphd_ee'||c.id==='msphd_ce'); });
     curricula.length = 0;
     saved.forEach(function(c){
       if(!c || STALE_IDS.indexOf(c.id) !== -1) return;
@@ -1325,8 +1327,10 @@ function loadCurriculaFromFirebase(){
       curricula.push(c);
     });
     localKeep.forEach(function(k){ curricula.push(k); });
+    msKeep.slice().reverse().forEach(function(k){ curricula.unshift(k); });
     var el = document.getElementById('curriculaCount');
     if(el) el.textContent = curricula.length + (curricula.length===1?' Curriculum':' Curricula');
+    try{ searchIndex = buildSearchIndex(); }catch(e){}
     console.log('Firebase: curricula loaded');
   }, function(err){ console.warn('Firebase curricula load error:', err); });
 }
@@ -1492,42 +1496,25 @@ a:focus-visible,button:focus-visible,select:focus-visible,input:focus-visible,.p
           <div class="parent-card-icon">🎓</div>
           <div class="parent-card-text">
             <h2>Course Curricula</h2>
-            <p>All approved degree curricula for Bachelor programmes at Air University. Each curriculum contains the full semester-wise course breakdown.</p>
-            <div class="parent-card-chips"><span class="chip gold">14 Curricula</span><span class="chip">BCE · BEET · BEEE · BEEP · BEEV · BSE · F-22</span><span class="chip">Air University</span><span class="chip">All Programmes</span><span class="chip">Room · Faculty · Timing</span><span class="chip">Grade Distribution</span><span class="chip">Pass / Fail Stats</span></div>
+            <p>All approved degree curricula for Bachelor and Postgraduate programmes (MS/PhDEE and MSCE/PhDCE) at Air University. Each curriculum contains the full course breakdown.</p>
+            <div class="parent-card-chips"><span class="chip gold">16 Curricula</span><span class="chip">BCE · BEET · BEEE · BEEP · BEEV · BSE · F-22 · MS/PhDEE · MSCE/PhDCE</span><span class="chip">Air University</span><span class="chip">All Programmes</span></div>
           </div>
           <div class="parent-card-arrow">›</div>
         </div>
       </div>
 
-      <!-- SESSION COURSES CARD -->
-      <div class="parent-card" id="sessionCard" style="cursor:default;" onclick="event.stopPropagation()">
-        <div class="parent-card-inner" style="flex-wrap:wrap;gap:1rem;">
-          <div class="parent-card-icon">📅</div>
-          <div class="parent-card-text" style="flex:1;min-width:200px;">
-            <h2>Course initiation Semester-wise</h2>
-            <p>Select a session to view all courses being taught across every programme for that semester period.</p>
-            <div class="parent-card-chips" style="margin-top:0.8rem;align-items:center;gap:0.6rem;flex-wrap:wrap;">
-              <label style="font-family:'Source Code Pro',monospace;font-size:0.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;">Session:</label>
-              <select id="sessionSelect" onchange="onSessionChange()" style="
-                font-family:'Source Code Pro',monospace;font-size:0.72rem;
-                background:var(--paper);border:1px solid var(--faint);
-                border-bottom:2px solid var(--rule);padding:0.3rem 0.6rem;
-                color:var(--ink);outline:none;cursor:pointer;
-              ">
-                <option value="">— Select Session —</option>
-                <option value="fall2026">Fall 2026  (Sem I, III, V, VII)</option>
-                <option value="spring2027">Spring 2027  (Sem II, IV, VI, VIII)</option>
-                <option value="fall2027">Fall 2027  (Sem I, III, V, VII)</option>
-                <option value="spring2028">Spring 2028  (Sem II, IV, VI, VIII)</option>
-                <option value="fall2028">Fall 2028  (Sem I, III, V, VII)</option>
-                <option value="spring2029">Spring 2029  (Sem II, IV, VI, VIII)</option>
-              </select>
-              <button onclick="openSessionModal()" id="sessionViewBtn" style="display: inline-block; font-family: &quot;Source Code Pro&quot;, monospace; font-size: 0.68rem; background: var(--ink); color: var(--cream); border-width: medium; border-style: none; border-color: currentcolor; border-image: initial; padding: 0.35rem 0.9rem; cursor: pointer; letter-spacing: 0.04em; transition: background 0.15s;" onmouseover="this.style.background='var(--ink2)'" onmouseout="this.style.background='var(--ink)'">
-                View Courses ›
-              </button>
-            </div>
-            <div id="sessionPreviewChips" style="display:flex;gap:0.4rem;flex-wrap:wrap;margin-top:0.6rem;"><span class="chip gold">Fall 2026</span><span class="chip">Sem 1 · F-26</span><span class="chip">Sem 3 · F-25</span><span class="chip">Sem 5 · F-24</span><span class="chip">Sem 7 · F-23</span></div>
+      <h2 class="group-title">Postgraduate programmes<small>MS and PhD information for Electrical &amp; Computer Engineering</small></h2>
+
+      <!-- PG PORTAL CARD -->
+      <div class="parent-card" data-card="pg_portal" data-url="https://auecepg.pages.dev" role="link" tabindex="0" onclick="openCardLink(this,event)" onkeydown="if(event.key==='Enter')openCardLink(this,event)">
+        <div class="parent-card-inner">
+          <div class="parent-card-icon">🎓</div>
+          <div class="parent-card-text">
+            <h2>ECE Postgraduate (PG) Portal</h2>
+            <p>Postgraduate portal of the Department of Electrical &amp; Computer Engineering, Air University.</p>
+            <div class="parent-card-chips"><span class="chip">auecepg.pages.dev</span></div>
           </div>
+          <div class="parent-card-arrow">›</div>
         </div>
       </div>
 
@@ -1600,6 +1587,40 @@ a:focus-visible,button:focus-visible,select:focus-visible,input:focus-visible,.p
         </div>
       </div>
 
+      <h2 class="group-title">Course initiation<small>Courses being taught across all programmes, by session</small></h2>
+
+      <!-- SESSION COURSES CARD -->
+      <div class="parent-card" id="sessionCard" style="cursor:default;" onclick="event.stopPropagation()">
+        <div class="parent-card-inner" style="flex-wrap:wrap;gap:1rem;">
+          <div class="parent-card-icon">📅</div>
+          <div class="parent-card-text" style="flex:1;min-width:200px;">
+            <h2>Course initiation Semester-wise</h2>
+            <p>Select a session to view all courses being taught across every programme for that semester period.</p>
+            <div class="parent-card-chips" style="margin-top:0.8rem;align-items:center;gap:0.6rem;flex-wrap:wrap;">
+              <label style="font-family:'Source Code Pro',monospace;font-size:0.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;">Session:</label>
+              <select id="sessionSelect" onchange="onSessionChange()" style="
+                font-family:'Source Code Pro',monospace;font-size:0.72rem;
+                background:var(--paper);border:1px solid var(--faint);
+                border-bottom:2px solid var(--rule);padding:0.3rem 0.6rem;
+                color:var(--ink);outline:none;cursor:pointer;
+              ">
+                <option value="">— Select Session —</option>
+                <option value="fall2026">Fall 2026  (Sem I, III, V, VII)</option>
+                <option value="spring2027">Spring 2027  (Sem II, IV, VI, VIII)</option>
+                <option value="fall2027">Fall 2027  (Sem I, III, V, VII)</option>
+                <option value="spring2028">Spring 2028  (Sem II, IV, VI, VIII)</option>
+                <option value="fall2028">Fall 2028  (Sem I, III, V, VII)</option>
+                <option value="spring2029">Spring 2029  (Sem II, IV, VI, VIII)</option>
+              </select>
+              <button onclick="openSessionModal()" id="sessionViewBtn" style="display: inline-block; font-family: &quot;Source Code Pro&quot;, monospace; font-size: 0.68rem; background: var(--ink); color: var(--cream); border-width: medium; border-style: none; border-color: currentcolor; border-image: initial; padding: 0.35rem 0.9rem; cursor: pointer; letter-spacing: 0.04em; transition: background 0.15s;" onmouseover="this.style.background='var(--ink2)'" onmouseout="this.style.background='var(--ink)'">
+                View Courses ›
+              </button>
+            </div>
+            <div id="sessionPreviewChips" style="display:flex;gap:0.4rem;flex-wrap:wrap;margin-top:0.6rem;"><span class="chip gold">Fall 2026</span><span class="chip">Sem 1 · F-26</span><span class="chip">Sem 3 · F-25</span><span class="chip">Sem 5 · F-24</span><span class="chip">Sem 7 · F-23</span></div>
+          </div>
+        </div>
+      </div>
+
     </div><!-- /.cards-column -->
   </div><!-- /.main-layout -->
 </main>
@@ -1612,7 +1633,7 @@ a:focus-visible,button:focus-visible,select:focus-visible,input:focus-visible,.p
     <div class="modal-header">
       <div>
         <h2>🎓 Course Curricula</h2>
-        <p id="curriculaModalSub">All BCE/BEET curricula at Air University</p>
+        <p id="curriculaModalSub">All BCE/BEET and MS/PhD curricula at Air University</p>
       </div>
       <button class="close-btn" onclick="closeCurriculaModal()">✕</button>
     </div>
@@ -5310,7 +5331,7 @@ function renderCurriculaList() {
         '</div>';
     }).join('');
     if(!cardsHtml) cardsHtml = '<p class="no-results">No curricula match your search.</p>';
-    document.getElementById('curriculaModalSub').textContent = 'All BCE/BEET curricula at Air University';
+    document.getElementById('curriculaModalSub').textContent = 'All BCE/BEET and MS/PhD curricula at Air University';
     var crossHtml = q ? runCrossSearch(q) : '';
     body.innerHTML = searchHtml + '<div class="curricula-list">'+cardsHtml+'</div>' + crossHtml;
     var countEl = document.getElementById('curriculaCount2');
@@ -27808,6 +27829,140 @@ function openCardLink(el, ev){
       applyAll();
     }, function(err){ console.warn('Link cards load error:', err); });
   }
+})();
+</script>
+
+
+<!-- ══ MS/PhDEE & CE CURRICULA ══ -->
+<script>
+(function(){
+  var NEW_DATA={"msee_gen": {"title": "MS/PhDEE — General Courses (All Research Clusters)", "sub": "5 Courses · FQ100/FQ101 (0-1-1), EE710 (1-0-1) · Fall-2025 onwards", "rows": [["EE631", "Stochastic Processes", "—", "3", "Compulsory for MS"], ["EE651", "Linear Systems", "—", "3", "Compulsory for MS / Elective for PhD"], ["FQ100", "Fehm-e-Quran-I", "—", "0-1-1", "Compulsory for MS/PhD"], ["FQ101", "Fehm-e-Quran-II", "—", "0-1-1", "Compulsory for MS/PhD"], ["EE710", "Research Methodology", "—", "1-0-1", "Compulsory for MS/PhD"]]}, "msee_em": {"title": "MS/PhDEE — Electromagnetics and Photonics Cluster", "sub": "21 Electives · 3 Cr Hrs each", "rows": [["EE611", "Electromagnetic Fields", "—", "3", "Elective for MS/PhD"], ["EE613", "Advanced Optics", "—", "3", "Elective for MS/PhD"], ["EE614", "Optical Simulation Methods", "—", "3", "Elective for MS/PhD"], ["EE615", "Antenna Systems", "—", "3", "Elective for MS/PhD"], ["EE711", "Array Signal Processing", "—", "3", "Elective for MS/PhD"], ["EE712", "Detection and Estimation Theory", "—", "3", "Elective for MS/PhD"], ["EE713", "Radar Engineering", "—", "3", "Elective for MS/PhD"], ["EE714", "Electromagnetic Engineering", "—", "3", "Elective for MS/PhD"], ["EE715", "Computational Methods of Field Theory", "—", "3", "Elective for MS/PhD"], ["EE721", "Semiconductor Optoelectronic Devices", "—", "3", "Elective for MS/PhD"], ["EE722", "Integrated Photonics Circuits Design", "—", "3", "Elective for MS/PhD"], ["EE725", "Micro and Nano Fabrication Techniques", "—", "3", "Elective for MS/PhD"], ["EE811", "Advanced Array Signal Processing", "—", "3", "Elective for MS/PhD"], ["EE813", "Advanced Detection and Estimation Theory", "—", "3", "Elective for MS/PhD"], ["EE814", "Kalman Filters", "—", "3", "Elective for MS/PhD"], ["EE817", "Special Topics in Photonics", "—", "3", "Elective for MS/PhD"], ["EE818", "Special Topics in Lasers and Optics", "—", "3", "Elective for MS/PhD"], ["EE819", "Special Topics in Radar Systems Engineering", "—", "3", "Elective for MS/PhD"], ["EE630", "Intelligent Antenna Systems", "—", "3", "Elective for MS/PhD"], ["EE716", "Advanced Microwave Engineering", "—", "3", "Elective for MS/PhD"], ["EE717", "Antennas for 5G and Beyond", "—", "3", "Elective for MS/PhD"]]}, "msee_comm": {"title": "MS/PhDEE — Communication and Signal Processing Cluster", "sub": "24 Electives · 3 Cr Hrs each", "rows": [["EE632", "Adaptive Filters", "—", "3", "Elective for MS/PhD"], ["EE633", "Advanced Digital Communications I", "—", "3", "Elective for MS/PhD"], ["EE634", "Advanced Coding Theory", "—", "3", "Elective for MS/PhD"], ["EE635", "Satellite Communications", "—", "3", "Elective for MS/PhD"], ["EE636", "Advanced Mobile Communication", "—", "3", "Elective for MS/PhD"], ["EE637", "Lasers and Optical Sources", "—", "3", "Elective for MS/PhD"], ["EE638", "Photo-detectors", "—", "3", "Elective for MS/PhD"], ["EE731", "Optimization Techniques", "—", "3", "Elective for MS/PhD"], ["EE732", "Advanced Digital Communications II", "—", "3", "Elective for MS/PhD"], ["EE733", "Information Theory", "—", "3", "Elective for MS/PhD"], ["EE734", "Multimedia Communications", "—", "3", "Elective for MS/PhD"], ["EE735", "Optical Waveguide Design", "—", "3", "Elective for MS/PhD"], ["EE831", "Advanced Wireless Techniques", "—", "3", "Elective for MS/PhD"], ["EE832", "Space-Time Coding", "—", "3", "Elective for MS/PhD"], ["EE833", "Adaptive Wireless Transceivers", "—", "3", "Elective for MS/PhD"], ["EE834", "Statistical Signal Processing", "—", "3", "Elective for MS/PhD"], ["EE838", "Special Topics in Signal Processing", "—", "3", "Elective for MS/PhD"], ["EE839", "Special Topics in Digital Communication Systems", "—", "3", "Elective for MS/PhD"], ["EE726", "Telecommunication & Switching Principles", "—", "3", "Elective for MS/PhD"], ["EE827", "Advance Optical Fiber Communication", "—", "3", "Elective for MS/PhD"], ["EE618", "Digital Telephony", "—", "3", "Elective for MS/PhD"], ["EE619", "Telecommunication Network Management", "—", "3", "Elective for MS/PhD"], ["EE623", "Wireless Sensor Networks", "—", "3", "Elective for MS/PhD"], ["EE815", "Advanced Topics in Wireless Networks", "—", "3", "Elective for MS/PhD"]]}, "msee_pc": {"title": "MS/PhDEE — Power and Control Systems Cluster", "sub": "28 Electives · 3 Cr Hrs each", "rows": [["EE652", "Digital Control Systems", "—", "3", "Elective for MS/PhD"], ["EE653", "System Identification", "—", "3", "Elective for MS/PhD"], ["EE654", "Adaptive Control", "—", "3", "Elective for MS/PhD"], ["EE655", "Real-Time Control", "—", "3", "Elective for MS/PhD"], ["EE656", "Advanced Power Electronics", "—", "3", "Elective for MS/PhD"], ["EE657", "Evolutionary Engineering Optimization", "—", "3", "Elective for MS/PhD"], ["EE659", "Power Systems Component Modelling", "—", "3", "Elective for MS/PhD"], ["EE751", "Power Electronics for Power Systems", "—", "3", "Elective for MS/PhD"], ["EE752", "Advanced Neural Networks", "—", "3", "Elective for MS/PhD"], ["EE753", "Intelligent Control", "—", "3", "Elective for MS/PhD"], ["EE754", "Advanced Robotics and Control", "—", "3", "Elective for MS/PhD"], ["EE755", "Optimal Control", "—", "3", "Elective for MS/PhD"], ["EE756", "Robust Control", "—", "3", "Elective for MS/PhD"], ["EE757", "Sliding Mode Control", "—", "3", "Elective for MS/PhD"], ["EE758", "Dynamics and Controls of Electrical Machines", "—", "3", "Elective for MS/PhD"], ["EE759", "Special Topics in Intelligent Systems and Control", "—", "3", "Elective for MS/PhD"], ["EE760", "Advanced High Voltage Engineering and Breakdown Theory", "—", "3", "Elective for MS/PhD"], ["EE761", "Power System State Estimation", "—", "3", "Elective for MS/PhD"], ["EE851", "Nonlinear Systems & Control", "—", "3", "Elective for MS/PhD"], ["EE852", "Advanced Process Control", "—", "3", "Elective for MS/PhD"], ["EE853", "Power System Operation and Protections", "—", "3", "Elective for MS/PhD"], ["EE854", "Advanced Topics in Nature Inspired Optimization Techniques", "—", "3", "Elective for MS/PhD"], ["EE855", "Advanced Topics in Intelligent Systems and Control", "—", "3", "Elective for MS/PhD"], ["EE856", "Neuro-Fuzzy Control", "—", "3", "Elective for MS/PhD"], ["EE857", "Stochastic Control", "—", "3", "Elective for MS/PhD"], ["EE858", "Special Topics in Power and Control", "—", "3", "Elective for MS/PhD"], ["EE859", "Special Topics in Control Systems", "—", "3", "Elective for MS/PhD"], ["EE860", "Renewable Power Production and Transportation", "—", "3", "Elective for MS/PhD"]]}, "msee_ml": {"title": "MS/PhDEE — Machine Learning and Image Processing Cluster", "sub": "27 Electives · 3 Cr Hrs each · ** as marked in the approved list", "rows": [["EE671", "Digital Image Processing", "—", "3", "Elective for MS/PhD"], ["EE672", "Data Mining", "—", "3", "Elective for MS/PhD"], ["EE673", "Advanced Digital Image Processing", "—", "3", "Elective for MS/PhD"], ["EE771", "Pattern Recognition", "—", "3", "Elective for MS/PhD"], ["EE723", "Signal Processing for Machine Learning", "—", "3", "Elective for MS/PhD"], ["EE772", "Machine Learning", "—", "3", "Elective for MS/PhD"], ["EE773", "Computer Vision", "—", "3", "Elective for MS/PhD"], ["EE774", "Medical Imaging", "—", "3", "Elective for MS/PhD"], ["EE775", "Satellite Imaging", "—", "3", "Elective for MS/PhD"], ["EE776", "Visual Perception", "—", "3", "Elective for MS/PhD"], ["EE777", "Compressive Sensing", "—", "3", "Elective for MS/PhD"], ["EE778", "Graphical Models", "—", "3", "Elective for MS/PhD"], ["EE779", "Computational Intelligence", "—", "3", "Elective for MS/PhD"], ["EE781", "Advanced Computer Architecture", "—", "3", "Elective for MS/PhD"], ["EE782", "Advanced Operating Systems", "—", "3", "Elective for MS/PhD"], ["EE783", "High Performance Scientific Computing", "—", "3", "Elective for MS/PhD"], ["EE871", "Special Topics in Pattern Recognition", "—", "3", "Elective for MS/PhD"], ["EE872", "Special Topics in Signal and Image Processing", "—", "3", "Elective for MS/PhD"], ["EE873", "Special Topics in Machine Learning", "—", "3", "Elective for MS/PhD"], ["EE874", "Advanced Computer Vision", "—", "3", "Elective for MS/PhD"], ["EE884", "Parallel Computer Architecture", "—", "3", "Elective for MS/PhD"], ["EE718", "Internet of Things and Smart Systems**", "—", "3", "Elective for MS/PhD"], ["EE719", "Parallel Computing**", "—", "3", "Elective for MS/PhD"], ["EE720", "Advanced Computer Networks**", "—", "3", "Elective for MS/PhD"], ["EE621", "Internet Architectures and Protocols**", "—", "3", "Elective for MS/PhD"], ["EE820", "Selected Topics in Internet of Things (IoT**)", "—", "3", "Elective for MS/PhD"], ["EE784", "Cyber-Physical Systems Modelling**", "—", "3", "Elective for MS/PhD"]]}, "msee_thesis": {"title": "MS/PhDEE — Compulsory Thesis / Dissertations", "sub": "MS Thesis 6 Cr Hrs · PhD Dissertation 30 Cr Hrs", "rows": [["EE797", "MS Thesis", "—", "6", "Compulsory (MS)"], ["EE700", "MS Thesis in Progress", "—", "0", "Compulsory (MS)"], ["EE899", "Ph.D. Dissertation", "—", "30", "Compulsory (PhD)"], ["EE800", "Ph.D. Dissertation in Progress", "—", "0", "Compulsory (PhD)"]]}, "msce_core": {"title": "MSCE/PhDCE — Core Courses", "sub": "3 Courses · *Research Methodology is exempted for PhD students who studied it at MS level", "rows": [["CE612", "Advanced Digital System Design", "—", "3+0", "Core for MS"], ["CE613", "Embedded Systems", "—", "3+0", "Core for MS"], ["CE710", "Research Methodology*", "—", "1+0", "Core for MS/PhD"]]}, "msce_elec": {"title": "MSCE/PhDCE — Elective Courses", "sub": "43 Electives · 3+0 Cr Hrs each (CE-648 Deep Learning 1+0) · as per approved list", "rows": [["CE636", "Advanced Digital Signal Processing", "—", "3+0", "Elective for MS/PhD"], ["CE821", "Advanced Operating System", "—", "3+0", "Elective for PhD"], ["CE712", "Parallel Processing & Distributed Systems", "—", "3+0", "Elective for MS/PhD"], ["CE619", "Adaptive Control", "—", "3+0", "Elective for MS/PhD"], ["CE830", "Advanced Digital Communication", "—", "3+0", "Elective for PhD"], ["CE631", "Stochastic Processes", "—", "3+0", "Elective for MS/PhD"], ["CE820", "Advanced Software Engineering", "—", "3+0", "Elective for PhD"], ["CE722", "Software Development Methodologies", "—", "3+0", "Elective for MS/PhD"], ["CE831", "Selected Topics in Computer Networks", "—", "3+0", "Elective for PhD"], ["CE832", "Advanced Computer Networks", "—", "3+0", "Elective for MS/PhD"], ["CE833", "Advanced Topics in Wireless Networks", "—", "3+0", "Elective for MS/PhD"], ["CE742", "Machine Learning", "—", "3+0", "Elective for MS/PhD"], ["CE823", "Advanced Object Oriented Analysis and Design", "—", "3+0", "Elective for PhD"], ["CE713", "DSP Hardware System Design", "—", "3+0", "Elective for MS/PhD"], ["CE632", "Microelectronics", "—", "3+0", "Elective for MS/PhD"], ["CE614", "Adaptive Control", "—", "3+0", "Elective for MS/PhD"], ["CE734", "Adaptive Signal Processing", "—", "3+0", "Elective for MS/PhD"], ["CE735", "Adaptive Techniques for Wireless Communication", "—", "3+0", "Elective for MS/PhD"], ["CE836", "Advanced Wireless Communication", "—", "3+0", "Elective for PhD"], ["CE851", "Advanced Engineering Mathematics", "—", "3+0", "Elective for PhD"], ["CE852", "Advanced Numerical Analysis", "—", "3+0", "Elective for PhD"], ["CE724", "Image Processing for Intelligent Systems", "—", "3+0", "Elective for MS/PhD"], ["CE714", "Machine Vision", "—", "3+0", "Elective for MS/PhD"], ["CE815", "Advanced Embedded Systems", "—", "3+0", "Elective for PhD"], ["CE743", "Artificial Neural Network", "—", "3+0", "Elective for MS/PhD"], ["CE637", "Computer Network", "—", "3+0", "Elective for MS/PhD"], ["CE725", "Pattern Recognition & Analysis", "—", "3+0", "Elective for MS/PhD"], ["CE826", "Advanced Pattern Recognition", "—", "3+0", "Elective for PhD"], ["CE616", "Computer Vision", "—", "3+0", "Elective for MS/PhD"], ["CE816", "Advanced Topics in Computer Vision", "—", "3+0", "Elective for PhD"], ["CE753", "Detection and Estimation Theory", "—", "3+0", "Elective for MS/PhD"], ["CE645", "Digital Image Processing", "—", "3+0", "Elective for MS/PhD"], ["CE747", "Network Switching & Routing", "—", "3+0", "Elective for MS/PhD"], ["CE638", "Design of Computer Communication Networks", "—", "3+0", "Elective for MS/PhD"], ["CE746", "Natural Language Processing", "—", "3+0", "Elective for MS/PhD"], ["CE737", "Cloud Computing", "—", "3+0", "Elective for MS/PhD"], ["CE647", "Data Mining", "—", "3+0", "Elective for MS/PhD"], ["CE648", "Deep Learning", "—", "1+0", "Elective for MS/PhD"], ["CE718", "IOT and Smart Systems", "—", "3+0", "Elective for MS/PhD"], ["CE819", "Selected Topics in IOTs", "—", "3+0", "Elective for PhD"], ["CE699", "Human Computer Interface", "—", "3+0", "Elective for MS/PhD"], ["CE738", "Wireless Sensor Network", "—", "3+0", "Elective for MS/PhD"], ["CE855", "Special Topics in Robotics", "—", "3+0", "Elective for PhD"]]}};
+  var NEW_META={"msee_gen": {"icon": "📚", "label": "General Courses", "desc": "Compulsory courses for all research clusters: Stochastic Processes, Linear Systems, Fehm-e-Quran I & II, Research Methodology.", "chips": ["5 Courses", "COMPULSORY", "MS & PhD"]}, "msee_em": {"icon": "📡", "label": "Electromagnetics & Photonics", "desc": "Fields, optics, antennas, radar, array processing, photonic circuits and fabrication.", "chips": ["21 Courses", "ELECTIVE", "MS & PhD"]}, "msee_comm": {"icon": "📶", "label": "Communication & Signal Processing", "desc": "Digital communications, coding, wireless, optical communication, telecom networks.", "chips": ["24 Courses", "ELECTIVE", "MS & PhD"]}, "msee_pc": {"icon": "⚡", "label": "Power & Control Systems", "desc": "Control, power electronics, power systems, robotics, optimization and intelligent control.", "chips": ["28 Courses", "ELECTIVE", "MS & PhD"]}, "msee_ml": {"icon": "🤖", "label": "Machine Learning & Image Processing", "desc": "Image processing, pattern recognition, machine learning, computer vision, IoT and computing.", "chips": ["27 Courses", "ELECTIVE", "MS & PhD"]}, "msee_thesis": {"icon": "🎓", "label": "Thesis / Dissertation", "desc": "MS Thesis (6 Cr Hrs), PhD Dissertation (30 Cr Hrs) and their in-progress codes.", "chips": ["4 Items", "COMPULSORY", "MS & PhD"]}, "msce_core": {"icon": "🧩", "label": "Core Courses", "desc": "Advanced Digital System Design, Embedded Systems (MS) and Research Methodology (MS/PhD).", "chips": ["3 Courses", "CORE", "MS & PhD"]}, "msce_elec": {"icon": "🖥️", "label": "Elective Courses", "desc": "Computer networks, vision, machine learning, signal processing, IoT, software engineering and more.", "chips": ["43 Courses", "ELECTIVE", "MS & PhD"]}};
+  var NEW_CURR=[{"id": "msphd_ee", "badge": "MS/PhDEE", "title": "MS/PhD Electrical Engineering — Graduate Course List", "subtitle": "Graduate Course List for MS & PhD (Fall-2025 onwards)", "dept": "Dept. of Electrical & Computer Engineering · AU, Islamabad", "chips": ["105 Courses", "5 Research Clusters", "MS & PhD"], "icon": "🎓", "cards": ["msee_gen", "msee_em", "msee_comm", "msee_pc", "msee_ml", "msee_thesis"], "semKeys": ["msee_gen", "msee_em", "msee_comm", "msee_pc", "msee_ml", "msee_thesis"]}, {"id": "msphd_ce", "badge": "MSCE/PhDCE", "title": "MS/PhD Computer Engineering — Graduate Course List", "subtitle": "MS/Ph.D. Computer Engineering — Core & Elective Courses", "dept": "Dept. of Electrical & Computer Engineering · AU, Islamabad", "chips": ["46 Courses", "Core + Elective", "MS & PhD"], "icon": "🎓", "cards": ["msce_core", "msce_elec"], "semKeys": ["msce_core", "msce_elec"]}];
+  Object.keys(NEW_DATA).forEach(function(k){ if(!data[k]) data[k]=NEW_DATA[k]; });
+  Object.keys(NEW_META).forEach(function(k){ if(!cardMeta[k]) cardMeta[k]=NEW_META[k]; });
+  NEW_CURR.slice().reverse().forEach(function(c){ if(!curricula.some(function(x){return x&&x.id===c.id;})) curricula.unshift(c); });
+  if(typeof activeSemCurrId!=='undefined' && /^msphd_/.test(activeSemCurrId)) activeSemCurrId='bce_f25';
+  searchIndex=buildSearchIndex();
+  var n=curricula.length;
+  var el=document.getElementById('curriculaCount'); if(el) el.textContent=n+(n===1?' Curriculum':' Curricula');
+  document.querySelectorAll('.parent-card-chips .chip.gold').forEach(function(ch){ if(/Curricula/.test(ch.textContent)) ch.textContent=n+' Curricula'; });
+})();
+</script>
+<!-- ══ DYNAMIC / ANIMATED LOOK ══ -->
+<style id="fx-style">
+#fxProgress{position:fixed;top:0;left:0;height:3px;width:0;z-index:9999;background:linear-gradient(90deg,#2980d4,#7aafd4,#2980d4);box-shadow:0 0 8px rgba(41,128,212,.7);transition:width .1s linear}
+/* header */
+header{background-size:220% 220%!important;animation:fxGrad 14s ease-in-out infinite}
+@keyframes fxGrad{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
+header::after{content:'';position:absolute;inset:0;pointer-events:none;background:radial-gradient(circle at 15% 30%,rgba(122,175,212,.25),transparent 40%),radial-gradient(circle at 85% 70%,rgba(41,128,212,.28),transparent 45%);animation:fxGlow 9s ease-in-out infinite alternate}
+@keyframes fxGlow{from{opacity:.5;transform:scale(1)}to{opacity:1;transform:scale(1.08)}}
+.header-logo{animation:fxFloat 5s ease-in-out infinite;filter:drop-shadow(0 6px 14px rgba(0,0,0,.35))}
+@keyframes fxFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
+.header-text .badge{animation:fxSlide .8s .1s both}
+header h1{animation:fxSlide .8s .25s both}
+header h1 span{background:linear-gradient(90deg,#2980d4,#9fd0f5,#2980d4);background-size:200% auto;-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent!important;animation:fxShine 5s linear infinite}
+header p{animation:fxSlide .8s .4s both}
+@keyframes fxShine{to{background-position:200% center}}
+@keyframes fxSlide{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+/* icons */
+.fx-ico{flex-shrink:0;width:52px;height:52px;border-radius:14px;display:flex;align-items:center;justify-content:center;color:#fff;background:linear-gradient(135deg,#0a4a8a,#2980d4);box-shadow:0 6px 14px rgba(10,74,138,.28);transition:transform .35s cubic-bezier(.3,1.6,.5,1),box-shadow .3s}
+.fx-ico svg{width:26px;height:26px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.parent-card:hover .fx-ico,.split-half:hover .fx-ico{transform:rotate(-8deg) scale(1.12);box-shadow:0 10px 20px rgba(10,74,138,.38)}
+.split-half .fx-ico{width:44px;height:44px;border-radius:12px}
+.split-half .fx-ico svg{width:22px;height:22px}
+.fx-gi{display:inline-flex;width:30px;height:30px;border-radius:9px;align-items:center;justify-content:center;background:var(--parchment);color:var(--accent);margin-right:.6rem;align-self:center}
+.fx-gi svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+/* cards */
+.parent-card{position:relative;overflow:hidden;transition:transform .3s cubic-bezier(.2,.8,.3,1),box-shadow .3s,border-color .3s}
+.parent-card:hover{transform:translateY(-4px);box-shadow:0 14px 28px rgba(10,74,138,.16);border-left-color:var(--gold-lt)}
+.parent-card::before{content:'';position:absolute;top:0;left:-120%;width:60%;height:100%;background:linear-gradient(100deg,transparent,rgba(41,128,212,.12),transparent);transform:skewX(-20deg);pointer-events:none}
+.parent-card:hover::before{left:140%;transition:left .8s ease}
+.parent-card:hover .parent-card-arrow{transform:translateX(5px)}
+.parent-card-arrow{transition:transform .25s,background .25s,color .25s}
+.parent-card-arrow{animation:fxNudge 2.4s ease-in-out infinite}
+@keyframes fxNudge{0%,100%{margin-left:0}50%{margin-left:4px}}
+.parent-card:hover .parent-card-arrow{animation:none}
+.chip{transition:transform .2s,background .2s}.chip:hover{transform:translateY(-2px)}
+.group-title{position:relative}
+.group-title::after{content:'';position:absolute;left:0;bottom:-1px;height:2px;width:0;background:linear-gradient(90deg,var(--gold-lt),transparent);transition:width .9s ease}
+.group-title.fx-in::after{width:140px}
+/* scroll reveal (only when motion allowed) */
+.fx-pre{opacity:0;transform:translateY(26px)}
+.fx-pre.fx-in{opacity:1;transform:none;transition:opacity .7s ease,transform .7s cubic-bezier(.2,.8,.3,1)}
+.parent-card.fx-pre.fx-in:hover{transform:translateY(-4px)}
+/* live pulse on "Live" chip */
+.chip.fx-live::before{content:'';display:inline-block;width:7px;height:7px;border-radius:50%;background:#2e9e5b;margin-right:.4rem;animation:fxPulse 1.6s ease-out infinite}
+@keyframes fxPulse{0%{box-shadow:0 0 0 0 rgba(46,158,91,.6)}100%{box-shadow:0 0 0 9px rgba(46,158,91,0)}}
+.site-footer{background:linear-gradient(90deg,#fff,#eef6fd,#fff)}
+@media(max-width:640px){.fx-ico{width:44px;height:44px}}
+@media(prefers-reduced-motion:reduce){header,.header-logo,header::after,header h1 span,.parent-card-arrow{animation:none!important}.fx-pre{opacity:1;transform:none}}
+</style>
+<div id="fxProgress"></div>
+<script>
+(function(){
+  var P={
+    book:'<svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5v14z"/><path d="M20 17v4H6.5A2.5 2.5 0 0 1 4 18.5"/><path d="M9 7h7M9 11h5"/></svg>',
+    grad:'<svg viewBox="0 0 24 24"><path d="M2 9l10-5 10 5-10 5L2 9z"/><path d="M6 11.5V16c0 1.5 3 3 6 3s6-1.5 6-3v-4.5"/><path d="M22 9v6"/></svg>',
+    bolt:'<svg viewBox="0 0 24 24"><path d="M13 2L4 14h7l-1 8 9-12h-7l1-8z"/></svg>',
+    chip:'<svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/><rect x="9.5" y="9.5" width="5" height="5"/><path d="M9 2v3M15 2v3M9 19v3M15 19v3M2 9h3M2 15h3M19 9h3M19 15h3"/></svg>',
+    clock:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>',
+    cal:'<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/><path d="M8 14h2M12 14h2M16 14h.01M8 17.5h2M12 17.5h2"/></svg>',
+    video:'<svg viewBox="0 0 24 24"><rect x="2" y="5" width="14" height="14" rx="2"/><path d="M16 10l6-3.5v11L16 14"/></svg>',
+    user:'<svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg>',
+    users:'<svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2 20c0-3.6 3.1-6 7-6s7 2.4 7 6"/><path d="M16 4.6a3.5 3.5 0 0 1 0 6.8M18 14.3c2.4.7 4 2.4 4 5.7"/></svg>',
+    rocket:'<svg viewBox="0 0 24 24"><path d="M5 15c-1.5 1.3-2 5-2 5s3.7-.5 5-2c.7-.8.7-2.1-.1-2.9A2.2 2.2 0 0 0 5 15z"/><path d="M12 15l-3-3a22 22 0 0 1 2-4 12.9 12.9 0 0 1 11-6c0 2.7-.8 7.5-6 11a22 22 0 0 1-4 2z"/><path d="M9 12H4s.6-3 2-4c1.6-1.1 5 0 5 0M12 15v5s3-.6 4-2c1.1-1.6 0-5 0-5"/></svg>'
+  };
+  function ico(k){var d=document.createElement('div');d.className='fx-ico';d.setAttribute('aria-hidden','true');d.innerHTML=P[k];return d}
+  function put(card,k,inner){
+    if(!card||card.querySelector(':scope > .fx-ico, :scope > .parent-card-inner > .fx-ico'))return;
+    var host=inner||card.querySelector('.parent-card-inner')||card;
+    var old=host.querySelector('.parent-card-icon'); if(old) old.style.display='none';
+    host.insertBefore(ico(k),host.firstChild);
+  }
+  function init(){
+    var cards=document.querySelectorAll('.cards-column .parent-card');
+    cards.forEach(function(c){
+      var dc=c.getAttribute('data-card'), id=c.id;
+      if(c.querySelector('.split-half')){
+        c.querySelectorAll('.split-half').forEach(function(a){
+          var k=a.getAttribute('data-card')||'';
+          var m=k==='load_ee'?'bolt':k==='load_cse'?'chip':k==='tt_ee'?'clock':k==='tt_cse'?'clock':'book';
+          put(c,m,a);
+        });
+      } else if(id==='sessionCard') put(c,'cal');
+      else if(dc==='pg_portal') put(c,'grad');
+      else if(dc==='online') put(c,'video');
+      else if(dc==='visiting') put(c,'users');
+      else put(c,'book');
+      // live chip
+      c.querySelectorAll('.chip').forEach(function(ch){ if(/^\s*live\s*$/i.test(ch.textContent)) ch.classList.add('fx-live'); });
+    });
+    // group title icons
+    var gi={'curricula':'book','postgraduate':'grad','loading':'users','online':'video','initiation':'rocket'};
+    document.querySelectorAll('.group-title').forEach(function(g){
+      if(g.querySelector('.fx-gi'))return;
+      var t=g.textContent.toLowerCase(),k='book';
+      for(var w in gi){ if(t.indexOf(w)>-1){k=gi[w];break} }
+      var s=document.createElement('span');s.className='fx-gi';s.innerHTML=P[k];g.insertBefore(s,g.firstChild);
+    });
+    // scroll reveal
+    var reduce=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var els=document.querySelectorAll('.cards-column .group-title,.cards-column .parent-card,.notes-panel');
+    if(!reduce&&'IntersectionObserver' in window){
+      var n=0;
+      var io=new IntersectionObserver(function(es){
+        es.forEach(function(e){ if(e.isIntersecting){ var el=e.target; setTimeout(function(){el.classList.add('fx-in')},(el._d||0)); io.unobserve(el);} });
+      },{threshold:.08});
+      els.forEach(function(el){ el._d=(n++%3)*90; el.classList.add('fx-pre'); io.observe(el); });
+      setTimeout(function(){ els.forEach(function(el){ if(!el.classList.contains('fx-in')) el.classList.add('fx-in'); }); },3500);
+    } else els.forEach(function(el){el.classList.add('fx-in')});
+    // scroll progress
+    var bar=document.getElementById('fxProgress');
+    function sp(){var h=document.documentElement;var m=h.scrollHeight-h.clientHeight;bar.style.width=(m>0?h.scrollTop/m*100:0)+'%'}
+    window.addEventListener('scroll',sp,{passive:true});sp();
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
 </script>
 </body></html>
