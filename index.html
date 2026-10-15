@@ -1560,7 +1560,7 @@ a:focus-visible,button:focus-visible,select:focus-visible,input:focus-visible,.p
         </div>
       </div>
 
-      <h2 class="group-title">Online classes and faculty<small>Monitor online sessions and find visiting faculty</small></h2>
+      <h2 class="group-title">Online classes<small>Monitor online class sessions</small></h2>
 
       <!-- ONLINE CLASSES MONITORING CARD -->
       <div class="parent-card" data-card="online" data-url="https://aupgece.github.io/pco/olc1" role="link" tabindex="0" onclick="openCardLink(this,event)" onkeydown="if(event.key==='Enter')openCardLink(this,event)">
@@ -1572,6 +1572,8 @@ a:focus-visible,button:focus-visible,select:focus-visible,input:focus-visible,.p
           <div class="parent-card-arrow">›</div>
         </div>
       </div>
+
+      <h2 class="group-title">Faculty members<small>Regular and visiting faculty databases</small></h2>
 
       <!-- REGULAR FACULTY MEMBERS CARD -->
       <div class="parent-card" id="fmCard" role="button" tabindex="0" onclick="openFmModal()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openFmModal()}">
@@ -1593,9 +1595,6 @@ a:focus-visible,button:focus-visible,select:focus-visible,input:focus-visible,.p
           <div class="parent-card-text">
             <h2>Visiting Faculty</h2>
             <p>Visiting faculty members database.</p>
-            <div class="parent-card-chips">
-              <span class="chip">Live</span>
-            </div>
           </div>
         </div>
       </div>
@@ -27946,13 +27945,13 @@ header p{animation:fxSlide .8s .4s both}
       } else if(id==='sessionCard') put(c,'cal');
       else if(dc==='pg_portal') put(c,'grad');
       else if(dc==='online') put(c,'video');
-      else if(dc==='visiting') put(c,'users');
+      else if(dc==='visiting'||id==='fmCard') put(c,'users');
       else put(c,'book');
       // live chip
       c.querySelectorAll('.chip').forEach(function(ch){ if(/^\s*live\s*$/i.test(ch.textContent)) ch.classList.add('fx-live'); });
     });
     // group title icons
-    var gi={'curricula':'book','postgraduate':'grad','loading':'users','online':'video','initiation':'rocket'};
+    var gi={'curricula':'book','postgraduate':'grad','loading':'users','online':'video','initiation':'rocket','faculty':'users'};
     document.querySelectorAll('.group-title').forEach(function(g){
       if(g.querySelector('.fx-gi'))return;
       var t=g.textContent.toLowerCase(),k='book';
