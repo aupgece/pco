@@ -60,7 +60,7 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible{ou
 </head>
 <body>
 <header><div class="hin">
-  <div><h1>Course Outlines</h1><p>Approved outlines submitted by faculty members. View online or download as PDF.</p></div>
+  <div><h1>Course Outlines</h1><p>Outlines submitted by faculty members. View online or download as PDF.</p></div>
   <a class="back" href="index.html">Back to Coordinator Office</a>
 </div></header>
 
@@ -80,7 +80,7 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible{ou
     <p class="meta" id="count"></p>
     <div class="wrap">
       <table>
-        <thead><tr><th>Course code</th><th>Course title</th><th>Programme</th><th>Session</th><th>Faculty member</th><th>Version</th><th>Outline</th></tr></thead>
+        <thead><tr><th>Course code</th><th>Course title</th><th>Programme</th><th>Session</th><th>Faculty member</th><th>Outline</th></tr></thead>
         <tbody id="rows"></tbody>
       </table>
       <div class="empty" id="empty" hidden>No outlines to show yet.</div>
@@ -93,8 +93,7 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible{ou
       <p class="sub">Fill in the details and attach your outline as a PDF. It appears under View outlines shortly after upload.</p>
       <div class="row">
         <div><label for="uCode">Course code</label><input id="uCode" placeholder="EE-201"></div>
-        <div><label for="uVer">Version</label><input id="uVer" placeholder="v1"></div>
-      </div>
+              </div>
       <label for="uTitle">Course title</label><input id="uTitle">
       <div class="row">
         <div><label for="uProg">Programme</label><select id="uProg"></select></div>
@@ -118,7 +117,7 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible{ou
 <script>
 // ── SETTINGS ───────────────────────────────────────────────────────────────
 // 1. Web app URL of the Apps Script (Code.gs) that saves uploads to Google Drive.
-var UPLOAD_URL = "https://script.google.com/macros/s/AKfycbz5W5mTWJ2oPiu4FMbet_4G5bBbF8AEQ40qCDDlhfNwfLbsmLrkSzBMTmotAnSmrwDd/exec";
+var UPLOAD_URL = "https://script.google.com/macros/s/AKfycbyzc1fczV5FhxYApY-gAOUTh-snfi-FejSPnVP5SE_qaxyBjEzAWTvPqaT502XGuR-o/exec";
 // 2. Published CSV link of the "Course Outlines" tab of the Google Sheet (File > Share > Publish to web > CSV).
 var SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT3BZbpm5XvJWIuvyWYJr_jcliG-5u_XhPbRKWpOX3PZlL7uB1qzWvzT2GrFh7_DJebR_i4RItQGnoE/pub?gid=797590339&single=true&output=csv";
 var PROGRAMMES = ["BCE","BEEE","BEEP","BEEV","BEET","BSE","MS/PhD EE","MS/PhD CE"];
@@ -126,12 +125,12 @@ var SESSIONS = ["Fall 2026","Spring 2027","Fall 2027","Spring 2028"];
 var MAX_MB = 100;
 // ───────────────────────────────────────────────────────────────────────────
 // Sheet columns used (set by Code.gs): Course Code | Course Title | Programme | Session | FM Name | Version | File Link | Status | Latest
-// Only rows with Status = Approved and Latest not "N" are shown.
+// All rows are shown (no approval or version check).
 
 var CHUNK = 6*256*1024; // 1.5 MB, must be a multiple of 256 KB
 var SAMPLE = [
-  {code:"EE-201",title:"Circuit Analysis",prog:"BEEE",sess:"Fall 2026",fm:"Sample FM 1",ver:"v1",link:"#"},
-  {code:"CS-101",title:"Programming Fundamentals",prog:"BCE",sess:"Fall 2026",fm:"Sample FM 2",ver:"v2",link:"#"}
+  {code:"EE-201",title:"Circuit Analysis",prog:"BEEE",sess:"Fall 2026",fm:"Sample FM 1",link:"#"},
+  {code:"CS-101",title:"Programming Fundamentals",prog:"BCE",sess:"Fall 2026",fm:"Sample FM 2",link:"#"}
 ];
 var data=[], $=function(i){return document.getElementById(i)};
 
@@ -153,14 +152,12 @@ function fromCSV(text){
   var rows=parseCSV(text); if(!rows.length) return [];
   var h=rows[0].map(function(x){return x.trim().toLowerCase()});
   function idx(names){ for(var n=0;n<names.length;n++){ for(var k=0;k<h.length;k++){ if(h[k].indexOf(names[n])>-1) return k; } } return -1; }
-  var ix={code:idx(["course code","code"]),title:idx(["course title","title"]),prog:idx(["programme","program"]),sess:idx(["session","semester"]),fm:idx(["fm name","faculty","fm"]),ver:idx(["version"]),link:idx(["file link","upload","file"]),status:idx(["status"]),latest:idx(["latest"])};
+  var ix={code:idx(["course code","code"]),title:idx(["course title","title"]),prog:idx(["programme","program"]),sess:idx(["session","semester"]),fm:idx(["fm name","faculty","fm"]),link:idx(["file link","upload","file"]),status:idx(["status"]),latest:idx(["latest"])};
   var out=[];
   rows.slice(1).forEach(function(r){
     function g(k){return ix[k]>-1?(r[ix[k]]||"").trim():""}
     if(!g("code")&&!g("title")) return;
-    if(ix.status>-1 && g("status").toLowerCase()!=="approved") return;
-    if(ix.latest>-1 && g("latest").toLowerCase().charAt(0)==="n") return;
-    out.push({code:g("code"),title:g("title"),prog:g("prog"),sess:g("sess"),fm:g("fm"),ver:g("ver"),link:g("link").split(",")[0].trim()});
+    out.push({code:g("code"),title:g("title"),prog:g("prog"),sess:g("sess"),fm:g("fm"),link:g("link").split(",")[0].trim()});
   });
   return out;
 }
@@ -179,7 +176,7 @@ function render(){
   }).sort(function(a,b){return a.code.localeCompare(b.code)});
   $("rows").innerHTML=list.map(function(d){
     var ok=d.link&&d.link!=="#";
-    return "<tr><td class='code'>"+esc(d.code)+"</td><td>"+esc(d.title)+"</td><td>"+(d.prog?"<span class='tag'>"+esc(d.prog)+"</span>":"")+"</td><td>"+esc(d.sess)+"</td><td>"+esc(d.fm)+"</td><td>"+esc(d.ver)+"</td><td class='act'>"+
+    return "<tr><td class='code'>"+esc(d.code)+"</td><td>"+esc(d.title)+"</td><td>"+(d.prog?"<span class='tag'>"+esc(d.prog)+"</span>":"")+"</td><td>"+esc(d.sess)+"</td><td>"+esc(d.fm)+"</td><td class='act'>"+
       (ok?"<button class='btn' data-i='"+data.indexOf(d)+"' onclick='openViewer(this)'>View</button><a class='btn' href='"+esc(dlUrl(d.link))+"'>Download</a>":"<span class='tag'>No file</span>")+"</td></tr>";
   }).join("");
   $("empty").hidden=list.length>0;
@@ -236,6 +233,15 @@ function readChunk(file,start){
     rd.readAsDataURL(file.slice(start,Math.min(start+CHUNK,file.size)));
   });
 }
+var SINGLE_MAX=8*1024*1024; // files up to 8 MB go in ONE request (fastest); bigger ones use pieces
+function readAll(file){
+  return new Promise(function(res,rej){
+    var rd=new FileReader();
+    rd.onload=function(){ res(rd.result.split(",")[1]) };
+    rd.onerror=rej;
+    rd.readAsDataURL(file);
+  });
+}
 function doUpload(){
   var f=$("uFile").files[0], v=function(i){return $(i).value.trim()};
   if(!UPLOAD_URL) return say("Uploads are not connected yet. Ask the coordinator office to finish the setup.","err");
@@ -243,27 +249,41 @@ function doUpload(){
   if(!f) return say("Choose your outline PDF.","err");
   if(f.type!=="application/pdf"&&!/\.pdf$/i.test(f.name)) return say("Only PDF files are accepted.","err");
   if(f.size>MAX_MB*1024*1024) return say("File is larger than "+MAX_MB+" MB. Compress it and try again.","err");
-  $("upGo").disabled=true; $("upBar").style.display="block"; $("upBar").value=0; say("Starting upload...");
-  var meta={action:"start",key:getKey(),name:f.name,size:f.size,code:v("uCode"),title:v("uTitle"),prog:$("uProg").value,sess:$("uSess").value,fm:v("uFm"),ver:v("uVer")||"v1"};
-  postRetry(meta,2).then(function(j){
-    if(!j.ok) throw new Error(j.error||"Upload could not start.");
-    var id=j.id;
-    function next(start){
-      if(start>=f.size) return Promise.resolve();
-      return readChunk(f,start).then(function(b64){
-        return postRetry({action:"chunk",id:id,start:start,total:f.size,data:b64},3);
-      }).then(function(r){
-        if(!r.ok) throw new Error(r.error||"Upload failed.");
-        var done=Math.min(start+CHUNK,f.size);
-        $("upBar").value=Math.round(done/f.size*100);
-        say("Uploading... "+$("upBar").value+"%");
-        return next(start+CHUNK);
-      });
-    }
-    return next(0);
-  }).then(function(){
+  $("upGo").disabled=true; $("upBar").style.display="block"; $("upBar").value=0; say("Uploading...");
+  var info={code:v("uCode"),title:v("uTitle"),prog:$("uProg").value,sess:$("uSess").value,fm:v("uFm")};
+  var job;
+  if(f.size<=SINGLE_MAX){
+    $("upBar").removeAttribute("value");
+    job=readAll(f).then(function(b64){
+      return postRetry(Object.assign({action:"upload",key:getKey(),name:f.name,data:b64},info),1);
+    }).then(function(j){
+      if(!j.ok) throw new Error(j.error||"Upload failed.");
+      return j.link;
+    });
+  } else {
+    var meta=Object.assign({action:"start",key:getKey(),name:f.name,size:f.size},info);
+    job=postRetry(meta,2).then(function(j){
+      if(!j.ok) throw new Error(j.error||"Upload could not start.");
+      var id=j.id;
+      function next(start){
+        return readChunk(f,start).then(function(b64){
+          return postRetry({action:"chunk",id:id,start:start,total:f.size,data:b64},3);
+        }).then(function(r){
+          if(!r.ok) throw new Error(r.error||"Upload failed.");
+          var done=Math.min(start+CHUNK,f.size);
+          $("upBar").value=Math.round(done/f.size*100);
+          say("Uploading... "+$("upBar").value+"%");
+          return done>=f.size ? r.link : next(start+CHUNK);
+        });
+      }
+      return next(0);
+    });
+  }
+  job.then(function(link){
     $("upGo").disabled=false; $("upBar").style.display="none";
-    say("Uploaded. It will appear in the list shortly (refresh the page in a few minutes).","ok");
+    data.push({code:info.code,title:info.title,prog:info.prog,sess:info.sess,fm:info.fm,link:link||"#"});
+    render();
+    say("Uploaded. Your outline is now in the list.","ok");
     $("uFile").value="";
   }).catch(function(e){
     $("upGo").disabled=false; $("upBar").style.display="none";
