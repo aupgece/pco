@@ -316,7 +316,7 @@ function doUpload(){
     $("uFile").value="";
     if(window.FB){
       return window.FB.add(entry).then(function(){ say("Uploaded and saved. Your outline is now in the list.","ok") })
-        .catch(function(e){ console.error(e); fsRows.push(entry); rebuild(); say("File uploaded, but the list could not be saved to Firebase ("+(e.code||e.message)+"). Check Firestore rules.","err") });
+        .catch(function(e){ console.error(e); fsRows.push(entry); rebuild(); say("File uploaded, but the list could not be saved to Firebase: "+fbErr(e),"err") });
     }
     sheetRows.push(entry); rebuild();
     say("Uploaded. Your outline is now in the list.","ok");
@@ -376,23 +376,30 @@ $("aSave").onclick=function(){
   editEls.forEach(function(el){ var t=el.textContent.trim(); if(t&&t!==defaults[el.dataset.k].trim()) texts[el.dataset.k]=t });
   $("aSave").disabled=true;
   window.FB.saveContent(texts).then(function(){ alert("Saved. Everyone will see the changes.") })
-    .catch(function(e){ console.error(e); alert("Could not save ("+(e.code||e.message)+"). Check the Firestore rules for the site collection.") })
+    .catch(function(e){ console.error(e); alert("Could not save: "+fbErr(e)) })
     .then(function(){ $("aSave").disabled=false });
 };
 $("aReset").onclick=function(){
   if(!confirm("Remove all text edits and go back to the original wording?")) return;
   if(!window.FB) return;
-  window.FB.saveContent({}).then(function(){ location.reload() }).catch(function(e){ alert("Could not reset ("+(e.code||e.message)+")") });
+  window.FB.saveContent({}).then(function(){ location.reload() }).catch(function(e){ alert("Could not reset: "+fbErr(e)) });
 };
 
 /* ---------- load list ---------- */
+function fbErr(e){
+  var c=(e&&e.code)||"", m=(e&&e.message)||String(e);
+  if(/permission/i.test(c+m)) return "Realtime Database rules are blocking this. In Firebase console > Realtime Database > Rules, allow read/write for co_outlines and co_site (see the rules given in chat), then click Publish.";
+  if(/network|unavailable|offline/i.test(c+m)) return "Cannot reach Firebase. Check the internet connection or any blocker/VPN.";
+  return c||m;
+}
 var started=false;
 function loadAll(){
   if(started) return; started=true;
+  if(!window.FB) showNote(window.FB_ERR||"Firebase is not connected: paste your firebaseConfig into the module script at the bottom of this file. Until then nothing is saved.");
   if(window.FB){
     window.FB.getContent().then(function(t){ if(!adminOn) applyContent(t) }).catch(function(e){ console.error(e) });
     window.FB.listen(function(rows){ fsRows=rows; rebuild() },
-      function(e){ console.error(e); showNote("Could not read from Firebase ("+(e.code||e.message)+"). Check the Firestore rules.") });
+      function(e){ console.error(e); showNote("Could not read from Firebase: "+fbErr(e)") });
   }
   if(!SHEET_CSV_URL){
     if(!window.FB) start(SAMPLE,"Showing sample data. Set SHEET_CSV_URL or the Firebase config.");
@@ -409,30 +416,30 @@ function loadAll(){
 setTimeout(loadAll,5000); // safety net if Firebase scripts are blocked
 </script>
 <script type="module">
-/* ---------- FIREBASE: paste your web app config here (Firebase console > Project settings > Your apps) ---------- */
+/* ---------- FIREBASE (same project as the PCO page: auecepco, Realtime Database) ---------- */
 var firebaseConfig = {
-  apiKey: "PASTE_API_KEY",
-  authDomain: "PASTE_PROJECT_ID.firebaseapp.com",
-  projectId: "PASTE_PROJECT_ID",
-  storageBucket: "PASTE_PROJECT_ID.appspot.com",
-  messagingSenderId: "PASTE_SENDER_ID",
-  appId: "PASTE_APP_ID"
+  apiKey:            "AIzaSyAW6Z6c1N5QVpB7iCWXhyjxHQImeCYRgxs",
+  authDomain:        "auecepco.firebaseapp.com",
+  databaseURL:       "https://auecepco-default-rtdb.firebaseio.com",
+  projectId:         "auecepco",
+  storageBucket:     "auecepco.firebasestorage.app",
+  messagingSenderId: "314187695897",
+  appId:             "1:314187695897:web:2718ba7cbe8bdf10bea788"
 };
 try{
-  if(firebaseConfig.apiKey.indexOf("PASTE")!==0){
-    var V="10.12.2", B="https://www.gstatic.com/firebasejs/"+V+"/";
-    var A=await import(B+"firebase-app.js"), F=await import(B+"firebase-firestore.js");
-    var db=F.getFirestore(A.initializeApp(firebaseConfig)), col=F.collection(db,"outlines");
-    window.FB={
-      getContent:function(){ return F.getDoc(F.doc(db,"site","content")).then(function(s){ return s.exists()?(s.data().texts||{}):{} }) },
-      saveContent:function(t){ return F.setDoc(F.doc(db,"site","content"),{texts:t,updatedAt:F.serverTimestamp()}) },
-      add:function(e){ return F.addDoc(col,Object.assign({},e,{createdAt:F.serverTimestamp()})) },
-      listen:function(ok,err){ return F.onSnapshot(col,function(snap){
-        ok(snap.docs.map(function(d){ var x=d.data(); return {code:x.code||"",title:x.title||"",prog:x.prog||"",sess:x.sess||"",fm:x.fm||"",link:x.link||"#"} }));
-      },err) }
-    };
-  }
-}catch(e){ console.error("Firebase failed to load",e) }
+  var B="https://www.gstatic.com/firebasejs/10.12.0/";
+  var A=await import(B+"firebase-app.js"), D=await import(B+"firebase-database.js");
+  var db=D.getDatabase(A.initializeApp(firebaseConfig,"co"));
+  window.FB={
+    getContent:function(){ return D.get(D.ref(db,"co_site/texts")).then(function(s){ return s.val()||{} }) },
+    saveContent:function(t){ return D.set(D.ref(db,"co_site/texts"),t) },
+    add:function(e){ return D.push(D.ref(db,"co_outlines"),Object.assign({},e,{createdAt:Date.now()})) },
+    listen:function(ok,err){ return D.onValue(D.ref(db,"co_outlines"),function(snap){
+      var v=snap.val()||{};
+      ok(Object.keys(v).map(function(k){ var x=v[k]; return {code:x.code||"",title:x.title||"",prog:x.prog||"",sess:x.sess||"",fm:x.fm||"",link:x.link||"#"} }));
+    },err) }
+  };
+}catch(e){ console.error("Firebase failed to load",e); window.FB_ERR="Firebase failed to load ("+(e.message||e)+"). Check that gstatic.com is not blocked." }
 window.loadAll();
 </script>
 </body>
