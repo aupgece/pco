@@ -1328,6 +1328,8 @@ function loadCurriculaFromFirebase(){
     });
     localKeep.forEach(function(k){ curricula.push(k); });
     msKeep.slice().reverse().forEach(function(k){ curricula.unshift(k); });
+    // cloud copies may still carry the old department wording
+    curricula.forEach(function(c){ if(c && typeof c.dept==='string') c.dept=c.dept.replace(/Dept\.? of Electrical (?:&amp;|&|and) Computer Engineering/g,'Dept. of Electrical Engineering and Dept. of Computer & Software Engineering'); });
     var el = document.getElementById('curriculaCount');
     if(el) el.textContent = curricula.length + (curricula.length===1?' Curriculum':' Curricula');
     try{ searchIndex = buildSearchIndex(); }catch(e){}
@@ -1503,7 +1505,7 @@ a:focus-visible,button:focus-visible,select:focus-visible,input:focus-visible,.p
         </div>
       </div>
 
-      <h2 class="group-title">Postgraduate programmes<small>MS and PhD information for Electrical &amp; Computer Engineering</small></h2>
+      <h2 class="group-title">Postgraduate programmes<small>MS and PhD information for Electrical Engineering and Computer &amp; Software Engineering</small></h2>
 
       <!-- PG PORTAL CARD -->
       <div class="parent-card" data-card="pg_portal" data-url="https://auecepg.pages.dev" role="link" tabindex="0" onclick="openCardLink(this,event)" onkeydown="if(event.key==='Enter')openCardLink(this,event)">
@@ -1511,7 +1513,7 @@ a:focus-visible,button:focus-visible,select:focus-visible,input:focus-visible,.p
           <div class="parent-card-icon">🎓</div>
           <div class="parent-card-text">
             <h2>ECE Postgraduate (PG) Portal</h2>
-            <p>Postgraduate portal of the Department of Electrical &amp; Computer Engineering, Air University.</p>
+            <p>Postgraduate portal of the Dept. of Electrical Engineering and Dept. of Computer &amp; Software Engineering, Air University.</p>
             <div class="parent-card-chips"><span class="chip">auecepg.pages.dev</span></div>
           </div>
           <div class="parent-card-arrow">›</div>
@@ -1637,7 +1639,7 @@ a:focus-visible,button:focus-visible,select:focus-visible,input:focus-visible,.p
   </div><!-- /.main-layout -->
 </main>
 
-<footer class="site-footer">Coordinator Office, Department of Electrical &amp; Computer Engineering · Air University, Islamabad</footer>
+<footer class="site-footer">Coordinator Office, Dept. of Electrical Engineering and Dept. of Computer &amp; Software Engineering · Air University, Islamabad</footer>
 
 <!-- CURRICULA PARENT MODAL -->
 <div class="overlay" id="curriculaOverlay" onclick="closeCurriculaIfOutside(event)">
@@ -1659,7 +1661,7 @@ a:focus-visible,button:focus-visible,select:focus-visible,input:focus-visible,.p
     <div class="modal-header">
       <div>
         <h2 id="modalTitle">BEEP F-25 Curriculum</h2>
-        <p id="modalSub">Bachelor of Electrical Engineering (Power) — Fall 2025 &amp; Beyond · Dept. of Electrical &amp; Computer Engineering · AU, Islamabad</p>
+        <p id="modalSub">Bachelor of Electrical Engineering (Power) — Fall 2025 &amp; Beyond · Dept. of Electrical Engineering and Dept. of Computer &amp; Software Engineering · AU, Islamabad</p>
       </div>
       <button class="close-btn" onclick="closeModal()">✕</button>
     </div>
@@ -5066,7 +5068,7 @@ var curricula = [
     badge: "BCE F-25",
     title: "BCE F-25 Curriculum",
     subtitle: "Bachelor of Computer Engineering — Fall 2025 & Beyond",
-    dept: "Dept. of Electrical & Computer Engineering · AU, Islamabad",
+    dept: "Dept. of Electrical Engineering and Dept. of Computer & Software Engineering · AU, Islamabad",
     chips: ["138 CR HRS", "46 Courses", "8 Semesters"],
     icon: "🖥️",
     semKeys: ["sem1","sem2","sem3","sem4","sem5","sem6","sem7","sem8"],
@@ -5078,7 +5080,7 @@ var curricula = [
     badge: "BEET F-25",
     title: "BEET F-25 Curriculum",
     subtitle: "Bachelor of Electrical Engineering (Telecom) — Fall 2025 & Beyond",
-    dept: "Dept. of Electrical & Computer Engineering · AU, Islamabad",
+    dept: "Dept. of Electrical Engineering and Dept. of Computer & Software Engineering · AU, Islamabad",
     chips: ["138 CR HRS", "47 Courses", "8 Semesters"],
     icon: "📡",
     semKeys: ["beet_sem1","beet_sem2","beet_sem3","beet_sem4","beet_sem5","beet_sem6","beet_sem7","beet_sem8"],
@@ -5090,7 +5092,7 @@ var curricula = [
     badge: "BEEP F-25",
     title: "BEEP F-25 Curriculum",
     subtitle: "Bachelor of Electrical Engineering (Power) — Fall 2025 & Beyond",
-    dept: "Dept. of Electrical & Computer Engineering · AU, Islamabad",
+    dept: "Dept. of Electrical Engineering and Dept. of Computer & Software Engineering · AU, Islamabad",
     chips: ["138 CR HRS", "47 Courses", "8 Semesters"],
     icon: "⚡",
     semKeys: ["beep_sem1","beep_sem2","beep_sem3","beep_sem4","beep_sem5","beep_sem6","beep_sem7","beep_sem8"],
@@ -5102,7 +5104,7 @@ var curricula = [
     badge: "BEEE F-25",
     title: "BEEE F-25 Curriculum",
     subtitle: "Bachelor of Electrical Engineering (Electronics) — Fall 2025 & Beyond",
-    dept: "Dept. of Electrical & Computer Engineering · AU, Islamabad",
+    dept: "Dept. of Electrical Engineering and Dept. of Computer & Software Engineering · AU, Islamabad",
     chips: ["138 CR HRS", "48 Courses", "8 Semesters"],
     icon: "🔌",
     semKeys: ["beee_sem1","beee_sem2","beee_sem3","beee_sem4","beee_sem5","beee_sem6","beee_sem7","beee_sem8"],
@@ -5114,7 +5116,7 @@ var curricula = [
     badge: "BEEV F-25",
     title: "BEEV F-25 Curriculum",
     subtitle: "Bachelor of Electrical Engineering (Electric Vehicles) — Fall 2025 & Beyond",
-    dept: "Dept. of Electrical & Computer Engineering · AU, Islamabad",
+    dept: "Dept. of Electrical Engineering and Dept. of Computer & Software Engineering · AU, Islamabad",
     chips: ["138 CR HRS", "47 Courses", "8 Semesters"],
     icon: "🚗",
     semKeys: ["beev_sem1","beev_sem2","beev_sem3","beev_sem4","beev_sem5","beev_sem6","beev_sem7","beev_sem8"],
@@ -5126,7 +5128,7 @@ var curricula = [
     badge: "BSE F-25",
     title: "BSE F-25 Curriculum",
     subtitle: "Bachelor of Software Engineering — Fall 2025 & Beyond",
-    dept: "Dept. of Electrical & Computer Engineering · AU, Islamabad",
+    dept: "Dept. of Electrical Engineering and Dept. of Computer & Software Engineering · AU, Islamabad",
     chips: ["138 CR HRS", "49 Courses", "8 Semesters"],
     icon: "💻",
     semKeys: ["bse_sem1","bse_sem2","bse_sem3","bse_sem4","bse_sem5","bse_sem6","bse_sem7","bse_sem8"],
@@ -5139,7 +5141,7 @@ var curricula = [
     badge: "BCE F-24",
     title: "BCE F-24 Curriculum",
     subtitle: "Bachelor of Computer Engineering — Fall 2024 & Beyond",
-    dept: "Dept. of Electrical & Computer Engineering · AU, Islamabad",
+    dept: "Dept. of Electrical Engineering and Dept. of Computer & Software Engineering · AU, Islamabad",
     chips: ["138 CR HRS", "45 Courses", "8 Semesters"],
     icon: "🖥️",
     semKeys: ["bce24_sem1","bce24_sem2","bce24_sem3","bce24_sem4","bce24_sem5","bce24_sem6","bce24_sem7","bce24_sem8"],
@@ -5151,7 +5153,7 @@ var curricula = [
     badge: "BEET F-24",
     title: "BEET F-24 Curriculum",
     subtitle: "Bachelor of Electrical Engineering (Telecom) — Fall 2024 & Beyond",
-    dept: "Dept. of Electrical & Computer Engineering · AU, Islamabad",
+    dept: "Dept. of Electrical Engineering and Dept. of Computer & Software Engineering · AU, Islamabad",
     chips: ["138 CR HRS", "46 Courses", "8 Semesters"],
     icon: "📡",
     semKeys: ["beet24_sem1","beet24_sem2","beet24_sem3","beet24_sem4","beet24_sem5","beet24_sem6","beet24_sem7","beet24_sem8"],
@@ -5163,7 +5165,7 @@ var curricula = [
     badge: "BEEP F-24",
     title: "BEEP F-24 Curriculum",
     subtitle: "Bachelor of Electrical Engineering (Power) — Fall 2024 & Beyond",
-    dept: "Dept. of Electrical & Computer Engineering · AU, Islamabad",
+    dept: "Dept. of Electrical Engineering and Dept. of Computer & Software Engineering · AU, Islamabad",
     chips: ["138 CR HRS", "46 Courses", "8 Semesters"],
     icon: "⚡",
     semKeys: ["beep24_sem1","beep24_sem2","beep24_sem3","beep24_sem4","beep24_sem5","beep24_sem6","beep24_sem7","beep24_sem8"],
@@ -5175,7 +5177,7 @@ var curricula = [
     badge: "BEEE F-24",
     title: "BEEE F-24 Curriculum",
     subtitle: "Bachelor of Electrical Engineering (Electronics) — Fall 2024 & Beyond",
-    dept: "Dept. of Electrical & Computer Engineering · AU, Islamabad",
+    dept: "Dept. of Electrical Engineering and Dept. of Computer & Software Engineering · AU, Islamabad",
     chips: ["138 CR HRS", "46 Courses", "8 Semesters"],
     icon: "🔌",
     semKeys: ["beee24_sem1","beee24_sem2","beee24_sem3","beee24_sem4","beee24_sem5","beee24_sem6","beee24_sem7","beee24_sem8"],
@@ -5188,7 +5190,7 @@ var curricula = [
     badge: "BCE F-22",
     title: "BCE F-22 Curriculum",
     subtitle: "Bachelor of Computer Engineering — Fall 2022 & Beyond",
-    dept: "Dept. of Electrical & Computer Engineering · AU, Islamabad",
+    dept: "Dept. of Electrical Engineering and Dept. of Computer & Software Engineering · AU, Islamabad",
     chips: ["134 CR HRS", "45 Courses", "8 Semesters"],
     icon: "🖥️",
     semKeys: ["bce22_sem1","bce22_sem2","bce22_sem3","bce22_sem4","bce22_sem5","bce22_sem6","bce22_sem7","bce22_sem8"],
@@ -5200,7 +5202,7 @@ var curricula = [
     badge: "BEET F-22",
     title: "BEET F-22 Curriculum",
     subtitle: "Bachelor of Electrical Engineering (Telecom) — Fall 2022 & Beyond",
-    dept: "Dept. of Electrical & Computer Engineering · AU, Islamabad",
+    dept: "Dept. of Electrical Engineering and Dept. of Computer & Software Engineering · AU, Islamabad",
     chips: ["134 CR HRS", "47 Courses", "8 Semesters"],
     icon: "📡",
     semKeys: ["beet22_sem1","beet22_sem2","beet22_sem3","beet22_sem4","beet22_sem5","beet22_sem6","beet22_sem7","beet22_sem8"],
@@ -5212,7 +5214,7 @@ var curricula = [
     badge: "BEEP F-22",
     title: "BEEP F-22 Curriculum",
     subtitle: "Bachelor of Electrical Engineering (Power) — Fall 2022 & Beyond",
-    dept: "Dept. of Electrical & Computer Engineering · AU, Islamabad",
+    dept: "Dept. of Electrical Engineering and Dept. of Computer & Software Engineering · AU, Islamabad",
     chips: ["136 CR HRS", "45 Courses", "8 Semesters"],
     icon: "⚡",
     semKeys: ["beep22_sem1","beep22_sem2","beep22_sem3","beep22_sem4","beep22_sem5","beep22_sem6","beep22_sem7","beep22_sem8"],
@@ -5224,7 +5226,7 @@ var curricula = [
     badge: "BEEE F-22",
     title: "BEEE F-22 Curriculum",
     subtitle: "Bachelor of Electrical Engineering (Electronics) — Fall 2022 & Beyond",
-    dept: "Dept. of Electrical & Computer Engineering · AU, Islamabad",
+    dept: "Dept. of Electrical Engineering and Dept. of Computer & Software Engineering · AU, Islamabad",
     chips: ["136 CR HRS", "45 Courses", "8 Semesters"],
     icon: "🔌",
     semKeys: ["beee22_sem1","beee22_sem2","beee22_sem3","beee22_sem4","beee22_sem5","beee22_sem6","beee22_sem7","beee22_sem8"],
@@ -6279,7 +6281,7 @@ function renderApCurricula(){
       '<div class="ap-row"><div class="ap-field"><label>Icon</label><input id="napc_icon" placeholder="🎓" style="width:70px"></div>'+
       '<div class="ap-field"><label>Title</label><input id="napc_title" placeholder="BCE F-26 Curriculum"></div></div>'+
       '<div class="ap-row"><div class="ap-field"><label>Subtitle</label><input id="napc_sub" placeholder="Bachelor of… — Fall 2026"></div></div>'+
-      '<div class="ap-row"><div class="ap-field"><label>Dept</label><input id="napc_dept" placeholder="Dept. of Elec. &amp; Computer Eng. · AU"></div></div>'+
+      '<div class="ap-row"><div class="ap-field"><label>Dept</label><input id="napc_dept" placeholder="Dept. of Electrical Engineering and Dept. of Computer &amp; Software Engineering · AU, Islamabad"></div></div>'+
       '<div class="ap-row"><div class="ap-field"><label>Chips (comma-separated)</label><input id="napc_chips" placeholder="138 CR HRS, 46 Courses"></div></div>'+
       '<div class="ap-row"><button class="admin-btn primary" style="width:100%;padding:0.5rem" onclick="addNewCurriculum()">+ Create Curriculum</button></div>'+
     '</div>'+
@@ -7185,7 +7187,7 @@ function exportSessionToWord(){
     children.push(new Paragraph({
       alignment:AlignmentType.CENTER,
       spacing:{after:200},
-      children:[new TextRun({text:'Department of Electrical & Computer Engineering',bold:true,size:22,font:'Arial',color:'1A5276'})]
+      children:[new TextRun({text:'Dept. of Electrical Engineering and Dept. of Computer & Software Engineering',bold:true,size:22,font:'Arial',color:'1A5276'})]
     }));
     children.push(new Paragraph({
       alignment:AlignmentType.LEFT,
@@ -7200,12 +7202,12 @@ function exportSessionToWord(){
     children.push(new Paragraph({
       alignment:AlignmentType.LEFT,
       spacing:{after:200},
-      children:[new TextRun({text:'Courses to be offered to Electrical & Computer Engineering students during Semester '+sessionTag,bold:true,underline:{},size:22,font:'Arial',color:'000000'})]
+      children:[new TextRun({text:'Courses to be offered to Electrical Engineering and Computer & Software Engineering students during Semester '+sessionTag,bold:true,underline:{},size:22,font:'Arial',color:'000000'})]
     }));
     children.push(new Paragraph({
       alignment:AlignmentType.LEFT,
       spacing:{after:360},
-      children:[new TextRun({text:'The following regular courses are to be offered to students of Electrical & Computer Engineering during the semester '+sessionTag+':',size:20,font:'Arial',color:'000000'})]
+      children:[new TextRun({text:'The following regular courses are to be offered to students of Electrical Engineering and Computer & Software Engineering during the semester '+sessionTag+':',size:20,font:'Arial',color:'000000'})]
     }));
 
     cfg.intakes.forEach(function(slot,slotIdx){
@@ -27652,6 +27654,9 @@ var __async = (__this, __arguments, generator) => {
   <span class="admin-bar-sep" id="adminSepA" style="display: none;"></span>
   <button class="admin-btn warn" id="adminPanelBtn" onclick="openAdminPanel()" style="display: none;">🛠 Edit Panel</button>
   <button class="admin-btn primary" id="adminExportBtn" onclick="exportData()" style="display: none;">💾 Export HTML</button>
+  <button class="admin-btn warn te-admin-btn" id="teToggleBtn" onclick="teToggle()" title="Click any text on the page to edit it">✎ Edit text</button>
+  <button class="admin-btn primary te-admin-btn" id="teSaveBtn" onclick="pcoBake()" title="Download an index.html with all edits saved inside it">💾 Save to index.html</button>
+  <button class="admin-btn te-admin-btn" id="teResetBtn" onclick="teResetAll()" title="Put all edited text back to the original wording">↺ Reset text</button>
   <button class="admin-btn danger" id="adminLogoutBtn" onclick="adminLogout()" style="display: none;">✕ Logout</button>
 </div>
 
@@ -27850,7 +27855,7 @@ function openCardLink(el, ev){
 (function(){
   var NEW_DATA={"msee_gen": {"title": "MS/PhDEE — General Courses (All Research Clusters)", "sub": "5 Courses · FQ100/FQ101 (0-1-1), EE710 (1-0-1) · Fall-2025 onwards", "rows": [["EE631", "Stochastic Processes", "—", "3", "Compulsory for MS"], ["EE651", "Linear Systems", "—", "3", "Compulsory for MS / Elective for PhD"], ["FQ100", "Fehm-e-Quran-I", "—", "0-1-1", "Compulsory for MS/PhD"], ["FQ101", "Fehm-e-Quran-II", "—", "0-1-1", "Compulsory for MS/PhD"], ["EE710", "Research Methodology", "—", "1-0-1", "Compulsory for MS/PhD"]]}, "msee_em": {"title": "MS/PhDEE — Electromagnetics and Photonics Cluster", "sub": "21 Electives · 3 Cr Hrs each", "rows": [["EE611", "Electromagnetic Fields", "—", "3", "Elective for MS/PhD"], ["EE613", "Advanced Optics", "—", "3", "Elective for MS/PhD"], ["EE614", "Optical Simulation Methods", "—", "3", "Elective for MS/PhD"], ["EE615", "Antenna Systems", "—", "3", "Elective for MS/PhD"], ["EE711", "Array Signal Processing", "—", "3", "Elective for MS/PhD"], ["EE712", "Detection and Estimation Theory", "—", "3", "Elective for MS/PhD"], ["EE713", "Radar Engineering", "—", "3", "Elective for MS/PhD"], ["EE714", "Electromagnetic Engineering", "—", "3", "Elective for MS/PhD"], ["EE715", "Computational Methods of Field Theory", "—", "3", "Elective for MS/PhD"], ["EE721", "Semiconductor Optoelectronic Devices", "—", "3", "Elective for MS/PhD"], ["EE722", "Integrated Photonics Circuits Design", "—", "3", "Elective for MS/PhD"], ["EE725", "Micro and Nano Fabrication Techniques", "—", "3", "Elective for MS/PhD"], ["EE811", "Advanced Array Signal Processing", "—", "3", "Elective for MS/PhD"], ["EE813", "Advanced Detection and Estimation Theory", "—", "3", "Elective for MS/PhD"], ["EE814", "Kalman Filters", "—", "3", "Elective for MS/PhD"], ["EE817", "Special Topics in Photonics", "—", "3", "Elective for MS/PhD"], ["EE818", "Special Topics in Lasers and Optics", "—", "3", "Elective for MS/PhD"], ["EE819", "Special Topics in Radar Systems Engineering", "—", "3", "Elective for MS/PhD"], ["EE630", "Intelligent Antenna Systems", "—", "3", "Elective for MS/PhD"], ["EE716", "Advanced Microwave Engineering", "—", "3", "Elective for MS/PhD"], ["EE717", "Antennas for 5G and Beyond", "—", "3", "Elective for MS/PhD"]]}, "msee_comm": {"title": "MS/PhDEE — Communication and Signal Processing Cluster", "sub": "24 Electives · 3 Cr Hrs each", "rows": [["EE632", "Adaptive Filters", "—", "3", "Elective for MS/PhD"], ["EE633", "Advanced Digital Communications I", "—", "3", "Elective for MS/PhD"], ["EE634", "Advanced Coding Theory", "—", "3", "Elective for MS/PhD"], ["EE635", "Satellite Communications", "—", "3", "Elective for MS/PhD"], ["EE636", "Advanced Mobile Communication", "—", "3", "Elective for MS/PhD"], ["EE637", "Lasers and Optical Sources", "—", "3", "Elective for MS/PhD"], ["EE638", "Photo-detectors", "—", "3", "Elective for MS/PhD"], ["EE731", "Optimization Techniques", "—", "3", "Elective for MS/PhD"], ["EE732", "Advanced Digital Communications II", "—", "3", "Elective for MS/PhD"], ["EE733", "Information Theory", "—", "3", "Elective for MS/PhD"], ["EE734", "Multimedia Communications", "—", "3", "Elective for MS/PhD"], ["EE735", "Optical Waveguide Design", "—", "3", "Elective for MS/PhD"], ["EE831", "Advanced Wireless Techniques", "—", "3", "Elective for MS/PhD"], ["EE832", "Space-Time Coding", "—", "3", "Elective for MS/PhD"], ["EE833", "Adaptive Wireless Transceivers", "—", "3", "Elective for MS/PhD"], ["EE834", "Statistical Signal Processing", "—", "3", "Elective for MS/PhD"], ["EE838", "Special Topics in Signal Processing", "—", "3", "Elective for MS/PhD"], ["EE839", "Special Topics in Digital Communication Systems", "—", "3", "Elective for MS/PhD"], ["EE726", "Telecommunication & Switching Principles", "—", "3", "Elective for MS/PhD"], ["EE827", "Advance Optical Fiber Communication", "—", "3", "Elective for MS/PhD"], ["EE618", "Digital Telephony", "—", "3", "Elective for MS/PhD"], ["EE619", "Telecommunication Network Management", "—", "3", "Elective for MS/PhD"], ["EE623", "Wireless Sensor Networks", "—", "3", "Elective for MS/PhD"], ["EE815", "Advanced Topics in Wireless Networks", "—", "3", "Elective for MS/PhD"]]}, "msee_pc": {"title": "MS/PhDEE — Power and Control Systems Cluster", "sub": "28 Electives · 3 Cr Hrs each", "rows": [["EE652", "Digital Control Systems", "—", "3", "Elective for MS/PhD"], ["EE653", "System Identification", "—", "3", "Elective for MS/PhD"], ["EE654", "Adaptive Control", "—", "3", "Elective for MS/PhD"], ["EE655", "Real-Time Control", "—", "3", "Elective for MS/PhD"], ["EE656", "Advanced Power Electronics", "—", "3", "Elective for MS/PhD"], ["EE657", "Evolutionary Engineering Optimization", "—", "3", "Elective for MS/PhD"], ["EE659", "Power Systems Component Modelling", "—", "3", "Elective for MS/PhD"], ["EE751", "Power Electronics for Power Systems", "—", "3", "Elective for MS/PhD"], ["EE752", "Advanced Neural Networks", "—", "3", "Elective for MS/PhD"], ["EE753", "Intelligent Control", "—", "3", "Elective for MS/PhD"], ["EE754", "Advanced Robotics and Control", "—", "3", "Elective for MS/PhD"], ["EE755", "Optimal Control", "—", "3", "Elective for MS/PhD"], ["EE756", "Robust Control", "—", "3", "Elective for MS/PhD"], ["EE757", "Sliding Mode Control", "—", "3", "Elective for MS/PhD"], ["EE758", "Dynamics and Controls of Electrical Machines", "—", "3", "Elective for MS/PhD"], ["EE759", "Special Topics in Intelligent Systems and Control", "—", "3", "Elective for MS/PhD"], ["EE760", "Advanced High Voltage Engineering and Breakdown Theory", "—", "3", "Elective for MS/PhD"], ["EE761", "Power System State Estimation", "—", "3", "Elective for MS/PhD"], ["EE851", "Nonlinear Systems & Control", "—", "3", "Elective for MS/PhD"], ["EE852", "Advanced Process Control", "—", "3", "Elective for MS/PhD"], ["EE853", "Power System Operation and Protections", "—", "3", "Elective for MS/PhD"], ["EE854", "Advanced Topics in Nature Inspired Optimization Techniques", "—", "3", "Elective for MS/PhD"], ["EE855", "Advanced Topics in Intelligent Systems and Control", "—", "3", "Elective for MS/PhD"], ["EE856", "Neuro-Fuzzy Control", "—", "3", "Elective for MS/PhD"], ["EE857", "Stochastic Control", "—", "3", "Elective for MS/PhD"], ["EE858", "Special Topics in Power and Control", "—", "3", "Elective for MS/PhD"], ["EE859", "Special Topics in Control Systems", "—", "3", "Elective for MS/PhD"], ["EE860", "Renewable Power Production and Transportation", "—", "3", "Elective for MS/PhD"]]}, "msee_ml": {"title": "MS/PhDEE — Machine Learning and Image Processing Cluster", "sub": "27 Electives · 3 Cr Hrs each · ** as marked in the approved list", "rows": [["EE671", "Digital Image Processing", "—", "3", "Elective for MS/PhD"], ["EE672", "Data Mining", "—", "3", "Elective for MS/PhD"], ["EE673", "Advanced Digital Image Processing", "—", "3", "Elective for MS/PhD"], ["EE771", "Pattern Recognition", "—", "3", "Elective for MS/PhD"], ["EE723", "Signal Processing for Machine Learning", "—", "3", "Elective for MS/PhD"], ["EE772", "Machine Learning", "—", "3", "Elective for MS/PhD"], ["EE773", "Computer Vision", "—", "3", "Elective for MS/PhD"], ["EE774", "Medical Imaging", "—", "3", "Elective for MS/PhD"], ["EE775", "Satellite Imaging", "—", "3", "Elective for MS/PhD"], ["EE776", "Visual Perception", "—", "3", "Elective for MS/PhD"], ["EE777", "Compressive Sensing", "—", "3", "Elective for MS/PhD"], ["EE778", "Graphical Models", "—", "3", "Elective for MS/PhD"], ["EE779", "Computational Intelligence", "—", "3", "Elective for MS/PhD"], ["EE781", "Advanced Computer Architecture", "—", "3", "Elective for MS/PhD"], ["EE782", "Advanced Operating Systems", "—", "3", "Elective for MS/PhD"], ["EE783", "High Performance Scientific Computing", "—", "3", "Elective for MS/PhD"], ["EE871", "Special Topics in Pattern Recognition", "—", "3", "Elective for MS/PhD"], ["EE872", "Special Topics in Signal and Image Processing", "—", "3", "Elective for MS/PhD"], ["EE873", "Special Topics in Machine Learning", "—", "3", "Elective for MS/PhD"], ["EE874", "Advanced Computer Vision", "—", "3", "Elective for MS/PhD"], ["EE884", "Parallel Computer Architecture", "—", "3", "Elective for MS/PhD"], ["EE718", "Internet of Things and Smart Systems**", "—", "3", "Elective for MS/PhD"], ["EE719", "Parallel Computing**", "—", "3", "Elective for MS/PhD"], ["EE720", "Advanced Computer Networks**", "—", "3", "Elective for MS/PhD"], ["EE621", "Internet Architectures and Protocols**", "—", "3", "Elective for MS/PhD"], ["EE820", "Selected Topics in Internet of Things (IoT**)", "—", "3", "Elective for MS/PhD"], ["EE784", "Cyber-Physical Systems Modelling**", "—", "3", "Elective for MS/PhD"]]}, "msee_thesis": {"title": "MS/PhDEE — Compulsory Thesis / Dissertations", "sub": "MS Thesis 6 Cr Hrs · PhD Dissertation 30 Cr Hrs", "rows": [["EE797", "MS Thesis", "—", "6", "Compulsory (MS)"], ["EE700", "MS Thesis in Progress", "—", "0", "Compulsory (MS)"], ["EE899", "Ph.D. Dissertation", "—", "30", "Compulsory (PhD)"], ["EE800", "Ph.D. Dissertation in Progress", "—", "0", "Compulsory (PhD)"]]}, "msce_core": {"title": "MSCE/PhDCE — Core Courses", "sub": "3 Courses · *Research Methodology is exempted for PhD students who studied it at MS level", "rows": [["CE612", "Advanced Digital System Design", "—", "3+0", "Core for MS"], ["CE613", "Embedded Systems", "—", "3+0", "Core for MS"], ["CE710", "Research Methodology*", "—", "1+0", "Core for MS/PhD"]]}, "msce_elec": {"title": "MSCE/PhDCE — Elective Courses", "sub": "43 Electives · 3+0 Cr Hrs each (CE-648 Deep Learning 1+0) · as per approved list", "rows": [["CE636", "Advanced Digital Signal Processing", "—", "3+0", "Elective for MS/PhD"], ["CE821", "Advanced Operating System", "—", "3+0", "Elective for PhD"], ["CE712", "Parallel Processing & Distributed Systems", "—", "3+0", "Elective for MS/PhD"], ["CE619", "Adaptive Control", "—", "3+0", "Elective for MS/PhD"], ["CE830", "Advanced Digital Communication", "—", "3+0", "Elective for PhD"], ["CE631", "Stochastic Processes", "—", "3+0", "Elective for MS/PhD"], ["CE820", "Advanced Software Engineering", "—", "3+0", "Elective for PhD"], ["CE722", "Software Development Methodologies", "—", "3+0", "Elective for MS/PhD"], ["CE831", "Selected Topics in Computer Networks", "—", "3+0", "Elective for PhD"], ["CE832", "Advanced Computer Networks", "—", "3+0", "Elective for MS/PhD"], ["CE833", "Advanced Topics in Wireless Networks", "—", "3+0", "Elective for MS/PhD"], ["CE742", "Machine Learning", "—", "3+0", "Elective for MS/PhD"], ["CE823", "Advanced Object Oriented Analysis and Design", "—", "3+0", "Elective for PhD"], ["CE713", "DSP Hardware System Design", "—", "3+0", "Elective for MS/PhD"], ["CE632", "Microelectronics", "—", "3+0", "Elective for MS/PhD"], ["CE614", "Adaptive Control", "—", "3+0", "Elective for MS/PhD"], ["CE734", "Adaptive Signal Processing", "—", "3+0", "Elective for MS/PhD"], ["CE735", "Adaptive Techniques for Wireless Communication", "—", "3+0", "Elective for MS/PhD"], ["CE836", "Advanced Wireless Communication", "—", "3+0", "Elective for PhD"], ["CE851", "Advanced Engineering Mathematics", "—", "3+0", "Elective for PhD"], ["CE852", "Advanced Numerical Analysis", "—", "3+0", "Elective for PhD"], ["CE724", "Image Processing for Intelligent Systems", "—", "3+0", "Elective for MS/PhD"], ["CE714", "Machine Vision", "—", "3+0", "Elective for MS/PhD"], ["CE815", "Advanced Embedded Systems", "—", "3+0", "Elective for PhD"], ["CE743", "Artificial Neural Network", "—", "3+0", "Elective for MS/PhD"], ["CE637", "Computer Network", "—", "3+0", "Elective for MS/PhD"], ["CE725", "Pattern Recognition & Analysis", "—", "3+0", "Elective for MS/PhD"], ["CE826", "Advanced Pattern Recognition", "—", "3+0", "Elective for PhD"], ["CE616", "Computer Vision", "—", "3+0", "Elective for MS/PhD"], ["CE816", "Advanced Topics in Computer Vision", "—", "3+0", "Elective for PhD"], ["CE753", "Detection and Estimation Theory", "—", "3+0", "Elective for MS/PhD"], ["CE645", "Digital Image Processing", "—", "3+0", "Elective for MS/PhD"], ["CE747", "Network Switching & Routing", "—", "3+0", "Elective for MS/PhD"], ["CE638", "Design of Computer Communication Networks", "—", "3+0", "Elective for MS/PhD"], ["CE746", "Natural Language Processing", "—", "3+0", "Elective for MS/PhD"], ["CE737", "Cloud Computing", "—", "3+0", "Elective for MS/PhD"], ["CE647", "Data Mining", "—", "3+0", "Elective for MS/PhD"], ["CE648", "Deep Learning", "—", "1+0", "Elective for MS/PhD"], ["CE718", "IOT and Smart Systems", "—", "3+0", "Elective for MS/PhD"], ["CE819", "Selected Topics in IOTs", "—", "3+0", "Elective for PhD"], ["CE699", "Human Computer Interface", "—", "3+0", "Elective for MS/PhD"], ["CE738", "Wireless Sensor Network", "—", "3+0", "Elective for MS/PhD"], ["CE855", "Special Topics in Robotics", "—", "3+0", "Elective for PhD"]]}};
   var NEW_META={"msee_gen": {"icon": "📚", "label": "General Courses", "desc": "Compulsory courses for all research clusters: Stochastic Processes, Linear Systems, Fehm-e-Quran I & II, Research Methodology.", "chips": ["5 Courses", "COMPULSORY", "MS & PhD"]}, "msee_em": {"icon": "📡", "label": "Electromagnetics & Photonics", "desc": "Fields, optics, antennas, radar, array processing, photonic circuits and fabrication.", "chips": ["21 Courses", "ELECTIVE", "MS & PhD"]}, "msee_comm": {"icon": "📶", "label": "Communication & Signal Processing", "desc": "Digital communications, coding, wireless, optical communication, telecom networks.", "chips": ["24 Courses", "ELECTIVE", "MS & PhD"]}, "msee_pc": {"icon": "⚡", "label": "Power & Control Systems", "desc": "Control, power electronics, power systems, robotics, optimization and intelligent control.", "chips": ["28 Courses", "ELECTIVE", "MS & PhD"]}, "msee_ml": {"icon": "🤖", "label": "Machine Learning & Image Processing", "desc": "Image processing, pattern recognition, machine learning, computer vision, IoT and computing.", "chips": ["27 Courses", "ELECTIVE", "MS & PhD"]}, "msee_thesis": {"icon": "🎓", "label": "Thesis / Dissertation", "desc": "MS Thesis (6 Cr Hrs), PhD Dissertation (30 Cr Hrs) and their in-progress codes.", "chips": ["4 Items", "COMPULSORY", "MS & PhD"]}, "msce_core": {"icon": "🧩", "label": "Core Courses", "desc": "Advanced Digital System Design, Embedded Systems (MS) and Research Methodology (MS/PhD).", "chips": ["3 Courses", "CORE", "MS & PhD"]}, "msce_elec": {"icon": "🖥️", "label": "Elective Courses", "desc": "Computer networks, vision, machine learning, signal processing, IoT, software engineering and more.", "chips": ["43 Courses", "ELECTIVE", "MS & PhD"]}};
-  var NEW_CURR=[{"id": "msphd_ee", "badge": "MS/PhDEE", "title": "MS/PhD Electrical Engineering — Graduate Course List", "subtitle": "Graduate Course List for MS & PhD (Fall-2025 onwards)", "dept": "Dept. of Electrical & Computer Engineering · AU, Islamabad", "chips": ["105 Courses", "5 Research Clusters", "MS & PhD"], "icon": "🎓", "cards": ["msee_gen", "msee_em", "msee_comm", "msee_pc", "msee_ml", "msee_thesis"], "semKeys": ["msee_gen", "msee_em", "msee_comm", "msee_pc", "msee_ml", "msee_thesis"]}, {"id": "msphd_ce", "badge": "MSCE/PhDCE", "title": "MS/PhD Computer Engineering — Graduate Course List", "subtitle": "MS/Ph.D. Computer Engineering — Core & Elective Courses", "dept": "Dept. of Electrical & Computer Engineering · AU, Islamabad", "chips": ["46 Courses", "Core + Elective", "MS & PhD"], "icon": "🎓", "cards": ["msce_core", "msce_elec"], "semKeys": ["msce_core", "msce_elec"]}];
+  var NEW_CURR=[{"id": "msphd_ee", "badge": "MS/PhDEE", "title": "MS/PhD Electrical Engineering — Graduate Course List", "subtitle": "Graduate Course List for MS & PhD (Fall-2025 onwards)", "dept": "Dept. of Electrical Engineering and Dept. of Computer & Software Engineering · AU, Islamabad", "chips": ["105 Courses", "5 Research Clusters", "MS & PhD"], "icon": "🎓", "cards": ["msee_gen", "msee_em", "msee_comm", "msee_pc", "msee_ml", "msee_thesis"], "semKeys": ["msee_gen", "msee_em", "msee_comm", "msee_pc", "msee_ml", "msee_thesis"]}, {"id": "msphd_ce", "badge": "MSCE/PhDCE", "title": "MS/PhD Computer Engineering — Graduate Course List", "subtitle": "MS/Ph.D. Computer Engineering — Core & Elective Courses", "dept": "Dept. of Electrical Engineering and Dept. of Computer & Software Engineering · AU, Islamabad", "chips": ["46 Courses", "Core + Elective", "MS & PhD"], "icon": "🎓", "cards": ["msce_core", "msce_elec"], "semKeys": ["msce_core", "msce_elec"]}];
   Object.keys(NEW_DATA).forEach(function(k){ if(!data[k]) data[k]=NEW_DATA[k]; });
   Object.keys(NEW_META).forEach(function(k){ if(!cardMeta[k]) cardMeta[k]=NEW_META[k]; });
   NEW_CURR.slice().reverse().forEach(function(c){ if(!curricula.some(function(x){return x&&x.id===c.id;})) curricula.unshift(c); });
@@ -27999,6 +28004,9 @@ header p{animation:fxSlide .8s .4s both}
 .fm-sec{display:inline-block;font:700 .78rem 'Source Sans 3',sans-serif;padding:.12rem .65rem;border-radius:999px;border:1px solid var(--faint);background:var(--parchment);color:var(--accent)}
 .fm-sec.CE{background:#f6efdc;border-color:#e2d3a6;color:#6f5518}
 #fmTable tr.fm-grp td{background:var(--parchment)!important;font:600 1.05rem 'EB Garamond',serif;color:var(--ink);padding:.55rem 1rem;border-bottom:2px solid var(--rule);position:static!important}
+body.admin-mode .fm-gname{cursor:pointer;border-radius:3px}
+body.admin-mode .fm-gname:hover{outline:1px dashed var(--gold-lt);outline-offset:3px;background:rgba(201,162,74,.14)}
+#fmTable tr.fm-grp td input{font:600 1.05rem 'EB Garamond',serif;color:var(--ink);border:1px solid var(--accent-lt);border-radius:4px;padding:.25rem .5rem;background:#fff;min-width:320px;max-width:100%}
 #fmTable tr.fm-grp td small{font:600 .82rem 'Source Sans 3',sans-serif;color:var(--muted);margin-left:.6rem}
 .fm-adm{display:none}
 body.admin-mode .fm-adm{display:table-cell}
@@ -28032,9 +28040,10 @@ body.admin-mode .fm-hint{display:block}
     <div class="modal-header">
       <div>
         <h2 id="fmTitle">Regular FMs (EE and CE)</h2>
-        <p id="fmSub">Regular faculty members database · Dept. of Electrical &amp; Computer Engineering · AU, Islamabad</p>
+        <p id="fmSub">Regular faculty members database · Dept. of Electrical Engineering and Dept. of Computer &amp; Software Engineering · AU, Islamabad</p>
       </div>
       <div style="display:flex;align-items:center;gap:.6rem;">
+        <button class="fm-btn fm-adm-block" type="button" onclick="fmDownloadHtml()" title="Download an index.html with all current records saved inside it">💾 Save to index.html</button>
         <button class="fm-btn" type="button" onclick="fmCopyLink()">🔗 Copy link</button>
         <button class="fm-btn" type="button" onclick="fmExportCsv()">⬇ Export CSV</button>
         <button class="close-btn" type="button" onclick="closeFmModal()" aria-label="Close">✕</button>
@@ -28057,7 +28066,7 @@ body.admin-mode .fm-hint{display:block}
         </table>
       </div>
       <p class="fm-note-pub" style="font:500 .88rem 'Source Sans 3',sans-serif;color:var(--muted);margin-top:.7rem">Faculty members: click <b>✎ Update</b> under your name to edit your own name, designation, extension, cell number, experience, qualifications and expertise.</p>
-      <p class="fm-hint">Admin: click any cell to edit it (Enter saves, Esc cancels; Shift+Enter adds a new line in the long columns). Changes sync through Firebase.</p>
+      <p class="fm-hint">Admin: click any cell or department heading to edit it (Enter saves, Esc cancels; Shift+Enter adds a new line in the long columns). Changes sync through Firebase.</p>
     </div>
   </div>
 </div>
@@ -28085,7 +28094,7 @@ body.admin-mode .fm-hint{display:block}
   var SEED=[{"name": "Dr. Hafiz Ashiq Hussain", "sec": "EE", "desig": "Chair ECE", "cell": "0334-9293039", "ext": "411", "exp": "", "qual": "", "area": ""}, {"name": "Dr. Waseem Khan", "sec": "EE", "desig": "Associate Professor", "cell": "0333-5531093", "ext": "419", "exp": "", "qual": "", "area": ""}, {"name": "Dr. Syed Ahmed Pasha", "sec": "EE", "desig": "Associate Professor", "cell": "0333-5623481", "ext": "418", "exp": "", "qual": "", "area": ""}, {"name": "Dr. Imran Farid", "sec": "EE", "desig": "Assistant Professor", "cell": "0332-7788566", "ext": "418", "exp": "", "qual": "", "area": ""}, {"name": "Dr. Sara Saeed", "sec": "EE", "desig": "Assistant Professor", "cell": "0333-9206575", "ext": "429", "exp": "", "qual": "", "area": ""}, {"name": "Dr. Muhammad Zaheer", "sec": "EE", "desig": "Assistant Professor", "cell": "0333-5353996", "ext": "415", "exp": "", "qual": "", "area": ""}, {"name": "Dr. Ahsan Sarwar Rana", "sec": "EE", "desig": "Assistant Professor", "cell": "0317-5299380", "ext": "425", "exp": "", "qual": "", "area": ""}, {"name": "Dr. Sher Ali", "sec": "EE", "desig": "Assistant Professor", "cell": "0345-1887696", "ext": "413", "exp": "", "qual": "", "area": ""}, {"name": "Dr. Ashfaq Ahmed", "sec": "EE", "desig": "Assistant Professor", "cell": "0334-9893934", "ext": "413", "exp": "", "qual": "", "area": ""}, {"name": "Dr. Shahzad Ahmad", "sec": "EE", "desig": "Assistant Professor", "cell": "", "ext": "419", "exp": "", "qual": "", "area": ""}, {"name": "Dr. Qumrish Arooj", "sec": "EE", "desig": "Assistant Professor", "cell": "", "ext": "417", "exp": "", "qual": "", "area": ""}, {"name": "Ms. Seema Tahir", "sec": "EE", "desig": "Assistant Professor", "cell": "0335-9185742", "ext": "462", "exp": "", "qual": "", "area": ""}, {"name": "Mr. Faizan Munir", "sec": "EE", "desig": "Lecturer", "cell": "0321-5668575", "ext": "435", "exp": "", "qual": "", "area": ""}, {"name": "Mr. Atique Ur Rehman", "sec": "EE", "desig": "Lecturer", "cell": "0336-5808657", "ext": "433", "exp": "", "qual": "", "area": ""}, {"name": "Muhammad Ali Raza", "sec": "EE", "desig": "Lecturer", "cell": "0300-9797315", "ext": "452", "exp": "", "qual": "", "area": ""}, {"name": "Ms. Madeeha Uzma", "sec": "EE", "desig": "Lecturer", "cell": "0321-5935177", "ext": "431", "exp": "", "qual": "", "area": ""}, {"name": "Mr. Muhammad Tilal", "sec": "EE", "desig": "Lecturer", "cell": "0332-0561173", "ext": "422", "exp": "", "qual": "", "area": ""}, {"name": "Mr. Sami Ullah", "sec": "EE", "desig": "Lecturer", "cell": "0333-5370670", "ext": "493", "exp": "", "qual": "", "area": ""}, {"name": "Ms. Saba Mumtaz", "sec": "EE", "desig": "Lecturer", "cell": "0331-5531536", "ext": "431", "exp": "", "qual": "", "area": ""}, {"name": "Ms. Ambreen Ali Ch.", "sec": "EE", "desig": "Lecturer", "cell": "0312-5533950", "ext": "440", "exp": "", "qual": "", "area": ""}, {"name": "Mr. Mashood Ahmed", "sec": "EE", "desig": "Lecturer", "cell": "0333-5210386", "ext": "437", "exp": "", "qual": "", "area": ""}, {"name": "Mr. Hussain Asif", "sec": "EE", "desig": "Lecturer", "cell": "0349-9023665", "ext": "459", "exp": "", "qual": "", "area": ""}, {"name": "Ms. Hiba Hareem", "sec": "EE", "desig": "Lecturer", "cell": "0334-5889328", "ext": "431", "exp": "", "qual": "", "area": ""}, {"name": "Dr. Fawad Islam Khan", "sec": "CE", "desig": "Associate Professor", "cell": "", "ext": "414", "exp": "", "qual": "", "area": ""}, {"name": "Dr. Jehanzeb Khan", "sec": "CE", "desig": "Assistant Professor", "cell": "0346-5319339", "ext": "416", "exp": "", "qual": "", "area": ""}, {"name": "Dr. Ayesha Salman", "sec": "CE", "desig": "Assistant Professor", "cell": "0334-5309530", "ext": "428", "exp": "", "qual": "", "area": ""}, {"name": "Dr. Hadi Abdullah", "sec": "CE", "desig": "Assistant Professor", "cell": "", "ext": "", "exp": "", "qual": "", "area": ""}, {"name": "Dr. Mumajjed Ul Mudassir", "sec": "CE", "desig": "Assistant Professor", "cell": "0300-9103925", "ext": "445", "exp": "", "qual": "", "area": ""}, {"name": "Mr. Atif Bajwa", "sec": "CE", "desig": "Lecturer", "cell": "0300-5288926", "ext": "427", "exp": "", "qual": "", "area": ""}, {"name": "Ms. Mariam Sabir", "sec": "CE", "desig": "Lecturer", "cell": "0341-0589619", "ext": "460", "exp": "", "qual": "", "area": ""}, {"name": "Ms. Zo Afshan", "sec": "CE", "desig": "Lecturer", "cell": "0349-518848", "ext": "460", "exp": "", "qual": "", "area": ""}, {"name": "Mr. Usman Hameed", "sec": "CE", "desig": "Lecturer", "cell": "0315-7203603", "ext": "460", "exp": "", "qual": "", "area": ""}, {"name": "Mr. Aniq Ahmad", "sec": "CE", "desig": "Lecturer", "cell": "", "ext": "433", "exp": "", "qual": "", "area": ""}, {"name": "Mr. Basharat Ahmad", "sec": "CE", "desig": "Lecturer", "cell": "", "ext": "419", "exp": "", "qual": "", "area": ""}, {"name": "Ms. Maryam Sabir", "sec": "CE", "desig": "Lecturer", "cell": "", "ext": "443", "exp": "", "qual": "", "area": ""}];
   var FIELDS=['name','sec','desig','ext','cell','exp','qual','area'];
   var SEC_NAME={EE:'Electrical Engineering (EE)',CE:'Computer Engineering (CE)'};
-  SEED.forEach(function(m,k){ m.id='fm'+(k<9?'0':'')+(k+1); m.upd=0; });
+  SEED.forEach(function(m,k){ if(!m.id) m.id='fm'+(k<9?'0':'')+(k+1); m.upd=+m.upd||0; });
   var list=clone(SEED), filter='ALL', query='', editing=false, editId=null;
   function uid(){ return 'fm'+Date.now().toString(36)+Math.random().toString(36).slice(2,5); }
   var $=function(id){return document.getElementById(id);};
@@ -28147,7 +28156,7 @@ body.admin-mode .fm-hint{display:block}
     ['EE','CE'].forEach(function(sec){
       var part=rows.filter(function(r){return r.m.sec===sec;});
       if(!part.length) return;
-      html+='<tr class="fm-grp"><td colspan="10">'+SEC_NAME[sec]+'<small>'+part.length+' member'+(part.length===1?'':'s')+'</small></td></tr>';
+      html+='<tr class="fm-grp"><td colspan="10"><span class="fm-gname" data-sec="'+sec+'">'+esc(SEC_NAME[sec])+'</span><small>'+part.length+' member'+(part.length===1?'':'s')+'</small></td></tr>';
       part.forEach(function(r){
         var m=r.m,i=r.i; n++;
         html+='<tr>'
@@ -28174,6 +28183,39 @@ body.admin-mode .fm-hint{display:block}
     var el=$('fmCardChips'); if(!el) return;
     var c=counts();
     el.innerHTML='<span class="chip gold">'+c.ALL+' Members</span><span class="chip">EE · '+c.EE+'</span><span class="chip">CE · '+c.CE+'</span>';
+  }
+
+  // ── department headings (admin can rename) ──
+  function saveTitles(){
+    try{localStorage.setItem(KEY+'_titles',JSON.stringify(SEC_NAME));}catch(e){}
+    if(typeof fbDb!=='undefined' && fbDb){
+      fbDb.ref(KEY+'_titles').set(SEC_NAME)
+        .then(function(){flash('✓ Saved to Firebase');})
+        .catch(function(err){console.warn('Regular FMs titles save error:',err);flash('⚠ Saved on this device only');});
+    } else flash('✓ Saved on this device');
+  }
+  function mergeTitles(o){
+    if(!o||typeof o!=='object') return false; var ch=false;
+    ['EE','CE'].forEach(function(k){ if(typeof o[k]==='string' && o[k].trim() && o[k]!==SEC_NAME[k]){ SEC_NAME[k]=o[k].trim(); ch=true; } });
+    return ch;
+  }
+  function startTitleEdit(span){
+    if(!isAdmin() || editing) return;
+    var sec=span.getAttribute('data-sec'), inp=document.createElement('input');
+    inp.type='text'; inp.value=SEC_NAME[sec]; editing=true;
+    span.replaceWith(inp); inp.focus(); inp.select();
+    var done=false;
+    function finish(commit){
+      if(done) return; done=true; editing=false;
+      var v=inp.value.trim();
+      if(commit && v && v!==SEC_NAME[sec]){ SEC_NAME[sec]=v; saveTitles(); }
+      render();
+    }
+    inp.addEventListener('blur',function(){finish(true);});
+    inp.addEventListener('keydown',function(e){
+      if(e.key==='Escape'){ e.stopPropagation(); finish(false); }
+      else if(e.key==='Enter'){ e.preventDefault(); finish(true); }
+    });
   }
 
   // ── inline editing (admin only) ──
@@ -28239,6 +28281,18 @@ body.admin-mode .fm-hint{display:block}
     $('fmOverlay').classList.remove('open'); document.body.style.overflow='';
     try{ if(location.hash===HASH) history.replaceState(null,'',pageUrl()); }catch(e){}
   };
+  // Used by the admin "Save to index.html" button: writes the current records into the page source.
+  window.fmBake=function(src){
+    var recs=list.map(function(m){ var o={id:m.id}; FIELDS.forEach(function(f){o[f]=m[f];}); o.upd=m.upd||0; return o; });
+    var json=JSON.stringify(recs).replace(/<\//g,'<\\/');
+    var re=/(var SEED=)\[[\s\S]*?\](;\s*\n\s*var FIELDS=)/;
+    if(!re.test(src)) throw new Error('The hosted index.html does not have the faculty list yet. Upload this version once, then use Save again.');
+    src=src.replace(re,function(_,x,y){ return x+json+y; });
+    var tre=/(var SEC_NAME=)\{[^}]*\};/;
+    if(tre.test(src)) src=src.replace(tre,function(_,x){ return x+JSON.stringify(SEC_NAME).replace(/</g,'\\u003c')+';'; });
+    return src;
+  };
+  window.fmDownloadHtml=function(){ if(isAdmin() && window.pcoBake) window.pcoBake(); };
   window.fmCopyLink=function(){
     var url=pageUrl()+HASH;
     var done=function(){ flash('✓ Link copied'); };
@@ -28299,6 +28353,8 @@ body.admin-mode .fm-hint{display:block}
     var b=e.target.closest('button[data-s]'); if(!b) return; filter=b.getAttribute('data-s'); render();
   });
   $('fmBody').addEventListener('click',function(e){
+    var g=e.target.closest('.fm-gname');
+    if(g){ startTitleEdit(g); return; }
     var u=e.target.closest('[data-upd]');
     if(u){ openEdit(list[+u.getAttribute('data-upd')]); return; }
     var d=e.target.closest('[data-del]');
@@ -28325,6 +28381,10 @@ body.admin-mode .fm-hint{display:block}
   if(typeof fbDb!=='undefined' && fbDb){
     fbDb.ref(KEY).on('value',function(snap){
       var r=normalize(snap.val());
+      if(!r && list.length){
+        // Firebase is empty: store the full list there once (transaction = safe if several people open the page together)
+        fbDb.ref(KEY).transaction(function(cur){ return cur==null ? clone(list) : undefined; });
+      }
       if(r && !editing){
         list=r;
         try{localStorage.setItem(KEY,JSON.stringify(list));}catch(e){}
@@ -28332,7 +28392,263 @@ body.admin-mode .fm-hint{display:block}
       }
     },function(err){console.warn('Regular FMs load error:',err);});
   }
+  try{ mergeTitles(JSON.parse(localStorage.getItem(KEY+'_titles')||'null')); }catch(e){}
+  if(typeof fbDb!=='undefined' && fbDb){
+    fbDb.ref(KEY+'_titles').on('value',function(snap){
+      if(mergeTitles(snap.val()) && !editing && $('fmOverlay').classList.contains('open')) render();
+    },function(err){console.warn('Regular FMs titles load error:',err);});
+  }
   checkHash();
+})();
+</script>
+
+<!-- ══ SITE-WIDE TEXT EDITOR (admin) ══ -->
+<style id="te-css">
+.te-admin-btn{display:none!important}
+body.admin-mode .te-admin-btn{display:inline-block!important}
+body.te-on #teToggleBtn{background:var(--gold-lt,#e0b95a)!important;color:#10213d!important}
+body.te-on .te-hover{outline:2px dashed var(--gold-lt,#e0b95a);outline-offset:2px;cursor:text;background-color:rgba(201,162,74,.16)}
+.te-active{display:inline;outline:2px solid #2c6fb3;outline-offset:1px;background:#fff!important;color:#10213d!important;-webkit-text-fill-color:#10213d;text-shadow:none!important;padding:0 .2em;border-radius:3px;cursor:text;white-space:pre-wrap;font-weight:inherit}
+.te-pill{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:9998;background:#0a2d5e;color:#fff;border:1px solid var(--gold-lt,#e0b95a);border-radius:999px;padding:.5rem 1.1rem;font:600 .85rem 'Source Sans 3',sans-serif;box-shadow:0 6px 24px rgba(0,0,0,.25);pointer-events:none;max-width:92vw;text-align:center}
+.te-pill[hidden]{display:none}
+</style>
+<script type="application/json" id="pco-text-overrides">{}</script>
+<div class="te-pill te-ui" id="tePill" hidden>✎ Text edit mode: click any text to edit · Enter saves · Esc cancels</div>
+<script>
+(function(){
+  var PATH='pco_text_overrides', LSKEY='pco_text_overrides';
+  // Text that other editors already manage (tables, notes, admin panels, link-card titles) is skipped here.
+  var EXC='script,style,noscript,textarea,input,select,option,svg,#adminBar,#adminPanelOverlay,#adminLoginOverlay,.ce-overlay,#fmEditOverlay,#fmBody,#fmSeg,#fmMeta,#notesBody,.modal-body,.modal-admin-toolbar,#sessionModalTitle,#sessionModalSub,.close-btn,.te-ui,[contenteditable="true"],[contenteditable="plaintext-only"],[data-card] .parent-card-text h2,[data-card] .parent-card-text p';
+  var PLAIN=(function(){ var d=document.createElement('div'); d.setAttribute('contenteditable','plaintext-only'); return d.contentEditable==='plaintext-only'; })();
+  var meta=new WeakMap(), tracked=new Set(), trackedList=[], initial=true, active=null, textMode=false, hoverEl=null, timer=null;
+  var baked={}, local={}, remote={};
+
+  function flash(m){ if(typeof flashSaved==='function') flashSaved(m); }
+  function isAdmin(){ return typeof adminMode!=='undefined' && adminMode; }
+  function norm(s){ return s.replace(/\s+/g,' ').trim(); }
+  function hash(str){ var h=0x811c9dc5; for(var i=0;i<str.length;i++){ h^=str.charCodeAt(i); h=(h+((h<<1)+(h<<4)+(h<<7)+(h<<8)+(h<<24)))>>>0; } return 't'+h.toString(16)+str.length.toString(36); }
+  function clean(o){ var r={}; if(o&&typeof o==='object') Object.keys(o).forEach(function(k){ var e=o[k]; if(e&&typeof e.o==='string'&&typeof e.t==='string') r[k]={o:e.o,t:e.t}; }); return r; }
+  function effective(){ var r={}; [baked,local,remote].forEach(function(src){ Object.keys(src).forEach(function(k){ r[k]=src[k]; }); }); return r; }
+
+  // ── load stored edits: baked into this file < this device < Firebase ──
+  try{ baked=clean(JSON.parse(document.getElementById('pco-text-overrides').textContent||'{}')); }catch(e){}
+  try{ local=clean(JSON.parse(localStorage.getItem(LSKEY)||'{}')); }catch(e){}
+
+  // ── find every editable piece of text and give it a stable key ──
+  function scan(){
+    if(active) return;
+    var counts={}, list=[], w=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT,null), n;
+    while((n=w.nextNode())){
+      var el=n.parentElement; if(!el) continue;
+      if(el.closest(EXC)) continue;
+      var m=meta.get(n), txt;
+      if(m && n.nodeValue===m.applied) txt=m.orig; else { m=null; txt=n.nodeValue; }
+      var nt=norm(txt);
+      if(!nt || !/[A-Za-z0-9\u00C0-\u024F\u0600-\u06FF]/.test(nt)) continue;
+      if(!m){
+        if(!initial && el.closest('.overlay')) continue;   // text that JS generates inside pop-ups is data, not page text
+        m={orig:txt,applied:txt}; meta.set(n,m);
+      }
+      m.norm=norm(m.orig);
+      var sc=el.closest('[id]'), base=(sc?sc.id:'body')+'|'+m.norm;
+      counts[base]=(counts[base]||0)+1;
+      m.hash=hash(base+'#'+counts[base]);
+      var mm=m.orig.match(/^(\s*)[\s\S]*?(\s*)$/); m.lead=mm[1]; m.trail=mm[2];
+      list.push(n);
+    }
+    trackedList=list; tracked=new Set(list); initial=false; applyAll();
+  }
+  function applyAll(){
+    var ov=effective();
+    trackedList.forEach(function(n){
+      var m=meta.get(n), o=ov[m.hash];
+      var want=(o && o.o===m.norm) ? m.lead+o.t+m.trail : m.orig;
+      if(n.nodeValue!==want) n.nodeValue=want;
+      m.applied=want;
+    });
+  }
+  function schedule(){ clearTimeout(timer); timer=setTimeout(scan,250); }
+  new MutationObserver(function(){ if(!active) schedule(); }).observe(document.body,{childList:true,subtree:true});
+
+  // ── saving ──
+  function persist(h,entry){
+    local[h]=entry;
+    try{ localStorage.setItem(LSKEY,JSON.stringify(local)); }catch(e){}
+    if(typeof fbDb!=='undefined' && fbDb){
+      fbDb.ref(PATH+'/'+h).set(entry)
+        .then(function(){ flash('✓ Text saved to Firebase'); })
+        .catch(function(err){ console.warn('Text save error:',err); flash('⚠ Text saved on this device only'); });
+    } else flash('✓ Text saved on this device');
+  }
+  if(typeof fbDb!=='undefined' && fbDb){
+    fbDb.ref(PATH).on('value',function(snap){ remote=clean(snap.val()); if(!active) applyAll(); },function(err){ console.warn('Text load error:',err); });
+  }
+
+  // header and landing card keep their own Firebase records, so keep those in step
+  function syncHeader(){
+    if(typeof headerData==='undefined') return;
+    var q=function(s){ return document.querySelector(s); }, h=headerData;
+    var b=q('header .badge'); if(b) h.badge=b.textContent;
+    var h1=q('header h1'); if(h1){ var f=h1.firstChild; h.title1=(f&&f.nodeType===3?f.nodeValue:'').trim(); var sp=h1.querySelector('span'); h.title2=sp?sp.textContent:''; }
+    var sub=q('header .header-text > p')||q('header .header-inner > p')||q('header > div > p'); if(sub) h.subtitle=sub.textContent;
+    var st=[]; document.querySelectorAll('header .stat').forEach(function(s){ st.push({val:(s.querySelector('.stat-val')||{}).textContent||'',lbl:(s.querySelector('.stat-lbl')||{}).textContent||''}); });
+    if(st.length) h.stats=st;
+    if(typeof saveHeaderToFirebase==='function') saveHeaderToFirebase();
+  }
+  function syncLanding(){
+    if(typeof landingCard==='undefined') return;
+    var land=document.querySelector('.parent-card'); if(!land) return;
+    landingCard.title=(land.querySelector('.parent-card-text h2')||{}).textContent||landingCard.title;
+    landingCard.desc=(land.querySelector('.parent-card-text p')||{}).textContent||landingCard.desc;
+    landingCard.chips=Array.prototype.map.call(land.querySelectorAll('.parent-card-chips .chip'),function(c){ return c.textContent; });
+    if(typeof saveHeaderToFirebase==='function') saveHeaderToFirebase();
+  }
+
+  // ── editing one piece of text ──
+  function startEdit(node){
+    if(active || !tracked.has(node)) return;
+    var m=meta.get(node), span=document.createElement('span');
+    span.className='te-active'; span.setAttribute('contenteditable',PLAIN?'plaintext-only':'true'); span.setAttribute('role','textbox'); span.spellcheck=true;
+    node.parentNode.insertBefore(span,node); span.appendChild(node);
+    clearHover();
+    active={node:node,span:span,m:m};
+    span.addEventListener('blur',onBlur);
+    span.addEventListener('keydown',onKey);
+    ['keyup','keypress'].forEach(function(t){ span.addEventListener(t,function(e){ e.stopPropagation(); }); });
+    span.addEventListener('paste',function(e){ e.preventDefault(); var t=(e.clipboardData||window.clipboardData).getData('text'); document.execCommand('insertText',false,t.replace(/\s*[\r\n]+\s*/g,' ')); });
+    span.focus();
+    var r=document.createRange(); r.selectNodeContents(span); var s=window.getSelection(); s.removeAllRanges(); s.addRange(r);
+  }
+  function onBlur(){ finish(true); }
+  function onKey(e){
+    e.stopPropagation();
+    if(e.key==='Enter'){ e.preventDefault(); finish(true); }
+    else if(e.key==='Escape'){ e.preventDefault(); finish(false); }
+  }
+  function finish(save){
+    if(!active) return;
+    var a=active; active=null;
+    a.span.removeEventListener('blur',onBlur); a.span.removeEventListener('keydown',onKey);
+    var txt=a.span.textContent.replace(/\s*[\r\n]+\s*/g,' ').trim(), m=a.m, changed=false;
+    var val=m.applied;
+    if(save && txt && txt!==norm(m.applied)){ val=m.lead+txt+m.trail; changed=true; }
+    a.node.nodeValue=val;
+    a.span.parentNode.insertBefore(a.node,a.span); a.span.remove();
+    m.applied=val;
+    if(changed){
+      persist(m.hash,{o:m.norm,t:txt});
+      var el=a.node.parentElement;
+      if(el){
+        if(el.closest('header')) syncHeader();
+        var land=document.querySelector('.parent-card'); if(land && land.contains(el)) syncLanding();
+      }
+      scan();
+    }
+  }
+
+  // ── picking the text under the pointer ──
+  function caretNode(x,y){
+    if(document.caretPositionFromPoint){ var p=document.caretPositionFromPoint(x,y); if(p) return p.offsetNode; }
+    if(document.caretRangeFromPoint){ var r=document.caretRangeFromPoint(x,y); if(r) return r.startContainer; }
+    return null;
+  }
+  function hit(n,x,y){
+    var r=document.createRange(); r.selectNodeContents(n);
+    var rs=r.getClientRects();
+    for(var i=0;i<rs.length;i++){ var c=rs[i]; if(x>=c.left-6&&x<=c.right+6&&y>=c.top-6&&y<=c.bottom+6) return true; }
+    return false;
+  }
+  function pick(e){
+    var n=caretNode(e.clientX,e.clientY);
+    if(n && n.nodeType===3 && tracked.has(n) && hit(n,e.clientX,e.clientY)) return n;
+    for(var c=e.target.firstChild;c;c=c.nextSibling){ if(c.nodeType===3 && tracked.has(c)) return c; }
+    return null;
+  }
+  function clearHover(){ if(hoverEl){ hoverEl.classList.remove('te-hover'); hoverEl=null; } }
+
+  document.addEventListener('click',function(e){
+    if(!textMode) return;
+    var t=e.target;
+    if(t.closest && t.closest('.te-active')){ e.preventDefault(); e.stopPropagation(); return; }
+    if(t.closest && t.closest(EXC)) return;            // admin panels, tables, close buttons etc. keep working
+    e.preventDefault(); e.stopPropagation();           // otherwise clicking text must not open cards or links
+    var n=pick(e); if(n) startEdit(n);
+  },true);
+  document.addEventListener('mouseover',function(e){
+    if(!textMode || active) return;
+    var t=e.target; if(!t.closest || t.closest(EXC)) { clearHover(); return; }
+    var has=false; for(var c=t.firstChild;c;c=c.nextSibling){ if(c.nodeType===3 && tracked.has(c)){ has=true; break; } }
+    if(!has){ clearHover(); return; }
+    if(hoverEl!==t){ clearHover(); hoverEl=t; t.classList.add('te-hover'); }
+  });
+
+  // ── admin bar controls ──
+  function setTextMode(on){
+    if(on && !isAdmin()) return;
+    if(!on) finish(true);
+    textMode=on; document.body.classList.toggle('te-on',on); $pill().hidden=!on; if(!on) clearHover();
+    var b=document.getElementById('teToggleBtn'); if(b) b.textContent=on?'✓ Editing text (click to stop)':'✎ Edit text';
+    if(on) scan();
+  }
+  function $pill(){ return document.getElementById('tePill'); }
+  window.teToggle=function(){ setTextMode(!textMode); };
+  window.teResetAll=function(){
+    if(!isAdmin()) return;
+    var ov=effective(), keys=Object.keys(ov).filter(function(k){ return ov[k].t!==ov[k].o; });
+    if(!keys.length){ flash('Nothing to reset'); return; }
+    if(!confirm('Put all '+keys.length+' edited text(s) back to the original wording?')) return;
+    keys.forEach(function(k){ persist(k,{o:ov[k].o,t:ov[k].o}); });
+    applyAll();
+  };
+  window.pcoBake=function(){
+    if(!isAdmin()) return;
+    var eff=effective(), out={};
+    Object.keys(eff).forEach(function(k){ if(eff[k].t!==eff[k].o) out[k]=eff[k]; });
+
+    function build(src){
+      var re=/(<script type="application\/json" id="pco-text-overrides">)[\s\S]*?(<\/script>)/;
+      if(!re.test(src)) throw new Error('This copy of index.html does not have the text editor yet. Use the newest index.html file, then try again.');
+      src=src.replace(re,function(_,a,b){ return a+JSON.stringify(out).replace(/</g,'\\u003c')+b; });
+      if(window.fmBake) src=window.fmBake(src);
+      return src;
+    }
+    function download(src){
+      var blob=new Blob([src],{type:'text/html;charset=utf-8'}), a=document.createElement('a');
+      a.href=URL.createObjectURL(blob); a.download='index.html'; document.body.appendChild(a); a.click(); a.remove();
+      flash('✓ index.html downloaded. Upload it to your site to make the edits permanent');
+    }
+    function deliver(src,handle){
+      if(!handle){ download(src); return; }
+      handle.createWritable().then(function(w){ return w.write(src).then(function(){ return w.close(); }); })
+        .then(function(){ flash('✓ Saved into your index.html file. Upload it to your site to make it live'); })
+        .catch(function(err){ console.warn('Write failed, downloading instead:',err); download(src); });
+    }
+    // Local file (or no network): ask the admin to pick the index.html they are editing, then write straight back into it.
+    function viaPicker(){
+      if(!window.showOpenFilePicker) throw new Error('This browser cannot open local files from a page. Use Chrome or Edge, or open the page from its web address (https://…).');
+      return window.showOpenFilePicker({types:[{description:'index.html',accept:{'text/html':['.html','.htm']}}]})
+        .then(function(hs){ var h=hs[0]; return h.getFile().then(function(f){ return f.text(); }).then(function(src){ return {src:src,h:h}; }); });
+    }
+    var start;
+    try{
+      if(location.protocol==='file:') start=viaPicker();
+      else start=fetch(location.href.split('#')[0],{cache:'no-store'})
+        .then(function(r){ if(!r.ok) throw new Error('http '+r.status); return r.text(); })
+        .then(function(src){ return {src:src,h:null}; })
+        .catch(function(){ return viaPicker(); });
+    }catch(e){ start=Promise.reject(e); }
+    start.then(function(r){ deliver(build(r.src),r.h); })
+    .catch(function(err){
+      if(err && err.name==='AbortError') return;      // admin closed the file picker
+      console.warn('Save to index.html failed:',err);
+      alert('Could not build index.html.\n\n'+(err&&err.message?err.message:err));
+    });
+  };
+  // leave edit mode when admin logs out
+  new MutationObserver(function(){ if(textMode && !document.body.classList.contains('admin-mode')) setTextMode(false); })
+    .observe(document.body,{attributes:true,attributeFilter:['class']});
+
+  scan();
 })();
 </script>
 </body></html>
