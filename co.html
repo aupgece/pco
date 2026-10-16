@@ -54,6 +54,14 @@ progress{width:100%;height:12px;margin-top:.9rem;display:none}
 #viewer .bar{display:flex;justify-content:space-between;align-items:center;gap:1rem;background:var(--paper);padding:.6rem 1rem}
 #viewer .bar b{font-family:'EB Garamond',serif;font-size:1.15rem}
 #viewer iframe{flex:1;border:0;background:#fff}
+.adminlink{margin-top:2rem;text-align:center;font-size:.8rem}
+.adminlink a{color:var(--muted);text-decoration:none;opacity:.6}.adminlink a:hover{opacity:1;text-decoration:underline}
+#adminBar{position:fixed;left:50%;bottom:1rem;transform:translateX(-50%);z-index:20;background:var(--ink);color:#fff;padding:.6rem 1rem;border-radius:8px;display:none;gap:.6rem;align-items:center;flex-wrap:wrap;box-shadow:0 4px 18px rgba(0,0,0,.35);font-size:.88rem;font-weight:600;max-width:96vw}
+#adminBar.on{display:flex}
+#adminBar .btn{padding:.35rem .8rem}
+body.admin [data-k]{outline:2px dashed var(--gold-lt);outline-offset:2px;cursor:text}
+body.admin [data-k]:focus{outline:2px solid var(--gold-lt);background:rgba(255,255,255,.12)}
+body.admin .formbox [data-k]:focus,body.admin main [data-k]:focus{background:#fffbe0}
 a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--accent-lt);outline-offset:2px}
 @media(max-width:640px){main{padding:1.2rem 1rem 3rem}.hin{padding:1.2rem 1rem}}
 </style>
@@ -107,7 +115,15 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible{ou
       <p style="margin-top:.6rem"><button class="btn solid" id="upGo" onclick="doUpload()">Submit outline</button></p>
     </div>
   </section>
+  <p class="adminlink"><a href="#" id="adminLink">Admin</a></p>
 </main>
+
+<div id="adminBar" role="toolbar" aria-label="Admin editing">
+  <span>Edit mode: click any heading or text on the page and type.</span>
+  <button class="btn" id="aSave">Save changes</button>
+  <button class="btn" id="aReset">Reset to default</button>
+  <button class="btn" id="aExit">Exit</button>
+</div>
 
 <div id="viewer" role="dialog" aria-modal="true" aria-label="Outline viewer">
   <div class="bar"><b id="vTitle"></b><span><a class="btn" id="vDl" href="#">Download</a> <button class="btn" onclick="closeViewer()">Close</button></span></div>
@@ -166,8 +182,10 @@ function viewUrl(u){ var id=driveId(u); return id?"https://drive.google.com/file
 function dlUrl(u){ var id=driveId(u); return id?"https://drive.google.com/uc?export=download&id="+id:u }
 function esc(s){ return String(s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]}) }
 function fillSelect(id,key){
-  var s=$(id), vals=Array.from(new Set(data.map(function(d){return d[key]}).filter(Boolean))).sort();
+  var s=$(id), cur=s.value, vals=Array.from(new Set(data.map(function(d){return d[key]}).filter(Boolean))).sort();
+  while(s.options.length>1) s.remove(1);
   vals.forEach(function(v){ s.add(new Option(v,v)) });
+  s.value=cur;
 }
 function render(){
   var q=$("q").value.toLowerCase(), p=$("fProg").value, s=$("fSess").value;
@@ -192,7 +210,20 @@ function closeViewer(){ $("viewer").classList.remove("on"); $("vFrame").src="abo
 document.addEventListener("keydown",function(e){ if(e.key==="Escape") closeViewer() });
 function start(rows,note){
   data=rows; fillSelect("fProg","prog"); fillSelect("fSess","sess"); render();
-  if(note){ $("note").textContent=note; $("note").style.display="block" }
+  if(note) showNote(note);
+}
+function showNote(t){ $("note").textContent=t; $("note").style.display="block" }
+/* Sheet rows (old entries) + Firebase rows (saved instantly) are merged, duplicates removed */
+var sheetRows=[], fsRows=[];
+function keyOf(d){ var id=driveId(d.link||""); return id?"d:"+id:"k:"+[d.code,d.title,d.sess,d.fm].join("|").toLowerCase() }
+function rebuild(){
+  var seen={}, out=[];
+  sheetRows.concat(fsRows).forEach(function(d){
+    var k=keyOf(d);
+    if(seen[k]){ if((!seen[k].link||seen[k].link==="#")&&d.link) seen[k].link=d.link; return }
+    seen[k]=d; out.push(d);
+  });
+  start(out);
 }
 ["q","fProg","fSess"].forEach(function(i){ $(i).addEventListener("input",render) });
 
@@ -281,10 +312,14 @@ function doUpload(){
   }
   job.then(function(link){
     $("upGo").disabled=false; $("upBar").style.display="none";
-    data.push({code:info.code,title:info.title,prog:info.prog,sess:info.sess,fm:info.fm,link:link||"#"});
-    render();
-    say("Uploaded. Your outline is now in the list.","ok");
+    var entry={code:info.code,title:info.title,prog:info.prog,sess:info.sess,fm:info.fm,link:link||"#"};
     $("uFile").value="";
+    if(window.FB){
+      return window.FB.add(entry).then(function(){ say("Uploaded and saved. Your outline is now in the list.","ok") })
+        .catch(function(e){ console.error(e); fsRows.push(entry); rebuild(); say("File uploaded, but the list could not be saved to Firebase ("+(e.code||e.message)+"). Check Firestore rules.","err") });
+    }
+    sheetRows.push(entry); rebuild();
+    say("Uploaded. Your outline is now in the list.","ok");
   }).catch(function(e){
     $("upGo").disabled=false; $("upBar").style.display="none";
     console.error(e);
@@ -293,21 +328,112 @@ function doUpload(){
   });
 }
 
+/* ---------- admin: edit page text (password protected) ---------- */
+var ADMIN_HASH="09b4829f84c360b834e0233b8b40cd2620c89e69e6baa69aabc497ff0eeb77e6"; // SHA-256 of the admin password
+var EDIT_SEL="header h1, header p, .back, .tab, .tools input, #q, .meta, thead th, .formbox h2, .formbox .sub, .formbox label, #upGo, #empty";
+var editEls=[], defaults={}, adminOn=false;
+(function(){
+  var seen=[];
+  document.querySelectorAll(EDIT_SEL).forEach(function(el){
+    if(seen.indexOf(el)>-1||el.tagName==="INPUT"||el.id==="count"||el.id==="q") return;
+    seen.push(el);
+  });
+  seen.forEach(function(el,i){ el.dataset.k="t"+i; defaults["t"+i]=el.textContent; editEls.push(el) });
+})();
+function applyContent(texts){
+  if(!texts) return;
+  editEls.forEach(function(el){ var t=texts[el.dataset.k]; if(typeof t==="string"&&t.trim()) el.textContent=t });
+  if(texts.__title) document.title=texts.__title;
+}
+function sha256(t){
+  return crypto.subtle.digest("SHA-256",new TextEncoder().encode(t)).then(function(b){
+    return Array.from(new Uint8Array(b)).map(function(x){return x.toString(16).padStart(2,"0")}).join("");
+  });
+}
+function setAdmin(on){
+  adminOn=on;
+  document.body.classList.toggle("admin",on);
+  $("adminBar").classList.toggle("on",on);
+  editEls.forEach(function(el){ if(on) el.setAttribute("contenteditable","true"); else el.removeAttribute("contenteditable") });
+}
+$("adminLink").addEventListener("click",function(e){
+  e.preventDefault();
+  var p=prompt("Admin password:"); if(p===null) return;
+  if(!window.crypto||!crypto.subtle) return alert("Admin needs a secure (https) page.");
+  sha256(p).then(function(h){ if(h===ADMIN_HASH) setAdmin(true); else alert("Wrong password.") });
+});
+// while editing, stop links/buttons from acting (tabs still switch so every section can be edited)
+document.addEventListener("click",function(e){
+  if(adminOn && e.target.closest("[data-k]") && !e.target.closest(".tab")){ e.preventDefault(); if(e.target.closest("#upGo")) e.stopPropagation() }
+},true);
+document.addEventListener("keydown",function(e){
+  if(adminOn && e.target.closest&&e.target.closest("button[data-k]") && e.key===" ") e.stopPropagation();
+},true);
+$("aExit").onclick=function(){ setAdmin(false) };
+$("aSave").onclick=function(){
+  if(!window.FB) return alert("Firebase is not connected, so changes cannot be saved. Add the Firebase config first.");
+  var texts={};
+  editEls.forEach(function(el){ var t=el.textContent.trim(); if(t&&t!==defaults[el.dataset.k].trim()) texts[el.dataset.k]=t });
+  $("aSave").disabled=true;
+  window.FB.saveContent(texts).then(function(){ alert("Saved. Everyone will see the changes.") })
+    .catch(function(e){ console.error(e); alert("Could not save ("+(e.code||e.message)+"). Check the Firestore rules for the site collection.") })
+    .then(function(){ $("aSave").disabled=false });
+};
+$("aReset").onclick=function(){
+  if(!confirm("Remove all text edits and go back to the original wording?")) return;
+  if(!window.FB) return;
+  window.FB.saveContent({}).then(function(){ location.reload() }).catch(function(e){ alert("Could not reset ("+(e.code||e.message)+")") });
+};
+
 /* ---------- load list ---------- */
-if(!SHEET_CSV_URL){
-  start(SAMPLE,"Showing sample data. Set SHEET_CSV_URL in the settings at the top of the script to load real outlines.");
-} else {
+var started=false;
+function loadAll(){
+  if(started) return; started=true;
+  if(window.FB){
+    window.FB.getContent().then(function(t){ if(!adminOn) applyContent(t) }).catch(function(e){ console.error(e) });
+    window.FB.listen(function(rows){ fsRows=rows; rebuild() },
+      function(e){ console.error(e); showNote("Could not read from Firebase ("+(e.code||e.message)+"). Check the Firestore rules.") });
+  }
+  if(!SHEET_CSV_URL){
+    if(!window.FB) start(SAMPLE,"Showing sample data. Set SHEET_CSV_URL or the Firebase config.");
+    return;
+  }
   fetch(SHEET_CSV_URL).then(function(r){ if(!r.ok) throw new Error("HTTP "+r.status); return r.text() })
-    .then(function(t){ start(fromCSV(t)) })
+    .then(function(t){ sheetRows=fromCSV(t); rebuild() })
     .catch(function(e){
       console.error(e);
-      var why=(e&&e.message)?e.message:String(e);
-      var hint=(location.protocol==="file:")
-        ? " This page is opened as a local file; open it through a web address (for example http://localhost or your website) instead."
-        : " Check that the Google Sheet tab is published to the web as CSV, and that no ad blocker or network filter is blocking Google.";
-      start([],"Could not load outlines ("+why+")."+hint);
+      if(!window.FB) start([],"Could not load outlines ("+((e&&e.message)||e)+"). Check that the Google Sheet tab is published to the web as CSV.");
+      else rebuild();
     });
 }
+setTimeout(loadAll,5000); // safety net if Firebase scripts are blocked
+</script>
+<script type="module">
+/* ---------- FIREBASE: paste your web app config here (Firebase console > Project settings > Your apps) ---------- */
+var firebaseConfig = {
+  apiKey: "PASTE_API_KEY",
+  authDomain: "PASTE_PROJECT_ID.firebaseapp.com",
+  projectId: "PASTE_PROJECT_ID",
+  storageBucket: "PASTE_PROJECT_ID.appspot.com",
+  messagingSenderId: "PASTE_SENDER_ID",
+  appId: "PASTE_APP_ID"
+};
+try{
+  if(firebaseConfig.apiKey.indexOf("PASTE")!==0){
+    var V="10.12.2", B="https://www.gstatic.com/firebasejs/"+V+"/";
+    var A=await import(B+"firebase-app.js"), F=await import(B+"firebase-firestore.js");
+    var db=F.getFirestore(A.initializeApp(firebaseConfig)), col=F.collection(db,"outlines");
+    window.FB={
+      getContent:function(){ return F.getDoc(F.doc(db,"site","content")).then(function(s){ return s.exists()?(s.data().texts||{}):{} }) },
+      saveContent:function(t){ return F.setDoc(F.doc(db,"site","content"),{texts:t,updatedAt:F.serverTimestamp()}) },
+      add:function(e){ return F.addDoc(col,Object.assign({},e,{createdAt:F.serverTimestamp()})) },
+      listen:function(ok,err){ return F.onSnapshot(col,function(snap){
+        ok(snap.docs.map(function(d){ var x=d.data(); return {code:x.code||"",title:x.title||"",prog:x.prog||"",sess:x.sess||"",fm:x.fm||"",link:x.link||"#"} }));
+      },err) }
+    };
+  }
+}catch(e){ console.error("Firebase failed to load",e) }
+window.loadAll();
 </script>
 </body>
 </html>
