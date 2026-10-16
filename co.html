@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Course Outlines — Air University</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@500;600;700&family=Source+Sans+3:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#0d1f3c;--rule:#7aafd4;--gold:#1565a8;--gold-lt:#2980d4;--parchment:#ddeef9;--cream:#e8f4fc;--paper:#f0f8ff;--muted:#3a6080;--faint:#b8d8ef;--accent:#0a4a8a;--accent-lt:#1a6ab8;--red:#8b2020;--green:#1b6b34}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Source Sans 3',Georgia,serif;background:var(--cream);color:var(--ink);min-height:100vh;line-height:1.6;font-weight:500}
+header{background:linear-gradient(135deg,#0a2d5e 0%,#1a4a8a 60%,#0d3870 100%);color:var(--cream);border-bottom:4px solid var(--gold-lt)}
+.hin{max-width:1100px;margin:0 auto;padding:1.6rem 2rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap}
+header h1{font-family:'EB Garamond',serif;font-weight:500;font-size:clamp(1.7rem,4vw,2.6rem);line-height:1.15}
+header p{font-size:.92rem;color:rgba(224,240,252,.8);font-weight:600}
+.back{color:#fff;text-decoration:none;font-weight:600;font-size:.9rem;border:1px solid rgba(255,255,255,.45);padding:.4rem .9rem;border-radius:4px}
+.back:hover{background:rgba(255,255,255,.12)}
+main{max-width:1100px;margin:0 auto;padding:1.5rem 2rem 4rem}
+.tabs{display:flex;gap:.4rem;margin-bottom:1.2rem;border-bottom:2px solid var(--faint)}
+.tab{font:600 1rem 'Source Sans 3',sans-serif;color:var(--muted);background:none;border:0;border-bottom:3px solid transparent;margin-bottom:-2px;padding:.6rem 1.1rem;cursor:pointer}
+.tab.on{color:var(--accent);border-bottom-color:var(--accent)}
+.tools{display:flex;gap:.7rem;flex-wrap:wrap;margin-bottom:.8rem}
+input,select{font:500 .95rem 'Source Sans 3',sans-serif;color:var(--ink);background:#fff;border:1px solid var(--faint);border-bottom:2px solid var(--rule);padding:.55rem .8rem;width:100%}
+.tools input{flex:1 1 240px;width:auto}.tools select{width:auto}
+input:focus,select:focus{outline:none;border-bottom-color:var(--accent)}
+.btn{font:600 .88rem 'Source Sans 3',sans-serif;color:var(--accent);background:#fff;border:1px solid var(--rule);border-radius:4px;padding:.45rem .95rem;cursor:pointer;text-decoration:none;display:inline-block;white-space:nowrap}
+.btn:hover{background:var(--parchment)}
+.btn.solid{background:var(--accent);color:#fff;border-color:var(--accent);padding:.65rem 1.5rem;font-size:1rem}
+.btn.solid:hover{background:var(--accent-lt)}.btn:disabled{opacity:.55;cursor:default}
+.meta{font-weight:600;font-size:.88rem;color:var(--muted);margin:.4rem 0 .8rem}
+.wrap{overflow-x:auto;background:var(--paper);border:1px solid var(--faint)}
+table{width:100%;border-collapse:collapse;font-size:.92rem}
+th{background:var(--accent);color:#fff;text-align:left;font-weight:600;padding:.6rem .8rem;white-space:nowrap}
+td{padding:.55rem .8rem;border-top:1px solid var(--faint);vertical-align:top}
+tr:hover td{background:var(--parchment)}
+td.code{font-weight:700;white-space:nowrap}
+td.act{white-space:nowrap;display:flex;gap:.4rem}
+.tag{display:inline-block;font-size:.78rem;font-weight:700;padding:.1rem .6rem;border-radius:999px;border:1px solid var(--faint);background:var(--parchment);color:var(--accent);white-space:nowrap}
+.empty{padding:2.5rem 1rem;text-align:center;color:var(--muted)}
+.note{background:#fff8e1;border:1px solid #e8d48a;color:#5c4a00;padding:.7rem 1rem;margin-bottom:1rem;font-size:.9rem;display:none}
+.formbox{background:var(--paper);border:1px solid var(--faint);border-top:5px solid var(--gold);padding:1.3rem 1.5rem;max-width:720px}
+.formbox h2{font-family:'EB Garamond',serif;font-size:1.6rem;font-weight:600}
+.sub{color:var(--muted);font-size:.92rem;margin:.1rem 0 .6rem}
+label{display:block;font-weight:600;font-size:.86rem;margin:.8rem 0 .2rem}
+.row{display:flex;gap:.8rem;flex-wrap:wrap}.row>div{flex:1 1 200px}
+.drop{border:2px dashed var(--rule);background:#fff;padding:1rem;text-align:center;color:var(--muted);font-size:.92rem}
+.drop input{border:0;padding:.3rem 0}
+progress{width:100%;height:12px;margin-top:.9rem;display:none}
+#upMsg{margin-top:.8rem;font-weight:600;font-size:.92rem;min-height:1.4em}
+#upMsg.err{color:var(--red)}#upMsg.ok{color:var(--green)}
+#viewer{position:fixed;inset:0;background:rgba(13,31,60,.7);display:none;flex-direction:column;z-index:10;padding:1rem}
+#viewer.on{display:flex}
+#viewer .bar{display:flex;justify-content:space-between;align-items:center;gap:1rem;background:var(--paper);padding:.6rem 1rem}
+#viewer .bar b{font-family:'EB Garamond',serif;font-size:1.15rem}
+#viewer iframe{flex:1;border:0;background:#fff}
+a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--accent-lt);outline-offset:2px}
+@media(max-width:640px){main{padding:1.2rem 1rem 3rem}.hin{padding:1.2rem 1rem}}
+</style>
+</head>
+<body>
+<header><div class="hin">
+  <div><h1>Course Outlines</h1><p>Approved outlines submitted by faculty members. View online or download as PDF.</p></div>
+  <a class="back" href="index.html">Back to Coordinator Office</a>
+</div></header>
+
+<main>
+  <div class="tabs" role="tablist">
+    <button class="tab on" id="tabBtnList" role="tab" onclick="showTab('list')">View outlines</button>
+    <button class="tab" id="tabBtnForm" role="tab" onclick="showTab('form')">Submit an outline</button>
+  </div>
+
+  <section id="secList">
+    <div class="note" id="note"></div>
+    <div class="tools">
+      <input id="q" type="search" placeholder="Search by course code, title or faculty member" aria-label="Search outlines">
+      <select id="fProg" aria-label="Programme"><option value="">All programmes</option></select>
+      <select id="fSess" aria-label="Session"><option value="">All sessions</option></select>
+    </div>
+    <p class="meta" id="count"></p>
+    <div class="wrap">
+      <table>
+        <thead><tr><th>Course code</th><th>Course title</th><th>Programme</th><th>Session</th><th>Faculty member</th><th>Version</th><th>Outline</th></tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+      <div class="empty" id="empty" hidden>No outlines to show yet.</div>
+    </div>
+  </section>
+
+  <section id="secForm" hidden>
+    <div class="formbox">
+      <h2>Submit a course outline</h2>
+      <p class="sub">Fill in the details and attach your outline as a PDF. It appears under View outlines shortly after upload.</p>
+      <div class="row">
+        <div><label for="uCode">Course code</label><input id="uCode" placeholder="EE-201"></div>
+        <div><label for="uVer">Version</label><input id="uVer" placeholder="v1"></div>
+      </div>
+      <label for="uTitle">Course title</label><input id="uTitle">
+      <div class="row">
+        <div><label for="uProg">Programme</label><select id="uProg"></select></div>
+        <div><label for="uSess">Session</label><select id="uSess"></select></div>
+      </div>
+      <label for="uFm">Faculty member name</label><input id="uFm">
+      <label for="uFile">Course outline (PDF, up to 100 MB)</label>
+      <div class="drop"><input id="uFile" type="file" accept="application/pdf,.pdf"></div>
+      <progress id="upBar" value="0" max="100"></progress>
+      <div id="upMsg" role="status"></div>
+      <p style="margin-top:.6rem"><button class="btn solid" id="upGo" onclick="doUpload()">Submit outline</button></p>
+    </div>
+  </section>
+</main>
+
+<div id="viewer" role="dialog" aria-modal="true" aria-label="Outline viewer">
+  <div class="bar"><b id="vTitle"></b><span><a class="btn" id="vDl" href="#">Download</a> <button class="btn" onclick="closeViewer()">Close</button></span></div>
+  <iframe id="vFrame" title="Course outline"></iframe>
+</div>
+
+<script>
+// ── SETTINGS ───────────────────────────────────────────────────────────────
+// 1. Web app URL of the Apps Script (Code.gs) that saves uploads to Google Drive.
+var UPLOAD_URL = "https://script.google.com/macros/s/AKfycbz5W5mTWJ2oPiu4FMbet_4G5bBbF8AEQ40qCDDlhfNwfLbsmLrkSzBMTmotAnSmrwDd/exec";
+// 2. Published CSV link of the "Outlines" tab of the Google Sheet (File > Share > Publish to web > CSV).
+var SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT3BZbpm5XvJWIuvyWYJr_jcliG-5u_XhPbRKWpOX3PZlL7uB1qzWvzT2GrFh7_DJebR_i4RItQGnoE/pub?gid=797590339&single=true&output=csv";
+var PROGRAMMES = ["BCE","BEEE","BEEP","BEEV","BEET","BSE","MS/PhD EE","MS/PhD CE"];
+var SESSIONS = ["Fall 2026","Spring 2027","Fall 2027","Spring 2028"];
+var MAX_MB = 100;
+// ───────────────────────────────────────────────────────────────────────────
+// Sheet columns used (set by Code.gs): Course Code | Course Title | Programme | Session | FM Name | Version | File Link | Status | Latest
+// Only rows with Status = Approved and Latest not "N" are shown.
+
+var CHUNK = 6*256*1024; // 1.5 MB, must be a multiple of 256 KB
+var SAMPLE = [
+  {code:"EE-201",title:"Circuit Analysis",prog:"BEEE",sess:"Fall 2026",fm:"Sample FM 1",ver:"v1",link:"#"},
+  {code:"CS-101",title:"Programming Fundamentals",prog:"BCE",sess:"Fall 2026",fm:"Sample FM 2",ver:"v2",link:"#"}
+];
+var data=[], $=function(i){return document.getElementById(i)};
+
+/* ---------- list ---------- */
+function parseCSV(t){
+  var r=[],row=[],f="",q=false;
+  for(var i=0;i<t.length;i++){
+    var c=t[i];
+    if(q){ if(c=='"'){ if(t[i+1]=='"'){f+='"';i++} else q=false } else f+=c }
+    else if(c=='"') q=true;
+    else if(c==','){row.push(f);f=""}
+    else if(c=='\n'){row.push(f);r.push(row);row=[];f=""}
+    else if(c!='\r') f+=c;
+  }
+  if(f||row.length){row.push(f);r.push(row)}
+  return r;
+}
+function fromCSV(text){
+  var rows=parseCSV(text); if(!rows.length) return [];
+  var h=rows[0].map(function(x){return x.trim().toLowerCase()});
+  function idx(names){ for(var n=0;n<names.length;n++){ for(var k=0;k<h.length;k++){ if(h[k].indexOf(names[n])>-1) return k; } } return -1; }
+  var ix={code:idx(["course code","code"]),title:idx(["course title","title"]),prog:idx(["programme","program"]),sess:idx(["session","semester"]),fm:idx(["fm name","faculty","fm"]),ver:idx(["version"]),link:idx(["file link","upload","file"]),status:idx(["status"]),latest:idx(["latest"])};
+  var out=[];
+  rows.slice(1).forEach(function(r){
+    function g(k){return ix[k]>-1?(r[ix[k]]||"").trim():""}
+    if(!g("code")&&!g("title")) return;
+    if(ix.status>-1 && g("status").toLowerCase()!=="approved") return;
+    if(ix.latest>-1 && g("latest").toLowerCase().charAt(0)==="n") return;
+    out.push({code:g("code"),title:g("title"),prog:g("prog"),sess:g("sess"),fm:g("fm"),ver:g("ver"),link:g("link").split(",")[0].trim()});
+  });
+  return out;
+}
+function driveId(u){ var m=u.match(/\/d\/([\w-]+)/)||u.match(/[?&]id=([\w-]+)/); return m?m[1]:null }
+function viewUrl(u){ var id=driveId(u); return id?"https://drive.google.com/file/d/"+id+"/preview":u }
+function dlUrl(u){ var id=driveId(u); return id?"https://drive.google.com/uc?export=download&id="+id:u }
+function esc(s){ return String(s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]}) }
+function fillSelect(id,key){
+  var s=$(id), vals=Array.from(new Set(data.map(function(d){return d[key]}).filter(Boolean))).sort();
+  vals.forEach(function(v){ s.add(new Option(v,v)) });
+}
+function render(){
+  var q=$("q").value.toLowerCase(), p=$("fProg").value, s=$("fSess").value;
+  var list=data.filter(function(d){
+    return (!p||d.prog===p)&&(!s||d.sess===s)&&(!q||(d.code+" "+d.title+" "+d.fm).toLowerCase().indexOf(q)>-1);
+  }).sort(function(a,b){return a.code.localeCompare(b.code)});
+  $("rows").innerHTML=list.map(function(d){
+    var ok=d.link&&d.link!=="#";
+    return "<tr><td class='code'>"+esc(d.code)+"</td><td>"+esc(d.title)+"</td><td>"+(d.prog?"<span class='tag'>"+esc(d.prog)+"</span>":"")+"</td><td>"+esc(d.sess)+"</td><td>"+esc(d.fm)+"</td><td>"+esc(d.ver)+"</td><td class='act'>"+
+      (ok?"<button class='btn' data-i='"+data.indexOf(d)+"' onclick='openViewer(this)'>View</button><a class='btn' href='"+esc(dlUrl(d.link))+"'>Download</a>":"<span class='tag'>No file</span>")+"</td></tr>";
+  }).join("");
+  $("empty").hidden=list.length>0;
+  $("count").textContent=list.length+" of "+data.length+" outlines";
+}
+function openViewer(b){
+  var d=data[+b.dataset.i];
+  $("vTitle").textContent=d.code+" — "+d.title;
+  $("vFrame").src=viewUrl(d.link); $("vDl").href=dlUrl(d.link);
+  $("viewer").classList.add("on");
+}
+function closeViewer(){ $("viewer").classList.remove("on"); $("vFrame").src="about:blank" }
+document.addEventListener("keydown",function(e){ if(e.key==="Escape") closeViewer() });
+function start(rows,note){
+  data=rows; fillSelect("fProg","prog"); fillSelect("fSess","sess"); render();
+  if(note){ $("note").textContent=note; $("note").style.display="block" }
+}
+["q","fProg","fSess"].forEach(function(i){ $(i).addEventListener("input",render) });
+
+/* ---------- tabs ---------- */
+function showTab(t){
+  var f=(t==="form");
+  $("secList").hidden=f; $("secForm").hidden=!f;
+  $("tabBtnList").classList.toggle("on",!f); $("tabBtnForm").classList.toggle("on",f);
+  try{ history.replaceState(null,"",f?"#submit":location.pathname+location.search) }catch(e){}
+}
+if(location.hash==="#submit") showTab("form");
+
+/* ---------- optional access key: open outlines.html?key=XXXX once; it is remembered and hidden ---------- */
+function getKey(){ try{ return localStorage.getItem("outlineKey")||"" }catch(e){ return window._okey||"" } }
+(function(){
+  var m=location.search.match(/[?&]key=([^&]+)/); if(!m) return;
+  var k=decodeURIComponent(m[1]);
+  try{ localStorage.setItem("outlineKey",k) }catch(e){ window._okey=k }
+  try{ history.replaceState(null,"",location.pathname+location.hash) }catch(e){}
+})();
+
+/* ---------- upload to Google Drive (sent in 1.5 MB pieces so large files work) ---------- */
+PROGRAMMES.forEach(function(v){ $("uProg").add(new Option(v,v)) });
+SESSIONS.forEach(function(v){ $("uSess").add(new Option(v,v)) });
+function say(t,c){ $("upMsg").textContent=t; $("upMsg").className=c||"" }
+function post(obj){
+  return fetch(UPLOAD_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(obj)}).then(function(r){return r.json()});
+}
+function postRetry(obj,n){
+  return post(obj).catch(function(e){ if(n>0) return new Promise(function(r){setTimeout(r,1500)}).then(function(){return postRetry(obj,n-1)}); throw e });
+}
+function readChunk(file,start){
+  return new Promise(function(res,rej){
+    var rd=new FileReader();
+    rd.onload=function(){ res(rd.result.split(",")[1]) };
+    rd.onerror=rej;
+    rd.readAsDataURL(file.slice(start,Math.min(start+CHUNK,file.size)));
+  });
+}
+function doUpload(){
+  var f=$("uFile").files[0], v=function(i){return $(i).value.trim()};
+  if(!UPLOAD_URL) return say("Uploads are not connected yet. Ask the coordinator office to finish the setup.","err");
+  if(!v("uCode")||!v("uTitle")||!v("uFm")) return say("Fill in the course code, title and your name.","err");
+  if(!f) return say("Choose your outline PDF.","err");
+  if(f.type!=="application/pdf"&&!/\.pdf$/i.test(f.name)) return say("Only PDF files are accepted.","err");
+  if(f.size>MAX_MB*1024*1024) return say("File is larger than "+MAX_MB+" MB. Compress it and try again.","err");
+  $("upGo").disabled=true; $("upBar").style.display="block"; $("upBar").value=0; say("Starting upload...");
+  var meta={action:"start",key:getKey(),name:f.name,size:f.size,code:v("uCode"),title:v("uTitle"),prog:$("uProg").value,sess:$("uSess").value,fm:v("uFm"),ver:v("uVer")||"v1"};
+  postRetry(meta,2).then(function(j){
+    if(!j.ok) throw new Error(j.error||"Upload could not start.");
+    var id=j.id;
+    function next(start){
+      if(start>=f.size) return Promise.resolve();
+      return readChunk(f,start).then(function(b64){
+        return postRetry({action:"chunk",id:id,start:start,total:f.size,data:b64},3);
+      }).then(function(r){
+        if(!r.ok) throw new Error(r.error||"Upload failed.");
+        var done=Math.min(start+CHUNK,f.size);
+        $("upBar").value=Math.round(done/f.size*100);
+        say("Uploading... "+$("upBar").value+"%");
+        return next(start+CHUNK);
+      });
+    }
+    return next(0);
+  }).then(function(){
+    $("upGo").disabled=false; $("upBar").style.display="none";
+    say("Uploaded. It will appear in the list shortly (refresh the page in a few minutes).","ok");
+    $("uFile").value="";
+  }).catch(function(e){
+    $("upGo").disabled=false; $("upBar").style.display="none";
+    say((e&&e.message&&e.message!=="Failed to fetch")?e.message:"Upload failed. Check your connection and try again.","err");
+  });
+}
+
+/* ---------- load list ---------- */
+if(!SHEET_CSV_URL){
+  start(SAMPLE,"Showing sample data. Set SHEET_CSV_URL in the settings at the top of the script to load real outlines.");
+} else {
+  fetch(SHEET_CSV_URL).then(function(r){ if(!r.ok) throw 0; return r.text() })
+    .then(function(t){ start(fromCSV(t)) })
+    .catch(function(){ start([],"Could not load outlines. Check that the Google Sheet tab is published to the web as CSV."); });
+}
+</script>
+</body>
+</html>
