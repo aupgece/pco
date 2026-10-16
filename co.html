@@ -119,7 +119,7 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible{ou
 // ── SETTINGS ───────────────────────────────────────────────────────────────
 // 1. Web app URL of the Apps Script (Code.gs) that saves uploads to Google Drive.
 var UPLOAD_URL = "https://script.google.com/macros/s/AKfycbz5W5mTWJ2oPiu4FMbet_4G5bBbF8AEQ40qCDDlhfNwfLbsmLrkSzBMTmotAnSmrwDd/exec";
-// 2. Published CSV link of the "Outlines" tab of the Google Sheet (File > Share > Publish to web > CSV).
+// 2. Published CSV link of the "Course Outlines" tab of the Google Sheet (File > Share > Publish to web > CSV).
 var SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT3BZbpm5XvJWIuvyWYJr_jcliG-5u_XhPbRKWpOX3PZlL7uB1qzWvzT2GrFh7_DJebR_i4RItQGnoE/pub?gid=797590339&single=true&output=csv";
 var PROGRAMMES = ["BCE","BEEE","BEEP","BEEV","BEET","BSE","MS/PhD EE","MS/PhD CE"];
 var SESSIONS = ["Fall 2026","Spring 2027","Fall 2027","Spring 2028"];
@@ -207,6 +207,7 @@ function showTab(t){
   try{ history.replaceState(null,"",f?"#submit":location.pathname+location.search) }catch(e){}
 }
 if(location.hash==="#submit") showTab("form");
+if(location.protocol==="file:"){ var _n=document.getElementById("note"); _n.textContent="Tip: this page is opened as a local file, so the browser may block loading and uploads. Open it through a web address instead."; _n.style.display="block"; }
 
 /* ---------- optional access key: open outlines.html?key=XXXX once; it is remembered and hidden ---------- */
 function getKey(){ try{ return localStorage.getItem("outlineKey")||"" }catch(e){ return window._okey||"" } }
@@ -266,7 +267,9 @@ function doUpload(){
     $("uFile").value="";
   }).catch(function(e){
     $("upGo").disabled=false; $("upBar").style.display="none";
-    say((e&&e.message&&e.message!=="Failed to fetch")?e.message:"Upload failed. Check your connection and try again.","err");
+    console.error(e);
+    var m=(e&&e.message&&e.message!=="Failed to fetch")?e.message:(location.protocol==="file:"?"Upload failed. Open this page through a web address (not as a local file) and try again.":"Upload failed. Check your connection, or that the upload service is deployed for Anyone, and try again.");
+    say(m,"err");
   });
 }
 
@@ -274,9 +277,16 @@ function doUpload(){
 if(!SHEET_CSV_URL){
   start(SAMPLE,"Showing sample data. Set SHEET_CSV_URL in the settings at the top of the script to load real outlines.");
 } else {
-  fetch(SHEET_CSV_URL).then(function(r){ if(!r.ok) throw 0; return r.text() })
+  fetch(SHEET_CSV_URL).then(function(r){ if(!r.ok) throw new Error("HTTP "+r.status); return r.text() })
     .then(function(t){ start(fromCSV(t)) })
-    .catch(function(){ start([],"Could not load outlines. Check that the Google Sheet tab is published to the web as CSV."); });
+    .catch(function(e){
+      console.error(e);
+      var why=(e&&e.message)?e.message:String(e);
+      var hint=(location.protocol==="file:")
+        ? " This page is opened as a local file; open it through a web address (for example http://localhost or your website) instead."
+        : " Check that the Google Sheet tab is published to the web as CSV, and that no ad blocker or network filter is blocking Google.";
+      start([],"Could not load outlines ("+why+")."+hint);
+    });
 }
 </script>
 </body>
