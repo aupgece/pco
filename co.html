@@ -388,7 +388,7 @@ $("aReset").onclick=function(){
 /* ---------- load list ---------- */
 function fbErr(e){
   var c=(e&&e.code)||"", m=(e&&e.message)||String(e);
-  if(/permission/i.test(c+m)) return "Realtime Database rules are blocking this. In Firebase console > Realtime Database > Rules, allow read/write for co_outlines and co_site (see the rules given in chat), then click Publish.";
+  if(/permission/i.test(c+m)) return "Firebase refused the write. Your Realtime Database rules do not allow the path pco_text_overrides. Open Firebase console > Realtime Database > Rules and make sure pco_text_overrides allows read and write, then Publish.";
   if(/network|unavailable|offline/i.test(c+m)) return "Cannot reach Firebase. Check the internet connection or any blocker/VPN.";
   return c||m;
 }
@@ -431,10 +431,10 @@ try{
   var A=await import(B+"firebase-app.js"), D=await import(B+"firebase-database.js");
   var db=D.getDatabase(A.initializeApp(firebaseConfig,"co"));
   window.FB={
-    getContent:function(){ return D.get(D.ref(db,"co_site/texts")).then(function(s){ return s.val()||{} }) },
-    saveContent:function(t){ return D.set(D.ref(db,"co_site/texts"),t) },
-    add:function(e){ return D.push(D.ref(db,"co_outlines"),Object.assign({},e,{createdAt:Date.now()})) },
-    listen:function(ok,err){ return D.onValue(D.ref(db,"co_outlines"),function(snap){
+    getContent:function(){ return D.get(D.ref(db,"pco_text_overrides/co_texts")).then(function(s){ return s.val()||{} }) },
+    saveContent:function(t){ return D.set(D.ref(db,"pco_text_overrides/co_texts"),t) },
+    add:function(e){ return D.push(D.ref(db,"pco_text_overrides/co_outlines"),Object.assign({},e,{createdAt:Date.now()})) },
+    listen:function(ok,err){ return D.onValue(D.ref(db,"pco_text_overrides/co_outlines"),function(snap){
       var v=snap.val()||{};
       ok(Object.keys(v).map(function(k){ var x=v[k]; return {code:x.code||"",title:x.title||"",prog:x.prog||"",sess:x.sess||"",fm:x.fm||"",link:x.link||"#"} }));
     },err) }
