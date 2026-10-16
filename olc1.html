@@ -841,7 +841,7 @@
           <input type="text" id="facultySelect" placeholder="Type a few letters of your name" autocomplete="off">
           <div class="combo-list" id="facultySelectList"></div>
         </div>
-        <div class="field-hint">The list filters as you type. Click your name to select it.</div>
+        <div class="field-hint">The list filters as you type. Click your name to select it. Name not in the list? Type it in full and choose “Use …” to add your online class manually.</div>
       </div>
       <div class="field">
         <label for="dateInput"><span class="step-num">2</span>Day (as per timetable)</label>
@@ -1679,7 +1679,7 @@ rebuildFacultyList();
 // appear. The input's own .value IS the selected faculty name (or '' for
 // "no selection"), so all existing code that reads facultySelect.value /
 // filterFaculty.value keeps working unchanged.
-function setupFacultyCombo(inputId, listId, blankLabel, getList, onSelect){
+function setupFacultyCombo(inputId, listId, blankLabel, getList, onSelect, allowCustom){
   const input = document.getElementById(inputId);
   const list = document.getElementById(listId);
   if(!input || !list) return;
@@ -1689,6 +1689,10 @@ function setupFacultyCombo(inputId, listId, blankLabel, getList, onSelect){
     const items = [];
     if(!f || blankLabel.toLowerCase().includes(f)) items.push({label: blankLabel, val: ''});
     getList().forEach(name=>{ if(name.toLowerCase().includes(f)) items.push({label: name, val: name}); });
+    const typed = (filterText||'').trim();
+    if(allowCustom && typed && !getList().some(n => n.toLowerCase() === typed.toLowerCase())){
+      items.push({label: `Not in list? Use “${typed.replace(/&/g,'&amp;').replace(/</g,'&lt;')}” and add my class manually`, val: typed});
+    }
     list.innerHTML = items.length
       ? items.map(it=>`<div class="combo-item" data-val="${it.val.replace(/"/g,'&quot;')}">${it.label}</div>`).join('')
       : '<div class="combo-empty">No match</div>';
@@ -1703,8 +1707,13 @@ function setupFacultyCombo(inputId, listId, blankLabel, getList, onSelect){
     setTimeout(()=>{
       list.classList.remove('open');
       if(input.value && !getList().includes(input.value)){
-        input.value = '';
-        input.dispatchEvent(new Event('change'));
+        if(allowCustom){
+          input.value = input.value.trim();
+          if(input._lastCustom !== input.value){ input._lastCustom = input.value; if(onSelect) onSelect(input.value); }
+        } else {
+          input.value = '';
+          input.dispatchEvent(new Event('change'));
+        }
       }
     }, 150);
   });
@@ -1718,7 +1727,7 @@ function setupFacultyCombo(inputId, listId, blankLabel, getList, onSelect){
     if(onSelect) onSelect(input.value);
   });
 }
-setupFacultyCombo('facultySelect', 'facultySelectList', '— select your name —', ()=> facultyList, ()=> showClasses());
+setupFacultyCombo('facultySelect', 'facultySelectList', '— select your name —', ()=> facultyList, ()=> showClasses(), true);
 setupFacultyCombo('filterFacultyEE', 'filterFacultyListEE', 'All EE faculty', ()=> facultyList, ()=> loadRecordsTable('EE'));
 setupFacultyCombo('filterFacultyCE', 'filterFacultyListCE', 'All CE faculty', ()=> facultyList, ()=> loadRecordsTable('CE'));
 setupFacultyCombo('adminFilterFaculty', 'adminFilterFacultyList', 'All faculty', ()=> facultyList, ()=> loadAdminTable());
@@ -2259,6 +2268,13 @@ async function showClasses(){
   const facKey = normFacultyKey(fac);
   const classes = allSchedule().filter(c => normFacultyKey(c.faculty) === facKey && c.day === weekday)
                            .sort((a,b)=> a.start.localeCompare(b.start));
+
+  if(classes.length === 0 && !facultyList.includes(fac)){
+    list.innerHTML = '<p class="empty-note">Your name is not in the faculty list. Please add your online class details manually below.</p>';
+    const mf = document.getElementById('manualForm');
+    if(mf) mf.classList.add('open');
+    return;
+  }
 
   if(classes.length === 0){
     list.innerHTML = TIMETABLE_DAYS.includes(weekday)
