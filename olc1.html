@@ -550,6 +550,10 @@
   .bulk-bar .sel-count{ color: var(--slate); font-weight: 600; }
   .bulk-bar label.sel-all{ display:flex; align-items:center; gap:8px; cursor:pointer; font-weight:600; }
   .bulk-bar input[type=checkbox]{ width:17px; height:17px; cursor:pointer; }
+  /* Admin-only "Unsubmit" button on Record cards: shown only after the Admin tab is unlocked, and only on submitted cards */
+  .unsubmit-btn{ display:none; }
+  body.admin-on .class-card[data-saved="1"] .unsubmit-btn,
+  body.admin-on .class-card[data-manual="1"] .unsubmit-btn{ display:inline-block; }
   button.danger{
     font-family: Arial, Helvetica, sans-serif;
     background: var(--red);
@@ -959,7 +963,7 @@
   <section id="panelHelp" class="panel">
     <div class="help-intro">
       <h2 class="help-h1">How to submit &amp; edit an online class record</h2>
-      <p class="help-lede">A short walkthrough of the "Record a class" tab — the only part faculty need to use day to day.</p>
+      <p class="help-lede">A short walkthrough of the "Record a class" tab — the only part faculty need to use day to day. Choose your name, tap the day, then submit each class.</p>
     </div>
 
     <div class="demo-wrap" id="demo">
@@ -1035,63 +1039,96 @@
 
     <div class="help-parts">
       <div class="help-part">
-        <h3><span class="help-n">1</span>Submitting a record for the first time</h3>
-        <p class="help-part-lede">Open "Record a class" (the first tab).</p>
-
+        <h3><span class="help-n">1</span>Recording your timetable classes</h3>
+        <p class="help-part-lede">Open "Record a class" (the first tab). There are two quick steps: your name, then the day.</p>
         <div class="step">
           <div class="num">1</div>
           <div class="body">
-            <h4>Pick your name and the day</h4>
-            <p>Type a few letters of your name and click it from the list, then tap the day as per timetable in the week strip.</p>
+            <h4>Choose your name</h4>
+            <p>Type a few letters of your name and tap it in the list. Your name must come from the list so your classes and records are linked to you.</p>
           </div>
         </div>
         <div class="step">
           <div class="num">2</div>
           <div class="body">
-            <h4>Your classes for that day appear automatically</h4>
-            <p>One card shows up per class on your timetable for that day, with the subject, section and time already filled in — you don't type those.</p>
+            <h4>Tap the day as per timetable</h4>
+            <p>Tap MON–FRI in the day strip. Records are saved under the day you tap, so tap the day the administrator asks for. Read any notice that appears under the day strip, such as "Follow Wednesday's timetable on this Saturday", and tap that day.</p>
+            <div class="callout">A day highlighted in the strip is the one named in the administrator's notice. A class recorded under any other day is not counted for it.</div>
           </div>
         </div>
         <div class="step">
           <div class="num">3</div>
           <div class="body">
-            <h4>Fill in each class card</h4>
-            <p>For every class, answer whether it was held on the scheduled time, then fill in attendance, GCR upload status, and the class link.</p>
-            <div class="callout">"Students absent" fills itself in as enrolled − present — you only need to overwrite it if it's wrong.</div>
+            <h4>Your classes appear as cards</h4>
+            <p>One card is shown for every class on that day's timetable, with department, section, room and time already filled in. A line above the cards shows progress, for example "1 of 2 classes submitted".</p>
           </div>
         </div>
         <div class="step">
           <div class="num">4</div>
           <div class="body">
-            <h4>Submit the class</h4>
-            <p>Click the button at the bottom of each card. Nothing is saved until you press it — nothing is auto-saved in the background. Do this for every class card on the page — each one submits separately.</p>
+            <h4>Fill in each card</h4>
+            <p>Answer "Online class held on scheduled time?", then enter total enrolled and students present (absent fills itself in as enrolled − present). Choose the GCR upload status and add the GCR code, the online class link and any remarks.</p>
+            <div class="callout">If you answer Yes, please enter the number of students present, or the card will remind you.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="num">5</div>
+          <div class="body">
+            <h4>Press "Submit this class"</h4>
+            <p>Nothing is saved until you press the button on that card, and each card is submitted separately. After saving, the card shows it is submitted and the progress line goes up.</p>
           </div>
         </div>
       </div>
 
       <div class="help-part">
-        <h3><span class="help-n">2</span>Editing a record you already submitted</h3>
-        <p class="help-part-lede">You can correct a submitted record any time — there's no lock, and no need to contact anyone.</p>
-
+        <h3><span class="help-n">2</span>Checking or correcting a submitted class</h3>
+        <p class="help-part-lede">You can correct a submitted class any time — there is no lock.</p>
         <div class="step">
           <div class="num">1</div>
           <div class="body">
-            <h4>Reopen the same name and date</h4>
-            <p>Go back to "Record a class," select the same name and the exact same date you submitted for. Your previous answers load straight back into the cards.</p>
+            <h4>Select the same name and the same day again</h4>
+            <p>Cards you already submitted load back with your earlier answers and the label "Already submitted — edit below".</p>
           </div>
         </div>
         <div class="step">
           <div class="num">2</div>
           <div class="body">
-            <h4>Change whatever needs correcting</h4>
-            <p>Edit any field directly — attendance numbers, the held yes/no answer, the link, remarks — exactly like the first time.</p>
+            <h4>Change what needs correcting and press "Update this class"</h4>
+            <p>The button now reads "Update this class". The correction is saved only when you press it.</p>
           </div>
         </div>
         <div class="step">
           <div class="num">3</div>
           <div class="body">
-            <h4>Submit again to save the correction</h4>
-            <p>The button now reads "Update this class" instead of "Submit this class." Click it to save your changes. Same rule as before: it only saves once you click the button.</p>
+            <h4>Submitted under the wrong day, or by mistake?</h4>
+            <p>Ask the administrator to delete that entry from the Admin tab. Then record the class again under the correct day.</p>
+            <div class="callout">If the page shows "Firebase unavailable — records are being saved to this browser only", your internet or the database is not connected. Do not rely on that submission. Reconnect, reload the page, and submit again.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="help-part">
+        <h3><span class="help-n">3</span>Classes that are not in the timetable</h3>
+        <p class="help-part-lede">For additional courses, MS courses or PhD courses.</p>
+        <div class="step">
+          <div class="num">1</div>
+          <div class="body">
+            <h4>Open the manual form</h4>
+            <p>Below your cards, tap "+ Add an online class manually". If your name is not in the list, type it in full and choose "Use …" to reach the same form.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="num">2</div>
+          <div class="body">
+            <h4>Enter the class details</h4>
+            <p>Choose the course type and department, then enter course name, section or program, start and end time, and optionally the room. Fill in held, attendance, GCR and link in the same way as for a timetable class.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="num">3</div>
+          <div class="body">
+            <h4>Press "Submit this class"</h4>
+            <p>Each manual class is saved as its own record for the name and day selected above, and appears in the list under the form.</p>
           </div>
         </div>
       </div>
@@ -1281,6 +1318,7 @@
         </table>
       </div>
       <p class="count-line" id="reportCountLine"></p>
+      <div id="reportUnmatched"></div>
     </div>
   </section>
 
@@ -2153,6 +2191,7 @@ function tryAdminUnlock(){
   const msg = document.getElementById('adminGateMsg');
   if(pass === ADMIN_PASSWORD){
     adminUnlocked = true;
+    document.body.classList.add('admin-on');
     document.querySelectorAll('.admin-only').forEach(el => { el.style.display = ''; });
     document.getElementById('adminGate').style.display = 'none';
     document.getElementById('adminContent').style.display = 'block';
@@ -2355,6 +2394,7 @@ async function showClasses(){
       </div>
       <div class="card-footer">
         <button class="primary save-btn">Submit this class</button>
+        <button type="button" class="danger unsubmit-btn" title="Admin only: remove this submission">Unsubmit</button>
         <span class="save-msg"></span>
         <span class="card-status">Not submitted yet</span>
       </div>
@@ -2498,6 +2538,33 @@ async function showClasses(){
     card.querySelector('.link-input').addEventListener('input', saveCardDebounced);
     card.querySelector('.remarks-input').addEventListener('input', saveCardDebounced);
 
+    // Admin-only: remove the stored record so the class goes back to "Not submitted yet"
+    card.querySelector('.unsubmit-btn').addEventListener('click', async ()=>{
+      if(!adminUnlocked){ alert('Only the administrator can unsubmit a class. Unlock the Admin tab first.'); return; }
+      if(!confirm(`Unsubmit "${c.subject}" (${c.section}, ${c.start}) for ${prettyDate(dateStr)}?\n\nThe saved record will be deleted and the form cleared.`)) return;
+      clearTimeout(autoSaveTimer);
+      try{
+        await deleteRecordByKey(fbKey(key));
+        card.querySelectorAll('input[type=radio]').forEach(r=> r.checked = false);
+        card.querySelectorAll('input[type=number], input[type=text], input[type=url], textarea').forEach(i=> i.value = '');
+        card.classList.remove('status-yes','status-no');
+        delete card.dataset.saved;
+        const chip = card.querySelector('.card-status');
+        if(chip){ chip.textContent = 'Not submitted yet'; chip.classList.remove('saved'); }
+        const badge = card.querySelector('.recorded-badge');
+        badge.style.display = 'none'; delete badge.dataset.preexisting;
+        card.querySelector('.save-btn').textContent = 'Submit this class';
+        checkPresent();
+        msgEl.style.color = 'var(--green)';
+        msgEl.textContent = 'Unsubmitted.';
+        updateProgress();
+      }catch(e){
+        console.error(e);
+        msgEl.style.color = 'var(--red)';
+        msgEl.textContent = 'Could not unsubmit.';
+      }
+    });
+
     // save (manual "save now" button — auto-save above already covers most cases)
     card.querySelector('.save-btn').addEventListener('click', ()=>{
       clearTimeout(autoSaveTimer);
@@ -2543,7 +2610,7 @@ async function refreshManualList(){
              .sort((a,b)=> (a.start||'').localeCompare(b.start||''));
   if(!recs.length){ box.innerHTML = ''; return; }
   box.innerHTML = '<div class="day-heading" style="margin-top:8px;">Manually entered classes</div>' + recs.map(r=>`
-    <div class="class-card ${r.held === 'yes' ? 'status-yes' : 'status-no'}">
+    <div class="class-card ${r.held === 'yes' ? 'status-yes' : 'status-no'}" data-manual="1">
       <div class="meta">
         <div>
           <h3>${manualEsc(r.subject)}<span class="manual-tag">${manualEsc(r.category || 'Manual')}</span></h3>
@@ -2560,6 +2627,7 @@ async function refreshManualList(){
       </div>
       <div class="card-footer">
         <button type="button" class="ghost" data-mf-edit="${manualEsc(r._k)}">Edit</button>
+        <button type="button" class="danger unsubmit-btn" data-mf-unsub="1" title="Admin only: remove this submission">Unsubmit</button>
         <span class="card-status saved">Submitted</span>
       </div>
     </div>`).join('');
@@ -2567,6 +2635,17 @@ async function refreshManualList(){
   box._recs = recs;
   box.querySelectorAll('[data-mf-edit]').forEach((btn, i)=>{
     btn.addEventListener('click', ()=> loadManualIntoForm(recs[i]));
+  });
+  box.querySelectorAll('[data-mf-unsub]').forEach((btn, i)=>{
+    btn.addEventListener('click', async ()=>{
+      const r = recs[i];
+      if(!adminUnlocked){ alert('Only the administrator can unsubmit a class. Unlock the Admin tab first.'); return; }
+      if(!confirm(`Unsubmit "${r.subject}" (${r.section}, ${r.start}) for ${prettyDate(r.date)}?\n\nThe saved record will be deleted.`)) return;
+      try{
+        await deleteRecordByKey(fbKey(manualRecordKey(r.date, r.faculty, r.section, r.start)));
+        await refreshManualList();
+      }catch(e){ console.error(e); alert('Could not unsubmit this class.'); }
+    });
   });
 }
 
@@ -3679,11 +3758,39 @@ async function generateNonComplianceReport(){
   });
   const takenRows = new Set(pool.filter(q => q.taken).map(q => q.x));
   const rows = dayRows.filter(x => !takenRows.has(x));
+
+  // Held records that matched no timetable class of this day. With a faculty chosen this also
+  // includes that faculty's held records saved under any other day.
+  const dept0 = r => (r.dept || 'EE');
+  const unmatched = (facKey
+      ? allRecords.filter(r => r && r.date && r.start && normFacultyKey(r.faculty) === facKey)
+      : scopeRecs)
+    .filter(r => r.held === 'yes' && !usedRecs.has(r)
+      && (!deptSel || dept0(r) === deptSel)
+      && (!timeSel || r.start === timeSel))
+    .filter(r => {
+      const k = keysFor(r.section, r.faculty, r.start);
+      return !([byExact[k.e], bySec[k.s], byFac[k.f]].find(t => t && t !== r && usedRecs.has(t)));
+    });
   rows.sort((a,b)=> (a.date + a.start).localeCompare(b.date + b.start) || a.faculty.localeCompare(b.faculty));
 
   window._nonComplianceRows = rows;
   window._nonComplianceHeld = heldTotal;
   renderNonComplianceReport(rows, fromStr, toStr, totalScheduled);
+  renderUnmatchedHeld(unmatched);
+}
+
+function renderUnmatchedHeld(list){
+  const box = document.getElementById('reportUnmatched');
+  if(!box) return;
+  if(!list.length){ box.innerHTML = ''; return; }
+  const esc = v => String(v == null ? '' : v).replace(/</g, '&lt;');
+  const dayOf = r => r.weekday || DAY_NAMES[new Date(r.date + 'T00:00:00').getDay()] || '';
+  box.innerHTML = `<p class="count-line"><strong>${list.length} held record${list.length===1?'':'s'} matched no timetable class</strong> (check section, time or faculty name against the timetable):</p>
+    <div style="overflow-x:auto;"><table>
+      <thead><tr><th>Date</th><th>Saved under</th><th>Dept</th><th>Section</th><th>Time</th><th>Faculty</th></tr></thead>
+      <tbody>${list.map(r=>`<tr><td>${esc(r.date)}</td><td>${esc(dayOf(r))}</td><td>${esc(r.dept || 'EE')}</td><td>${esc(r.section)}</td><td>${esc(r.start)}–${esc(r.end)}</td><td>${esc(r.faculty)}</td></tr>`).join('')}</tbody>
+    </table></div>`;
 }
 
 function renderNonComplianceReport(rows, fromStr, toStr, totalScheduled){
