@@ -1372,13 +1372,13 @@ function loadNotesFromFirebase(){
 body{background:var(--cream);font-weight:400}
 header{background:linear-gradient(120deg,#0b2545,#123e73);border-bottom:4px solid var(--gold-lt)}
 header::before{display:none}
-.header-inner{max-width:1240px;padding:2.2rem 2rem;gap:1.6rem}
+.header-inner{max-width:none;padding:2.2rem clamp(1rem,3vw,3rem);gap:1.6rem}
 .header-logo{width:104px;height:80px;background:#fff;border-radius:8px;padding:6px 8px;object-fit:contain}
 .badge{font-family:'Source Sans 3',sans-serif;font-size:.9rem;letter-spacing:.01em;text-transform:none;color:#c9dcf0;border:0;padding:0;margin-bottom:.5rem}
 header h1{font-size:clamp(2rem,4.5vw,3rem);font-weight:600;color:#fff;margin-bottom:.4rem}
 header h1 span{color:#dbe8f6!important;font-style:normal}
 header p{font-size:1.02rem;font-weight:500;color:#c9dcf0;letter-spacing:0}
-main{max-width:1240px;padding:2.5rem 2rem 4rem}
+main{max-width:none;padding:2.5rem clamp(1rem,3vw,3rem) 4rem}
 .main-layout{gap:2rem}
 .notes-panel{width:270px;background:#fff;border:1px solid var(--faint);border-top:4px solid var(--gold-lt);border-radius:6px;padding:1.2rem 1.1rem;top:1rem;box-shadow:0 1px 2px rgba(16,35,63,.06)}
 .notes-panel-title{font-size:1.15rem}
