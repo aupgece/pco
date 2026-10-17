@@ -17,8 +17,8 @@ header p{font-size:.92rem;color:rgba(224,240,252,.8);font-weight:600}
 .back{color:#fff;text-decoration:none;font-weight:600;font-size:.9rem;border:1px solid rgba(255,255,255,.45);padding:.4rem .9rem;border-radius:4px}
 .back:hover{background:rgba(255,255,255,.12)}
 main{max-width:1100px;margin:0 auto;padding:1.5rem 2rem 4rem}
-.tabs{display:flex;gap:.4rem;margin-bottom:1.2rem;border-bottom:2px solid var(--faint)}
-.tab{font:600 1rem 'Source Sans 3',sans-serif;color:var(--muted);background:none;border:0;border-bottom:3px solid transparent;margin-bottom:-2px;padding:.6rem 1.1rem;cursor:pointer}
+.tabs{display:flex;flex-wrap:wrap;gap:.4rem;margin-bottom:1.2rem;border-bottom:2px solid var(--faint)}
+.tab{white-space:normal;text-align:left;min-width:12rem;font:600 1rem 'Source Sans 3',sans-serif;color:var(--muted);background:none;border:0;border-bottom:3px solid transparent;margin-bottom:-2px;padding:.6rem 1.1rem;cursor:pointer}
 .tab.on{color:var(--accent);border-bottom-color:var(--accent)}
 .tools{display:flex;gap:.7rem;flex-wrap:wrap;margin-bottom:.8rem}
 input,select{font:500 .95rem 'Source Sans 3',sans-serif;color:var(--ink);background:#fff;border:1px solid var(--faint);border-bottom:2px solid var(--rule);padding:.55rem .8rem;width:100%}
@@ -32,15 +32,16 @@ input:focus,select:focus{outline:none;border-bottom-color:var(--accent)}
 .wrap{overflow-x:auto;background:var(--paper);border:1px solid var(--faint)}
 table{width:100%;border-collapse:collapse;font-size:.92rem}
 th{background:var(--accent);color:#fff;text-align:left;font-weight:600;padding:.6rem .8rem;white-space:nowrap}
-td{padding:.55rem .8rem;border-top:1px solid var(--faint);vertical-align:top}
+td{overflow-wrap:anywhere;padding:.55rem .8rem;border-top:1px solid var(--faint);vertical-align:top}
 tr:hover td{background:var(--parchment)}
 td.code{font-weight:700;white-space:nowrap}
-td.ed{background:#fffbe0;outline:1px dashed var(--gold-lt);outline-offset:-2px;min-width:5rem}
+td.ed{background:#fffbe0;outline:1px dashed var(--gold-lt);outline-offset:-2px;min-width:14rem;white-space:pre-wrap;word-break:break-word}
+td.ed[data-f=code]{min-width:9rem}
 td.act{white-space:nowrap;display:flex;gap:.4rem}
 .tag{display:inline-block;font-size:.78rem;font-weight:700;padding:.1rem .6rem;border-radius:999px;border:1px solid var(--faint);background:var(--parchment);color:var(--accent);white-space:nowrap}
 .empty{padding:2.5rem 1rem;text-align:center;color:var(--muted)}
 .note{background:#fff8e1;border:1px solid #e8d48a;color:#5c4a00;padding:.7rem 1rem;margin-bottom:1rem;font-size:.9rem;display:none}
-.formbox{background:var(--paper);border:1px solid var(--faint);border-top:5px solid var(--gold);padding:1.3rem 1.5rem;max-width:720px}
+.formbox{background:var(--paper);border:1px solid var(--faint);border-top:5px solid var(--gold);padding:1.3rem 1.5rem;max-width:100%;width:100%}
 .formbox h2{font-family:'EB Garamond',serif;font-size:1.6rem;font-weight:600}
 .sub{color:var(--muted);font-size:.92rem;margin:.1rem 0 .6rem}
 label{display:block;font-weight:600;font-size:.86rem;margin:.8rem 0 .2rem}
@@ -60,6 +61,7 @@ progress{width:100%;height:12px;margin-top:.9rem;display:none}
 #adminBar{position:fixed;left:50%;bottom:1rem;transform:translateX(-50%);z-index:20;background:var(--ink);color:#fff;padding:.6rem 1rem;border-radius:8px;display:none;gap:.6rem;align-items:center;flex-wrap:wrap;box-shadow:0 4px 18px rgba(0,0,0,.35);font-size:.88rem;font-weight:600;max-width:96vw}
 #adminBar.on{display:flex}
 #adminBar .btn{padding:.35rem .8rem}
+body.admin .formbox [data-k],body.admin .tab[data-k]{white-space:pre-wrap;word-break:break-word;min-width:12rem}
 body.admin [data-k]{outline:2px dashed var(--gold-lt);outline-offset:2px;cursor:text}
 body.admin [data-k]:focus{outline:2px solid var(--gold-lt);background:rgba(255,255,255,.12)}
 body.admin .formbox [data-k]:focus,body.admin main [data-k]:focus{background:#fffbe0}
@@ -121,6 +123,7 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible{ou
 
 <div id="adminBar" role="toolbar" aria-label="Admin editing">
   <span>Edit mode: click any heading or text on the page and type.</span>
+  <button class="btn" id="aSess">Add session</button>
   <button class="btn" id="aSave">Save changes</button>
   <button class="btn" id="aReset">Reset to default</button>
   <button class="btn" id="aExit">Exit</button>
@@ -391,6 +394,17 @@ document.addEventListener("click",function(e){
 document.addEventListener("keydown",function(e){
   if(adminOn && e.target.closest&&e.target.closest("button[data-k]") && e.key===" ") e.stopPropagation();
 },true);
+var extraSess=[];
+function fillSessions(){
+  var s=$("uSess"), cur=s.value; while(s.options.length) s.remove(0);
+  SESSIONS.concat(extraSess).filter(function(v,i,a){return a.indexOf(v)===i}).forEach(function(v){ s.add(new Option(v,v)) });
+  if(cur) s.value=cur;
+}
+$("aSess").onclick=function(){
+  var n=prompt("New session name (e.g. Spring 2029):"); if(n===null) return; n=n.trim(); if(!n) return;
+  if(!window.FB) return alert("Firebase is not connected, so the session cannot be saved.");
+  window.FB.addSession(n).catch(function(e){ console.error(e); alert("Could not add session: "+fbErr(e)) });
+};
 $("aExit").onclick=function(){ setAdmin(false) };
 $("aSave").onclick=function(){
   if(!window.FB) return alert("Firebase is not connected, so changes cannot be saved. Add the Firebase config first.");
@@ -420,6 +434,7 @@ function loadAll(){
   if(!window.FB) showNote(window.FB_ERR||"Firebase is not connected: paste your firebaseConfig into the module script at the bottom of this file. Until then nothing is saved.");
   if(window.FB){
     window.FB.getContent().then(function(t){ if(!adminOn) applyContent(t) }).catch(function(e){ console.error(e) });
+    window.FB.listenSessions(function(a){ extraSess=a; fillSessions() },function(e){ console.error(e) });
     window.FB.listenMods(function(ed,del){ edits=ed; deleted=del; rebuild() },function(e){ console.error(e) });
     window.FB.listen(function(rows){ fsRows=rows; rebuild() },
       function(e){ console.error(e); showNote("Could not read from Firebase: "+fbErr(e)) });
@@ -457,6 +472,8 @@ try{
     getContent:function(){ return D.get(D.ref(db,"pco_text_overrides/co_texts")).then(function(s){ return s.val()||{} }) },
     saveContent:function(t){ return D.set(D.ref(db,"pco_text_overrides/co_texts"),t) },
     add:function(e){ return D.push(D.ref(db,"pco_text_overrides/co_outlines"),Object.assign({},e,{createdAt:Date.now()})) },
+    addSession:function(n){ return D.set(D.ref(db,"pco_text_overrides/co_sessions/"+btoa(unescape(encodeURIComponent(n))).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"")),n) },
+    listenSessions:function(ok,err){ return D.onValue(D.ref(db,"pco_text_overrides/co_sessions"),function(s){ var v=s.val()||{}; ok(Object.keys(v).map(function(k){return v[k]})) },err) },
     setEdit:function(k,o){ return D.set(D.ref(db,"pco_text_overrides/co_edits/"+k),o) },
     del:function(k){ return D.set(D.ref(db,"pco_text_overrides/co_deleted/"+k),true) },
     listenMods:function(ok,err){
