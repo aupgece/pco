@@ -1773,7 +1773,7 @@ function noticeDaySet(){
     }
     box.innerHTML = `
       <div class="dp-days" style="grid-template-columns:repeat(5,1fr);">${[1,2,3,4,5].map(n=>
-        `<button type="button" class="dp-day${n===window._ttDay?' sel':''}${n===dow?' today':''}${noticeDaySet().has(n)?' flash':''}" data-day="${n}"${isWeekday?'':' disabled'}>
+        `<button type="button" class="dp-day${n===window._ttDay?' sel':''}${n===dow?' today':''}${noticeDaySet().has(n)?' flash':''}" data-day="${n}">
           <span class="dp-name">${DAY_NAMES[n].slice(0,3)}</span></button>`).join('')}</div>
       ${isWeekday ? '' : '<div class="field-hint" style="margin-top:6px;">Recording is open on weekdays, and on Saturdays allowed by the administrator.</div>'}`;
   }
