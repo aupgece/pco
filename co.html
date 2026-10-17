@@ -35,6 +35,7 @@ th{background:var(--accent);color:#fff;text-align:left;font-weight:600;padding:.
 td{padding:.55rem .8rem;border-top:1px solid var(--faint);vertical-align:top}
 tr:hover td{background:var(--parchment)}
 td.code{font-weight:700;white-space:nowrap}
+td.ed{background:#fffbe0;outline:1px dashed var(--gold-lt);outline-offset:-2px;min-width:5rem}
 td.act{white-space:nowrap;display:flex;gap:.4rem}
 .tag{display:inline-block;font-size:.78rem;font-weight:700;padding:.1rem .6rem;border-radius:999px;border:1px solid var(--faint);background:var(--parchment);color:var(--accent);white-space:nowrap}
 .empty{padding:2.5rem 1rem;text-align:center;color:var(--muted)}
@@ -194,6 +195,9 @@ function render(){
   }).sort(function(a,b){return a.code.localeCompare(b.code)});
   $("rows").innerHTML=list.map(function(d){
     var ok=d.link&&d.link!=="#";
+    var ce=adminOn?" contenteditable='true' class='ed'":"", adm=adminOn?"<button class='btn' data-i='"+data.indexOf(d)+"' onclick='saveRow(this)'>Save</button><button class='btn' data-i='"+data.indexOf(d)+"' onclick='delRow(this)'>Delete</button>":"";
+    if(adminOn) return "<tr><td"+ce+" data-f='code'>"+esc(d.code)+"</td><td"+ce+" data-f='title'>"+esc(d.title)+"</td><td"+ce+" data-f='prog'>"+esc(d.prog)+"</td><td"+ce+" data-f='sess'>"+esc(d.sess)+"</td><td"+ce+" data-f='fm'>"+esc(d.fm)+"</td><td class='act'>"+
+      (ok?"<button class='btn' data-i='"+data.indexOf(d)+"' onclick='openViewer(this)'>View</button>":"")+adm+"</td></tr>";
     return "<tr><td class='code'>"+esc(d.code)+"</td><td>"+esc(d.title)+"</td><td>"+(d.prog?"<span class='tag'>"+esc(d.prog)+"</span>":"")+"</td><td>"+esc(d.sess)+"</td><td>"+esc(d.fm)+"</td><td class='act'>"+
       (ok?"<button class='btn' data-i='"+data.indexOf(d)+"' onclick='openViewer(this)'>View</button><a class='btn' href='"+esc(dlUrl(d.link))+"'>Download</a>":"<span class='tag'>No file</span>")+"</td></tr>";
   }).join("");
@@ -223,7 +227,24 @@ function rebuild(){
     if(seen[k]){ if((!seen[k].link||seen[k].link==="#")&&d.link) seen[k].link=d.link; return }
     seen[k]=d; out.push(d);
   });
+  out=out.filter(function(d){ return !deleted[enc(keyOf(d))] }).map(function(d){ var e=enc(keyOf(d)); return Object.assign({},d,edits[e]||{},{_k:e}) });
   start(out);
+}
+var edits={}, deleted={};
+function enc(k){ return btoa(unescape(encodeURIComponent(k))).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"") }
+function saveRow(b){
+  if(!window.FB) return alert("Firebase is not connected, so changes cannot be saved.");
+  var d=data[+b.dataset.i], tr=b.closest("tr"), o={};
+  tr.querySelectorAll("[data-f]").forEach(function(td){ o[td.dataset.f]=td.textContent.trim() });
+  b.disabled=true;
+  window.FB.setEdit(d._k,o).then(function(){ b.textContent="Saved"; setTimeout(function(){ b.textContent="Save"; b.disabled=false },1200) })
+    .catch(function(e){ console.error(e); b.disabled=false; alert("Could not save: "+fbErr(e)) });
+}
+function delRow(b){
+  if(!window.FB) return alert("Firebase is not connected, so changes cannot be saved.");
+  var d=data[+b.dataset.i];
+  if(!confirm("Delete the outline "+d.code+" — "+d.title+"?")) return;
+  window.FB.del(d._k).catch(function(e){ console.error(e); alert("Could not delete: "+fbErr(e)) });
 }
 ["q","fProg","fSess"].forEach(function(i){ $(i).addEventListener("input",render) });
 
@@ -355,6 +376,7 @@ function setAdmin(on){
   document.body.classList.toggle("admin",on);
   $("adminBar").classList.toggle("on",on);
   editEls.forEach(function(el){ if(on) el.setAttribute("contenteditable","true"); else el.removeAttribute("contenteditable") });
+  render();
 }
 $("adminLink").addEventListener("click",function(e){
   e.preventDefault();
@@ -398,6 +420,7 @@ function loadAll(){
   if(!window.FB) showNote(window.FB_ERR||"Firebase is not connected: paste your firebaseConfig into the module script at the bottom of this file. Until then nothing is saved.");
   if(window.FB){
     window.FB.getContent().then(function(t){ if(!adminOn) applyContent(t) }).catch(function(e){ console.error(e) });
+    window.FB.listenMods(function(ed,del){ edits=ed; deleted=del; rebuild() },function(e){ console.error(e) });
     window.FB.listen(function(rows){ fsRows=rows; rebuild() },
       function(e){ console.error(e); showNote("Could not read from Firebase: "+fbErr(e)) });
   }
@@ -434,6 +457,13 @@ try{
     getContent:function(){ return D.get(D.ref(db,"pco_text_overrides/co_texts")).then(function(s){ return s.val()||{} }) },
     saveContent:function(t){ return D.set(D.ref(db,"pco_text_overrides/co_texts"),t) },
     add:function(e){ return D.push(D.ref(db,"pco_text_overrides/co_outlines"),Object.assign({},e,{createdAt:Date.now()})) },
+    setEdit:function(k,o){ return D.set(D.ref(db,"pco_text_overrides/co_edits/"+k),o) },
+    del:function(k){ return D.set(D.ref(db,"pco_text_overrides/co_deleted/"+k),true) },
+    listenMods:function(ok,err){
+      var ed={},del={};
+      D.onValue(D.ref(db,"pco_text_overrides/co_edits"),function(s){ ed=s.val()||{}; ok(ed,del) },err);
+      D.onValue(D.ref(db,"pco_text_overrides/co_deleted"),function(s){ del=s.val()||{}; ok(ed,del) },err);
+    },
     listen:function(ok,err){ return D.onValue(D.ref(db,"pco_text_overrides/co_outlines"),function(snap){
       var v=snap.val()||{};
       ok(Object.keys(v).map(function(k){ var x=v[k]; return {code:x.code||"",title:x.title||"",prog:x.prog||"",sess:x.sess||"",fm:x.fm||"",link:x.link||"#"} }));
