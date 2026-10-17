@@ -62,7 +62,13 @@ progress{width:100%;height:12px;margin-top:.9rem;display:none}
 #adminBar.on{display:flex}
 #adminBar .btn{padding:.35rem .8rem}
 body.admin .formbox [data-k],body.admin .tab[data-k]{white-space:pre-wrap;word-break:break-word;min-width:12rem}
-body.admin [data-k]{outline:2px dashed var(--gold-lt);outline-offset:2px;cursor:text}
+body.admin [data-k]{white-space:pre-wrap!important;word-break:break-word;overflow-wrap:anywhere;height:auto;min-height:1.6em;max-width:100%}
+body.admin .tab[data-k]{flex:1 1 16rem;min-width:16rem}
+body.admin th[data-k]{min-width:10rem}
+body.admin #upGo[data-k]{display:block;width:100%;text-align:left}
+body.admin td.ed{min-height:2.4em;min-width:16rem;vertical-align:top}
+body.admin td.ed[data-f=code]{min-width:10rem}
+outline:2px dashed var(--gold-lt);outline-offset:2px;cursor:text}
 body.admin [data-k]:focus{outline:2px solid var(--gold-lt);background:rgba(255,255,255,.12)}
 body.admin .formbox [data-k]:focus,body.admin main [data-k]:focus{background:#fffbe0}
 a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--accent-lt);outline-offset:2px}
@@ -391,9 +397,17 @@ $("adminLink").addEventListener("click",function(e){
 document.addEventListener("click",function(e){
   if(adminOn && e.target.closest("[data-k]") && !e.target.closest(".tab")){ e.preventDefault(); if(e.target.closest("#upGo")) e.stopPropagation() }
 },true);
-document.addEventListener("keydown",function(e){
-  if(adminOn && e.target.closest&&e.target.closest("button[data-k]") && e.key===" ") e.stopPropagation();
-},true);
+// buttons swallow the space/Enter keys, so type them in by hand while editing
+function btnKey(e){
+  if(!adminOn||!e.target.closest||!e.target.closest("button[data-k]")) return;
+  if(e.key===" "||e.key==="Enter"){
+    e.preventDefault(); e.stopPropagation();
+    if(e.type==="keydown") document.execCommand("insertText",false,e.key===" "?" ":"\n");
+  }
+}
+document.addEventListener("keydown",btnKey,true);
+document.addEventListener("keyup",btnKey,true);
+document.addEventListener("keypress",btnKey,true);
 var extraSess=[];
 function fillSessions(){
   var s=$("uSess"), cur=s.value; while(s.options.length) s.remove(0);
