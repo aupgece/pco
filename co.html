@@ -399,7 +399,7 @@ function loadAll(){
   if(window.FB){
     window.FB.getContent().then(function(t){ if(!adminOn) applyContent(t) }).catch(function(e){ console.error(e) });
     window.FB.listen(function(rows){ fsRows=rows; rebuild() },
-      function(e){ console.error(e); showNote("Could not read from Firebase: "+fbErr(e)") });
+      function(e){ console.error(e); showNote("Could not read from Firebase: "+fbErr(e)) });
   }
   if(!SHEET_CSV_URL){
     if(!window.FB) start(SAMPLE,"Showing sample data. Set SHEET_CSV_URL or the Firebase config.");
