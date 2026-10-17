@@ -375,6 +375,9 @@ function applyContent(texts){
   editEls.forEach(function(el){ var t=texts[el.dataset.k]; if(typeof t==="string"&&t.trim()) el.textContent=t });
   if(texts.__title) document.title=texts.__title;
 }
+// show the last saved wording instantly (from this browser's cache); Firebase then confirms it
+try{ applyContent(JSON.parse(localStorage.getItem("coTexts")||"null")) }catch(e){}
+function cacheTexts(t){ try{ localStorage.setItem("coTexts",JSON.stringify(t||{})) }catch(e){} }
 function sha256(t){
   return crypto.subtle.digest("SHA-256",new TextEncoder().encode(t)).then(function(b){
     return Array.from(new Uint8Array(b)).map(function(x){return x.toString(16).padStart(2,"0")}).join("");
@@ -425,14 +428,14 @@ $("aSave").onclick=function(){
   var texts={};
   editEls.forEach(function(el){ var t=el.textContent.trim(); if(t&&t!==defaults[el.dataset.k].trim()) texts[el.dataset.k]=t });
   $("aSave").disabled=true;
-  window.FB.saveContent(texts).then(function(){ alert("Saved. Everyone will see the changes.") })
+  window.FB.saveContent(texts).then(function(){ cacheTexts(texts); alert("Saved. Everyone will see the changes.") })
     .catch(function(e){ console.error(e); alert("Could not save: "+fbErr(e)) })
     .then(function(){ $("aSave").disabled=false });
 };
 $("aReset").onclick=function(){
   if(!confirm("Remove all text edits and go back to the original wording?")) return;
   if(!window.FB) return;
-  window.FB.saveContent({}).then(function(){ location.reload() }).catch(function(e){ alert("Could not reset: "+fbErr(e)) });
+  window.FB.saveContent({}).then(function(){ cacheTexts({}); location.reload() }).catch(function(e){ alert("Could not reset: "+fbErr(e)) });
 };
 
 /* ---------- load list ---------- */
@@ -447,7 +450,7 @@ function loadAll(){
   if(started) return; started=true;
   if(!window.FB) showNote(window.FB_ERR||"Firebase is not connected: paste your firebaseConfig into the module script at the bottom of this file. Until then nothing is saved.");
   if(window.FB){
-    window.FB.getContent().then(function(t){ if(!adminOn) applyContent(t) }).catch(function(e){ console.error(e) });
+    window.FB.getContent().then(function(t){ cacheTexts(t); if(!adminOn) applyContent(t) }).catch(function(e){ console.error(e) });
     window.FB.listenSessions(function(a){ extraSess=a; fillSessions() },function(e){ console.error(e) });
     window.FB.listenMods(function(ed,del){ edits=ed; deleted=del; rebuild() },function(e){ console.error(e) });
     window.FB.listen(function(rows){ fsRows=rows; rebuild() },
