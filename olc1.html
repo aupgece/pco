@@ -1125,7 +1125,7 @@
           <div class="combo-list" id="filterFacultyListEE"></div>
         </div>
       </div>
-      <div class="field">
+      <div class="field" style="display:none;">
         <label for="filterDateEE">Filter by date</label>
         <input type="date" id="filterDateEE">
       </div>
@@ -1182,7 +1182,7 @@
           <div class="combo-list" id="filterFacultyListCE"></div>
         </div>
       </div>
-      <div class="field">
+      <div class="field" style="display:none;">
         <label for="filterDateCE">Filter by date</label>
         <input type="date" id="filterDateCE">
       </div>
@@ -1220,9 +1220,15 @@
       <h3>Non-compliance report — faculty who did not initiate online classes</h3>
       <p class="hint">Scans the timetable against submitted records over a date range and lists every scheduled class that has either no record at all ("No record submitted" — the faculty member never logged it) or a record marked "Held on scheduled time: No". Narrow it to a specific timetable time slot to check who did not conduct/submit for that particular period. Use this to follow up with faculty who did not initiate/effect their online classes.</p>
       <div class="controls">
-        <div class="field">
+        <div class="field" style="display:none;">
           <label for="reportDate">Date</label>
           <input type="date" id="reportDate">
+        </div>
+        <div class="field">
+          <label for="reportDay">Day</label>
+          <select id="reportDay">
+            <option value="">Any day</option><option value="Monday">Monday</option><option value="Tuesday">Tuesday</option><option value="Wednesday">Wednesday</option><option value="Thursday">Thursday</option><option value="Friday">Friday</option>
+          </select>
         </div>
         <div class="field">
           <label for="reportDept">Department</label>
@@ -2672,14 +2678,14 @@ function weekdayForDateStr(dateStr){
   const d = new Date(dateStr + "T00:00:00");
   return isNaN(d.getTime()) ? null : d.getDay();
 }
-function scheduledCountFor(dateStr, facFilter, scheduleArr){
-  const wd = weekdayForDateStr(dateStr);
+function scheduledCountFor(dateStr, facFilter, scheduleArr, dayNum){
+  const wd = dateStr ? weekdayForDateStr(dateStr) : (dayNum || null);
   if(wd === null) return null;
   const facKey = facFilter ? normFacultyKey(facFilter) : null;
   return scheduleArr.filter(c => c.day === wd && (!facKey || normFacultyKey(c.faculty) === facKey)).length;
 }
-function renderStatCards(prefix, dateStr, facFilter, recordsForDay, scheduleArr){
-  const scheduled = scheduledCountFor(dateStr, facFilter, scheduleArr);
+function renderStatCards(prefix, dateStr, facFilter, recordsForDay, scheduleArr, dayNum){
+  const scheduled = scheduledCountFor(dateStr, facFilter, scheduleArr, dayNum);
   const held = (recordsForDay || []).filter(r => r.held === 'yes').length;
   // "Not held" covers both classes explicitly logged as not held and classes with
   // no record at all for the day — i.e. everything scheduled that wasn't confirmed held.
@@ -2701,6 +2707,7 @@ async function loadRecordsTable(dept){
   const facFilter = document.getElementById('filterFaculty' + P).value;
   const dateFilter = document.getElementById('filterDate' + P).value;
   const dayFilter = document.getElementById('filterDay' + P).value;
+  const dayNum = Object.keys(DAY_NAMES).map(Number).find(n => DAY_NAMES[n] === dayFilter) || null;
 
   let allRecords = [];
   try{
@@ -2709,7 +2716,7 @@ async function loadRecordsTable(dept){
     console.error(e);
     body.innerHTML = '<tr><td colspan="14">No records found yet.</td></tr>';
     countLine.textContent = "";
-    renderStatCards('view' + P, dateFilter, facFilter, [], facFilter ? allSchedule() : getSchedule(P));
+    renderStatCards('view' + P, dateFilter, facFilter, [], facFilter ? allSchedule() : getSchedule(P), dayNum);
     return;
   }
 
@@ -2734,7 +2741,7 @@ async function loadRecordsTable(dept){
     return true;
   });
 
-  renderStatCards('view' + P, dateFilter, facFilter, filtered, facKey ? allSchedule() : getSchedule(P));
+  renderStatCards('view' + P, dateFilter, facFilter, filtered, facKey ? allSchedule() : getSchedule(P), dayNum);
 
   if(records.length === 0 && filtered.length === 0){
     body.innerHTML = '<tr><td colspan="14">No records saved yet.</td></tr>';
@@ -3115,15 +3122,32 @@ function buildCompleteData(dept, dateStr, facFilterVal, allRecords){
   return {M, A, B, C, D, noRec, markedNo, scheduled, heldTotal, remaining, pairedN};
 }
 
+// Complete-report date: the date filter if set, otherwise the latest date that has
+// records for the day chosen in "Filter by day".
+function resolveReportDate(dept, allRecords){
+  const direct = document.getElementById('filterDate' + dept).value;
+  if(direct) return direct;
+  const day = document.getElementById('filterDay' + dept).value;
+  if(!day){ alert('Pick a day in "Filter by day" first.'); return null; }
+  const dates = allRecords.filter(r=>{
+    if(!r || !r.date) return false;
+    const cd = new Date(r.date + 'T00:00:00');
+    const recDay = r.weekday || (!isNaN(cd.getTime()) ? DAY_NAMES[cd.getDay()] : '');
+    return recDay === day;
+  }).map(r=>r.date).sort();
+  if(!dates.length){ alert('No ' + day + ' records found.'); return null; }
+  return dates[dates.length - 1];
+}
+
 async function openCompleteReport(dept){
   if(!adminUnlocked){ alert('The Complete report is available to administrators only. Unlock the Admin tab first.'); return; }
-  const dateStr = document.getElementById('filterDate' + dept).value;
   const facFilterVal = document.getElementById('filterFaculty' + dept).value;
-  if(!dateStr){ alert('Pick a date in "Filter by date" first.'); return; }
-  if(weekdayForDateStr(dateStr) === null){ alert('Invalid date.'); return; }
   let allRecords = [];
   try{ allRecords = await listRecords(); }
   catch(e){ console.error(e); alert('Could not load records.'); return; }
+  const dateStr = resolveReportDate(dept, allRecords);
+  if(!dateStr) return;
+  if(weekdayForDateStr(dateStr) === null){ alert('Invalid date.'); return; }
 
   const {M, A, B, C, D, noRec, markedNo, scheduled, heldTotal, remaining, pairedN} = buildCompleteData(dept, dateStr, facFilterVal, allRecords);
   const esc = v => String(v ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -3465,14 +3489,14 @@ function buildCompleteWorkbook(ExcelJSLib, D, meta){
 
 async function exportCompleteExcel(dept){
   if(!adminUnlocked){ alert('The Complete report is available to administrators only. Unlock the Admin tab first.'); return; }
-  const dateStr = document.getElementById('filterDate' + dept).value;
   const facFilterVal = document.getElementById('filterFaculty' + dept).value;
-  if(!dateStr){ alert('Pick a date in "Filter by date" first.'); return; }
-  if(weekdayForDateStr(dateStr) === null){ alert('Invalid date.'); return; }
   if(typeof ExcelJS === 'undefined'){ alert('The Excel library could not be loaded. Check your internet connection and reload the page.'); return; }
   let allRecords = [];
   try{ allRecords = await listRecords(); }
   catch(e){ console.error(e); alert('Could not load records.'); return; }
+  const dateStr = resolveReportDate(dept, allRecords);
+  if(!dateStr) return;
+  if(weekdayForDateStr(dateStr) === null){ alert('Invalid date.'); return; }
 
   const D = buildCompleteData(dept, dateStr, facFilterVal, allRecords);
   const wb = buildCompleteWorkbook(ExcelJS, D, {
@@ -3526,24 +3550,17 @@ populateReportTimeOptions();
 
 async function generateNonComplianceReport(){
   const statusEl = document.getElementById('reportStatus');
-  const dateStr = document.getElementById('reportDate').value;
+  let dateStr = document.getElementById('reportDate').value;
+  const daySel = document.getElementById('reportDay').value;
   const deptSel = document.getElementById('reportDept').value;
   const timeSel = document.getElementById('reportTime').value;
   const facFilterVal = document.getElementById('reportFaculty').value;
 
-  if(!dateStr){
+  if(!dateStr && !daySel){
     statusEl.className = 'upload-status err';
-    statusEl.textContent = 'Pick a date.';
+    statusEl.textContent = 'Pick a day.';
     return;
   }
-  const from = new Date(dateStr + 'T00:00:00');
-  const to = new Date(dateStr + 'T00:00:00');
-  if(isNaN(from.getTime())){
-    statusEl.className = 'upload-status err';
-    statusEl.textContent = 'That date is not valid.';
-    return;
-  }
-  const fromStr = dateStr, toStr = dateStr;
 
   statusEl.className = 'upload-status';
   statusEl.textContent = 'Generating…';
@@ -3552,71 +3569,120 @@ async function generateNonComplianceReport(){
   try{ allRecords = await listRecords(); }
   catch(e){ console.error(e); statusEl.className = 'upload-status err'; statusEl.textContent = 'Could not load records.'; return; }
 
-  // Index existing records for lookup. Records submitted via the manual form, or whose
-  // date was corrected via admin edit, don't always match the schedule's exact section
-  // text (spacing/casing), so besides the exact key we also index by faculty+start and by
-  // a normalized section+start, and accept any of the three as proof the class was covered.
-  const normSection = s => (s || '').trim().toUpperCase().replace(/\s+/g, ' ');
-  const recordByExactKey = {};
-  const recordByFacultyKey = {};
-  const recordBySectionKey = {};
-  allRecords.forEach(r=>{
-    if(!r || !r.date || !r.start) return;
-    if(r.section) recordByExactKey[fbKey(recordKey(r.date, r.section, r.start))] = r;
-    if(r.faculty) recordByFacultyKey[fbKey(`fac::${r.date}::${normFacultyKey(r.faculty)}::${r.start}`)] = r;
-    if(r.section) recordBySectionKey[fbKey(`sec::${r.date}::${normSection(r.section)}::${r.start}`)] = r;
-  });
+  // Day only: cover every date that has records for the chosen day.
+  let reportDates = [];
+  if(dateStr){
+    reportDates = [dateStr];
+  } else {
+    reportDates = Array.from(new Set(allRecords.filter(r=>{
+      if(!r || !r.date) return false;
+      const cd = new Date(r.date + 'T00:00:00');
+      const recDay = r.weekday || (!isNaN(cd.getTime()) ? DAY_NAMES[cd.getDay()] : '');
+      return recDay === daySel;
+    }).map(r=>r.date))).sort();
+    if(!reportDates.length){
+      statusEl.className = 'upload-status err';
+      statusEl.textContent = 'No ' + daySel + ' records found.';
+      return;
+    }
+  }
+  if(reportDates.some(d => isNaN(new Date(d + 'T00:00:00').getTime()))){
+    statusEl.className = 'upload-status err';
+    statusEl.textContent = 'That date is not valid.';
+    return;
+  }
+  const fromStr = reportDates.length === 1 ? reportDates[0] : `${reportDates[0]} to ${reportDates[reportDates.length-1]} (${reportDates.length} dates)`;
+  const toStr = fromStr;
+  window._nonComplianceDate = fromStr;
 
-  // If most records filed on a date followed a different timetable day (e.g. Tuesday's timetable
-  // on a Saturday), expect that day's classes on that date.
+  // The day is treated as ONE timetable round: its scheduled classes are counted once, and a
+  // class counts as covered if a record for it exists on any of the dates found above.
+  // Records submitted via the manual form, or whose date was corrected via admin edit, don't
+  // always match the schedule's exact section text (spacing/casing), so besides the exact key we
+  // also index by faculty+start and by a normalized section+start.
+  const normSection = s => (s || '').trim().toUpperCase().replace(/\s+/g, ' ');
+  const dateSet = new Set(reportDates);
   const dayIdx = {}; Object.keys(DAY_NAMES).forEach(i=> dayIdx[DAY_NAMES[i]] = parseInt(i,10));
-  const dateTally = {};
-  allRecords.forEach(r=>{
-    if(!r || !r.date || !r.weekday || dayIdx[r.weekday] === undefined) return;
-    const cal = new Date(r.date + 'T00:00:00').getDay();
-    const t = dateTally[r.date] || (dateTally[r.date] = {same:0, other:{}});
-    if(dayIdx[r.weekday] === cal) t.same++;
-    else t.other[dayIdx[r.weekday]] = (t.other[dayIdx[r.weekday]] || 0) + 1;
+  const dayNum = daySel ? dayIdx[daySel] : weekdayForDateStr(dateStr);
+  const scopeRecs = allRecords.filter(r=>{
+    if(!r || !r.date || !r.start || !dateSet.has(r.date)) return false;
+    if(!daySel) return true;
+    const cd = new Date(r.date + 'T00:00:00');
+    const recDay = r.weekday || (!isNaN(cd.getTime()) ? DAY_NAMES[cd.getDay()] : '');
+    return recDay === daySel;
   });
-  const effectiveDay = (dateStr, cal)=>{
-    if(SAT_MAP[dateStr]) return SAT_MAP[dateStr];
-    const t = dateTally[dateStr];
-    if(!t) return cal;
-    let best = null, bestN = t.same;
-    Object.keys(t.other).forEach(k=>{ if(t.other[k] > bestN){ best = parseInt(k,10); bestN = t.other[k]; } });
-    return best === null ? cal : best;
-  };
+  // A held record is never replaced by a non-held one for the same slot.
+  const byExact = {}, byFac = {}, bySec = {};
+  const put = (m, k, r) => { const cur = m[k]; if(!cur || (r.held === 'yes' && cur.held !== 'yes')) m[k] = r; };
+  scopeRecs.forEach(r=>{
+    if(r.section) put(byExact, fbKey(`${r.section}::${r.start}`), r);
+    if(r.faculty) put(byFac, fbKey(`${normFacultyKey(r.faculty)}::${r.start}`), r);
+    if(r.section) put(bySec, fbKey(`${normSection(r.section)}::${r.start}`), r);
+  });
+  const keysFor = (sec, fac, start) => ({
+    e: sec ? fbKey(`${sec}::${start}`) : null,
+    f: fac ? fbKey(`${normFacultyKey(fac)}::${start}`) : null,
+    s: sec ? fbKey(`${normSection(sec)}::${start}`) : null
+  });
 
   const facKey = facFilterVal ? normFacultyKey(facFilterVal) : null;
-  const rows = [];
-  let totalScheduled = 0;
-  const cursor = new Date(from);
-  while(cursor <= to){
-    const dateStr = localDateStr(cursor);
-    const wd = effectiveDay(dateStr, cursor.getDay());
-    const classesToday = allSchedule().filter(c=>{
-      if(c.day !== wd) return false;
-      if(deptSel && (c.dept || 'EE') !== deptSel) return false;
-      if(timeSel && c.start !== timeSel) return false;
-      if(facKey && normFacultyKey(c.faculty) !== facKey) return false;
-      return true;
+  const classes = allSchedule().filter(c=>{
+    if(c.day !== dayNum) return false;
+    if(deptSel && (c.dept || 'EE') !== deptSel) return false;
+    if(timeSel && c.start !== timeSel) return false;
+    if(facKey && normFacultyKey(c.faculty) !== facKey) return false;
+    return true;
+  });
+  const totalScheduled = classes.length;
+  const usedRecs = new Set();
+  const dayRows = [];
+  classes.forEach(c=>{
+    const k = keysFor(c.section, c.faculty, c.start);
+    const rec = (k.e && byExact[k.e]) || (k.s && bySec[k.s]) || (k.f && byFac[k.f]);
+    if(rec) usedRecs.add(rec);
+    const base = {weekday: DAY_NAMES[dayNum], dept: c.dept || 'EE', section: c.section, start: c.start, end: c.end, subject: c.subject, faculty: c.faculty};
+    if(!rec){
+      dayRows.push(Object.assign({date: '—'}, base, {reason: 'No record submitted'}));
+    } else if(rec.held !== 'yes'){
+      dayRows.push(Object.assign({date: rec.date}, base, {reason: rec.remarks ? `Marked not held — ${rec.remarks}` : 'Marked not held'}));
+    }
+  });
+  let heldTotal = classes.filter(c=>{
+    const k = keysFor(c.section, c.faculty, c.start);
+    const rec = (k.e && byExact[k.e]) || (k.s && bySec[k.s]) || (k.f && byFac[k.f]);
+    return rec && rec.held === 'yes';
+  }).length;
+
+  // Held records that did not line up with a timetable class (different time or section
+  // spelling) are real classes: count them, and pair each with the nearest unrecorded class of
+  // the same faculty/section so that class is not listed as missed. Duplicates are not counted.
+  const toMin = t => { const m = /(\d{1,2})[:.](\d{2})/.exec(t || ''); return m ? (+m[1])*60 + (+m[2]) : 0; };
+  const pool = dayRows.filter(x => x.reason === 'No record submitted').map(x => ({x, taken:false}));
+  scopeRecs.filter(r => r.held === 'yes' && !usedRecs.has(r)
+      && (!facKey || normFacultyKey(r.faculty) === facKey)
+      && (!deptSel || (r.dept || 'EE') === deptSel)
+      && (!timeSel || r.start === timeSel)).forEach(r=>{
+    const k = keysFor(r.section, r.faculty, r.start);
+    const twin = [byExact[k.e], bySec[k.s], byFac[k.f]].find(t => t && t !== r && usedRecs.has(t));
+    if(twin) return;
+    heldTotal++;
+    const fN = normFacultyKey(r.faculty), sN = normSection(r.section);
+    let best = null, bestScore = 0, bestDiff = 1e9;
+    pool.forEach(q=>{
+      if(q.taken) return;
+      const score = (normFacultyKey(q.x.faculty) === fN ? 2 : 0) + (normSection(q.x.section) === sN ? 1 : 0);
+      if(!score) return;
+      const diff = Math.abs(toMin(q.x.start) - toMin(r.start));
+      if(score > bestScore || (score === bestScore && diff < bestDiff)){ best = q; bestScore = score; bestDiff = diff; }
     });
-    totalScheduled += classesToday.length;
-    classesToday.forEach(c=>{
-      const rec = recordByExactKey[fbKey(recordKey(dateStr, c.section, c.start))]
-        || recordBySectionKey[fbKey(`sec::${dateStr}::${normSection(c.section)}::${c.start}`)]
-        || recordByFacultyKey[fbKey(`fac::${dateStr}::${normFacultyKey(c.faculty)}::${c.start}`)];
-      if(!rec){
-        rows.push({date: dateStr, weekday: DAY_NAMES[wd], dept: c.dept || 'EE', section: c.section, start: c.start, end: c.end, subject: c.subject, faculty: c.faculty, reason: 'No record submitted'});
-      } else if(rec.held === 'no'){
-        rows.push({date: dateStr, weekday: DAY_NAMES[wd], dept: c.dept || 'EE', section: c.section, start: c.start, end: c.end, subject: c.subject, faculty: c.faculty, reason: rec.remarks ? `Marked not held — ${rec.remarks}` : 'Marked not held'});
-      }
-    });
-    cursor.setDate(cursor.getDate() + 1);
-  }
+    if(best) best.taken = true;
+  });
+  const takenRows = new Set(pool.filter(q => q.taken).map(q => q.x));
+  const rows = dayRows.filter(x => !takenRows.has(x));
   rows.sort((a,b)=> (a.date + a.start).localeCompare(b.date + b.start) || a.faculty.localeCompare(b.faculty));
 
   window._nonComplianceRows = rows;
+  window._nonComplianceHeld = heldTotal;
   renderNonComplianceReport(rows, fromStr, toStr, totalScheduled);
 }
 
@@ -3629,7 +3695,7 @@ function renderNonComplianceReport(rows, fromStr, toStr, totalScheduled){
 
   const statsRow = document.getElementById('reportStatsRow');
   const notHeld = rows.length;
-  const held = Math.max(totalScheduled - notHeld, 0);
+  const held = window._nonComplianceHeld != null ? window._nonComplianceHeld : Math.max(totalScheduled - notHeld, 0);
   statsRow.style.display = 'flex';
   document.getElementById('reportStatScheduled').textContent = totalScheduled;
   document.getElementById('reportStatHeld').textContent = held;
@@ -3676,7 +3742,7 @@ function exportNonComplianceReportPdf(){
   const rows = window._nonComplianceRows || [];
   if(rows.length === 0){ alert('Generate a report first (or nothing was found for the current range/filters).'); return; }
 
-  const dateStr = document.getElementById('reportDate').value;
+  const dateStr = window._nonComplianceDate || document.getElementById('reportDate').value;
   const deptSel = document.getElementById('reportDept').value;
   const timeSel = document.getElementById('reportTime').value;
   const facFilterVal = document.getElementById('reportFaculty').value;
