@@ -187,6 +187,7 @@ function fromCSV(text){
   });
   return out;
 }
+function normCode(c){ return String(c||"").replace(/[\s\-_]+/g,"").toUpperCase() }
 function driveId(u){ var m=u.match(/\/d\/([\w-]+)/)||u.match(/[?&]id=([\w-]+)/); return m?m[1]:null }
 function viewUrl(u){ var id=driveId(u); return id?"https://drive.google.com/file/d/"+id+"/preview":u }
 function dlUrl(u){ var id=driveId(u); return id?"https://drive.google.com/uc?export=download&id="+id:u }
@@ -236,7 +237,7 @@ function rebuild(){
     if(seen[k]){ if((!seen[k].link||seen[k].link==="#")&&d.link) seen[k].link=d.link; return }
     seen[k]=d; out.push(d);
   });
-  out=out.filter(function(d){ return !deleted[enc(keyOf(d))] }).map(function(d){ var e=enc(keyOf(d)); return Object.assign({},d,edits[e]||{},{_k:e}) });
+  out=out.filter(function(d){ return !deleted[enc(keyOf(d))] }).map(function(d){ var e=enc(keyOf(d)); var m=Object.assign({},d,edits[e]||{},{_k:e}); m.code=normCode(m.code); return m });
   start(out);
 }
 var edits={}, deleted={};
@@ -245,6 +246,7 @@ function saveRow(b){
   if(!window.FB) return alert("Firebase is not connected, so changes cannot be saved.");
   var d=data[+b.dataset.i], tr=b.closest("tr"), o={};
   tr.querySelectorAll("[data-f]").forEach(function(td){ o[td.dataset.f]=td.textContent.trim() });
+  if(o.code!==undefined) o.code=normCode(o.code);
   b.disabled=true;
   window.FB.setEdit(d._k,o).then(function(){ b.textContent="Saved"; setTimeout(function(){ b.textContent="Save"; b.disabled=false },1200) })
     .catch(function(e){ console.error(e); b.disabled=false; alert("Could not save: "+fbErr(e)) });
@@ -264,7 +266,7 @@ function showTab(t){
   $("tabBtnList").classList.toggle("on",!f); $("tabBtnForm").classList.toggle("on",f);
   try{ history.replaceState(null,"",f?"#submit":location.pathname+location.search) }catch(e){}
 }
-if(location.hash==="#submit") showTab("form");
+showTab("form");
 if(location.protocol==="file:"){ var _n=document.getElementById("note"); _n.textContent="Tip: this page is opened as a local file, so the browser may block loading and uploads. Open it through a web address instead."; _n.style.display="block"; }
 
 /* ---------- optional access key: open outlines.html?key=XXXX once; it is remembered and hidden ---------- */
@@ -311,7 +313,7 @@ function doUpload(){
   if(f.type!=="application/pdf"&&!/\.pdf$/i.test(f.name)) return say("Only PDF files are accepted.","err");
   if(f.size>MAX_MB*1024*1024) return say("File is larger than "+MAX_MB+" MB. Compress it and try again.","err");
   $("upGo").disabled=true; $("upBar").style.display="block"; $("upBar").value=0; say("Uploading...");
-  var info={code:v("uCode"),title:v("uTitle"),prog:$("uProg").value,sess:$("uSess").value,fm:v("uFm")};
+  var info={code:normCode(v("uCode")),title:v("uTitle"),prog:$("uProg").value,sess:$("uSess").value,fm:v("uFm")};
   var job;
   if(f.size<=SINGLE_MAX){
     $("upBar").removeAttribute("value");
