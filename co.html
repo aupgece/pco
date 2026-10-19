@@ -110,7 +110,7 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible{ou
       <h2>Submit a course outline</h2>
       <p class="sub">Fill in the details and attach your outline as a PDF. It appears under View outlines shortly after upload.</p>
       <div class="row">
-        <div><label for="uCode">Course code</label><input id="uCode" placeholder="EE-201"></div>
+        <div><label for="uCode">Course code</label><input id="uCode" placeholder="EE201"></div>
               </div>
       <label for="uTitle">Course title</label><input id="uTitle">
       <div class="row">
@@ -155,8 +155,8 @@ var MAX_MB = 100;
 
 var CHUNK = 6*256*1024; // 1.5 MB, must be a multiple of 256 KB
 var SAMPLE = [
-  {code:"EE-201",title:"Circuit Analysis",prog:"BEEE",sess:"Fall 2026",fm:"Sample FM 1",link:"#"},
-  {code:"CS-101",title:"Programming Fundamentals",prog:"BCE",sess:"Fall 2026",fm:"Sample FM 2",link:"#"}
+  {code:"EE201",title:"Circuit Analysis",prog:"BEEE",sess:"Fall 2026",fm:"Sample FM 1",link:"#"},
+  {code:"CS101",title:"Programming Fundamentals",prog:"BCE",sess:"Fall 2026",fm:"Sample FM 2",link:"#"}
 ];
 var data=[], $=function(i){return document.getElementById(i)};
 
