@@ -58,9 +58,9 @@ progress{width:100%;height:12px;margin-top:.9rem;display:none}
 #viewer iframe{flex:1;border:0;background:#fff}
 .adminlink{margin:0 0 .6rem;text-align:right;font-size:.9rem}
 .adminlink a{color:var(--accent);font-weight:600;text-decoration:none;opacity:1}.adminlink a:hover{opacity:1;text-decoration:underline}
-#adminBar{position:fixed;left:50%;bottom:1rem;transform:translateX(-50%);z-index:20;background:var(--ink);color:#fff;padding:.6rem 1rem;border-radius:8px;display:none;gap:.6rem;align-items:center;flex-wrap:wrap;box-shadow:0 4px 18px rgba(0,0,0,.35);font-size:.88rem;font-weight:600;max-width:96vw}
+#adminBar{position:fixed;right:.5rem;bottom:.5rem;z-index:20;background:var(--ink);color:#fff;padding:.25rem .4rem;border-radius:6px;display:none;gap:.3rem;align-items:center;flex-wrap:nowrap;box-shadow:0 2px 8px rgba(0,0,0,.35);font-size:.72rem;font-weight:600;max-width:96vw}
 #adminBar.on{display:flex}
-#adminBar .btn{padding:.35rem .8rem}
+#adminBar .btn{padding:.15rem .5rem;font-size:.72rem}
 body.admin .formbox [data-k],body.admin .tab[data-k]{white-space:pre-wrap;word-break:break-word;min-width:12rem}
 body.admin [data-k]{white-space:pre-wrap!important;word-break:break-word;overflow-wrap:anywhere;height:auto;min-height:1.6em;max-width:100%}
 body.admin .tab[data-k]{flex:1 1 16rem;min-width:16rem}
@@ -128,7 +128,7 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible{ou
 </main>
 
 <div id="adminBar" role="toolbar" aria-label="Admin editing">
-  <span>Edit mode: click any heading or text on the page and type.</span>
+  <span title="Click any heading or text on the page and type">Edit</span>
   <button class="btn" id="aSess">Add session</button>
   <button class="btn" id="aSave">Save changes</button>
   <button class="btn" id="aReset">Reset to default</button>
@@ -231,13 +231,15 @@ function showNote(t){ $("note").textContent=t; $("note").style.display="block" }
 var sheetRows=[], fsRows=[];
 function keyOf(d){ var id=driveId(d.link||""); return id?"d:"+id:"k:"+[d.code,d.title,d.sess,d.fm].join("|").toLowerCase() }
 function rebuild(){
-  var seen={}, out=[];
+  var seen={}, out=[], ov={};
+  fsRows.forEach(function(d){ if(d.replaces) ov[d.replaces]=d });
   sheetRows.concat(fsRows).forEach(function(d){
     var k=keyOf(d);
+    if(!d.replaces && ov[k]) return;
     if(seen[k]){ if((!seen[k].link||seen[k].link==="#")&&d.link) seen[k].link=d.link; return }
     seen[k]=d; out.push(d);
   });
-  out=out.filter(function(d){ return !deleted[enc(keyOf(d))] }).map(function(d){ var e=enc(keyOf(d)); var m=Object.assign({},d,edits[e]||{},{_k:e}); m.code=normCode(m.code); return m });
+  out=out.filter(function(d){ return !d.gone && !deleted[enc(keyOf(d))] }).map(function(d){ var e=enc(keyOf(d)); var m=Object.assign({},d,d._fk?{}:(edits[e]||{}),{_k:e,_ok:d.replaces||keyOf(d)}); m.code=normCode(m.code); return m });
   start(out);
 }
 var edits={}, deleted={};
@@ -248,14 +250,17 @@ function saveRow(b){
   tr.querySelectorAll("[data-f]").forEach(function(td){ o[td.dataset.f]=td.textContent.trim() });
   if(o.code!==undefined) o.code=normCode(o.code);
   b.disabled=true;
-  window.FB.setEdit(d._k,o).then(function(){ b.textContent="Saved"; setTimeout(function(){ b.textContent="Save"; b.disabled=false },1200) })
+  var p=d._fk ? window.FB.updateOutline(d._fk,o) : window.FB.add(Object.assign({},o,{link:d.link||"#",replaces:d._ok}));
+  p.then(function(){ b.textContent="Saved"; setTimeout(function(){ b.textContent="Save"; b.disabled=false },1200) })
     .catch(function(e){ console.error(e); b.disabled=false; alert("Could not save: "+fbErr(e)) });
 }
 function delRow(b){
   if(!window.FB) return alert("Firebase is not connected, so changes cannot be saved.");
   var d=data[+b.dataset.i];
   if(!confirm("Delete the outline "+d.code+" — "+d.title+"?")) return;
-  window.FB.del(d._k).catch(function(e){ console.error(e); alert("Could not delete: "+fbErr(e)) });
+  var p = d._fk ? (d.replaces ? window.FB.updateOutline(d._fk,{gone:true}) : window.FB.removeOutline(d._fk))
+                : window.FB.add({code:d.code,title:d.title,prog:d.prog,sess:d.sess,fm:d.fm,link:d.link||"#",replaces:d._ok,gone:true});
+  p.catch(function(e){ console.error(e); alert("Could not delete: "+fbErr(e)) });
 }
 ["q","fProg","fSess"].forEach(function(i){ $(i).addEventListener("input",render) });
 
@@ -443,7 +448,7 @@ $("aReset").onclick=function(){
 /* ---------- load list ---------- */
 function fbErr(e){
   var c=(e&&e.code)||"", m=(e&&e.message)||String(e);
-  if(/permission/i.test(c+m)) return "Firebase refused the write. Your Realtime Database rules do not allow the path pco_text_overrides. Open Firebase console > Realtime Database > Rules and make sure pco_text_overrides allows read and write, then Publish.";
+  if(/permission/i.test(c+m)) return "Firebase refused the request. Your Realtime Database rules do not allow reading/writing the path pco_text_overrides. Open Firebase console > Realtime Database > Rules and make sure pco_text_overrides allows read and write, then Publish.";
   if(/network|unavailable|offline/i.test(c+m)) return "Cannot reach Firebase. Check the internet connection or any blocker/VPN.";
   return c||m;
 }
@@ -490,6 +495,8 @@ try{
   window.FB={
     getContent:function(){ return D.get(D.ref(db,"pco_text_overrides/co_texts")).then(function(s){ return s.val()||{} }) },
     saveContent:function(t){ return D.set(D.ref(db,"pco_text_overrides/co_texts"),t) },
+    updateOutline:function(k,o){ return D.update(D.ref(db,"pco_text_overrides/co_outlines/"+k),o) },
+    removeOutline:function(k){ return D.remove(D.ref(db,"pco_text_overrides/co_outlines/"+k)) },
     add:function(e){ return D.push(D.ref(db,"pco_text_overrides/co_outlines"),Object.assign({},e,{createdAt:Date.now()})) },
     addSession:function(n){ return D.set(D.ref(db,"pco_text_overrides/co_sessions/"+btoa(unescape(encodeURIComponent(n))).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"")),n) },
     listenSessions:function(ok,err){ return D.onValue(D.ref(db,"pco_text_overrides/co_sessions"),function(s){ var v=s.val()||{}; ok(Object.keys(v).map(function(k){return v[k]})) },err) },
@@ -502,7 +509,7 @@ try{
     },
     listen:function(ok,err){ return D.onValue(D.ref(db,"pco_text_overrides/co_outlines"),function(snap){
       var v=snap.val()||{};
-      ok(Object.keys(v).map(function(k){ var x=v[k]; return {code:x.code||"",title:x.title||"",prog:x.prog||"",sess:x.sess||"",fm:x.fm||"",link:x.link||"#"} }));
+      ok(Object.keys(v).map(function(k){ var x=v[k]; return {code:x.code||"",title:x.title||"",prog:x.prog||"",sess:x.sess||"",fm:x.fm||"",link:x.link||"#",_fk:k,replaces:x.replaces||"",gone:!!x.gone} }));
     },err) }
   };
 }catch(e){ console.error("Firebase failed to load",e); window.FB_ERR="Firebase failed to load ("+(e.message||e)+"). Check that gstatic.com is not blocked." }
