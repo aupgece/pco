@@ -251,7 +251,11 @@ function saveRow(b){
   if(o.code!==undefined) o.code=normCode(o.code);
   b.disabled=true;
   var p=d._fk ? window.FB.updateOutline(d._fk,o) : window.FB.add(Object.assign({},o,{link:d.link||"#",replaces:d._ok}));
-  p.then(function(){ b.textContent="Saved"; setTimeout(function(){ b.textContent="Save"; b.disabled=false },1200) })
+  p.then(function(){ return window.FB.verify(o) })
+    .then(function(found){
+      if(!found){ b.disabled=false; return alert("Firebase accepted the save, but the edit is not there when read back from the server. Check the rules for pco_text_overrides/co_outlines (.read and .write must both be true), then try again."); }
+      b.textContent="Saved"; setTimeout(function(){ b.textContent="Save"; b.disabled=false },1200);
+    })
     .catch(function(e){ console.error(e); b.disabled=false; alert("Could not save: "+fbErr(e)) });
 }
 function delRow(b){
@@ -495,6 +499,7 @@ try{
   window.FB={
     getContent:function(){ return D.get(D.ref(db,"pco_text_overrides/co_texts")).then(function(s){ return s.val()||{} }) },
     saveContent:function(t){ return D.set(D.ref(db,"pco_text_overrides/co_texts"),t) },
+    verify:function(o){ return D.get(D.ref(db,"pco_text_overrides/co_outlines")).then(function(s){ var v=s.val()||{}; return Object.keys(v).some(function(k){ var x=v[k]; return !x.gone && x.code===o.code && x.title===o.title && x.fm===o.fm && x.prog===o.prog && x.sess===o.sess }) }) },
     updateOutline:function(k,o){ return D.update(D.ref(db,"pco_text_overrides/co_outlines/"+k),o) },
     removeOutline:function(k){ return D.remove(D.ref(db,"pco_text_overrides/co_outlines/"+k)) },
     add:function(e){ return D.push(D.ref(db,"pco_text_overrides/co_outlines"),Object.assign({},e,{createdAt:Date.now()})) },
