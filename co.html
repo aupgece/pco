@@ -66,8 +66,9 @@ body.admin [data-k]{white-space:pre-wrap!important;word-break:break-word;overflo
 body.admin .tab[data-k]{flex:1 1 16rem;min-width:16rem}
 body.admin th[data-k]{min-width:10rem}
 body.admin #upGo[data-k]{display:block;width:100%;text-align:left}
-body.admin td.ed{min-height:2.4em;min-width:16rem;vertical-align:top}
-body.admin td.ed[data-f=code]{min-width:10rem}
+body.admin td.ed{min-height:2.4em;min-width:9rem;vertical-align:top}
+body.admin td.act{position:sticky;right:0;background:#fff;box-shadow:-4px 0 6px rgba(0,0,0,.08)}
+body.admin td.ed[data-f=code]{min-width:6rem}
 outline:2px dashed var(--gold-lt);outline-offset:2px;cursor:text}
 body.admin [data-k]:focus{outline:2px solid var(--gold-lt);background:rgba(255,255,255,.12)}
 body.admin .formbox [data-k]:focus,body.admin main [data-k]:focus{background:#fffbe0;color:#1a1a1a!important;-webkit-text-fill-color:#1a1a1a}
@@ -230,6 +231,9 @@ function showNote(t){ $("note").textContent=t; $("note").style.display="block" }
 /* Sheet rows (old entries) + Firebase rows (saved instantly) are merged, duplicates removed */
 var sheetRows=[], fsRows=[];
 function keyOf(d){ var id=driveId(d.link||""); return id?"d:"+id:"k:"+[d.code,d.title,d.sess,d.fm].join("|").toLowerCase() }
+var LK="coRowEdits";
+function lget(){ try{ return JSON.parse(localStorage.getItem(LK)||"{}") }catch(e){ return {} } }
+function lset(m){ try{ localStorage.setItem(LK,JSON.stringify(m)) }catch(e){} }
 function rebuild(){
   var seen={}, out=[], ov={};
   fsRows.forEach(function(d){ if(d.replaces) ov[d.replaces]=d });
@@ -239,33 +243,43 @@ function rebuild(){
     if(seen[k]){ if((!seen[k].link||seen[k].link==="#")&&d.link) seen[k].link=d.link; return }
     seen[k]=d; out.push(d);
   });
-  out=out.filter(function(d){ return !d.gone && !deleted[enc(keyOf(d))] }).map(function(d){ var e=enc(keyOf(d)); var m=Object.assign({},d,d._fk?{}:(edits[e]||{}),{_k:e,_ok:d.replaces||keyOf(d)}); m.code=normCode(m.code); return m });
+  out=out.filter(function(d){ return !d.gone && !deleted[enc(keyOf(d))] }).map(function(d){ var e=enc(keyOf(d)); var m=Object.assign({},d,d._fk?{}:(edits[e]||{}),{_k:e,_ok:d.replaces||keyOf(d)}); var le=lget()[m._ok]; if(le) Object.assign(m,le); m.code=normCode(m.code); return m }).filter(function(m){ return !m.gone });
   start(out);
 }
 var edits={}, deleted={};
 function enc(k){ return btoa(unescape(encodeURIComponent(k))).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"") }
-function saveRow(b){
-  if(!window.FB) return alert("Firebase is not connected, so changes cannot be saved.");
+function keepLocal(d,patch,why){
+  var m=lget(); m[d._ok]=patch; lset(m); rebuild();
+  alert(why+"\n\nYour change is kept in this browser, so it stays after a refresh here, but other people will NOT see it until saving to Firebase works (rules for pco_text_overrides/co_outlines need .read and .write = true).");
+}
+function dropLocal(d){ var m=lget(); if(m[d._ok]){ delete m[d._ok]; lset(m) } }
+function rowItem(b){
   var d=data[+b.dataset.i], tr=b.closest("tr"), o={};
   tr.querySelectorAll("[data-f]").forEach(function(td){ o[td.dataset.f]=td.textContent.trim() });
   if(o.code!==undefined) o.code=normCode(o.code);
+  return {d:d,o:o,b:b};
+}
+function saveRow(b){ var it=rowItem(b); saveItem(it.d,it.o,it.b) }
+function saveItem(d,o,b){
+  if(!window.FB) return keepLocal(d,o,"Firebase is not connected.");
   b.disabled=true;
   var p=d._fk ? window.FB.updateOutline(d._fk,o) : window.FB.add(Object.assign({},o,{link:d.link||"#",replaces:d._ok}));
   p.then(function(){ return window.FB.verify(o) })
     .then(function(found){
-      if(!found){ b.disabled=false; return alert("Firebase accepted the save, but the edit is not there when read back from the server. Check the rules for pco_text_overrides/co_outlines (.read and .write must both be true), then try again."); }
-      b.textContent="Saved"; setTimeout(function(){ b.textContent="Save"; b.disabled=false },1200);
+      if(!found) return keepLocal(d,o,"Firebase accepted the save, but the edit is not there when read back.");
+      dropLocal(d); b.textContent="Saved"; setTimeout(function(){ b.textContent="Save"; b.disabled=false },1200);
     })
-    .catch(function(e){ console.error(e); b.disabled=false; alert("Could not save: "+fbErr(e)) });
+    .catch(function(e){ console.error(e); keepLocal(d,o,"Could not save to Firebase: "+fbErr(e)) });
 }
 function delRow(b){
-  if(!window.FB) return alert("Firebase is not connected, so changes cannot be saved.");
   var d=data[+b.dataset.i];
   if(!confirm("Delete the outline "+d.code+" — "+d.title+"?")) return;
+  if(!window.FB) return keepLocal(d,{gone:true},"Firebase is not connected.");
   var p = d._fk ? (d.replaces ? window.FB.updateOutline(d._fk,{gone:true}) : window.FB.removeOutline(d._fk))
                 : window.FB.add({code:d.code,title:d.title,prog:d.prog,sess:d.sess,fm:d.fm,link:d.link||"#",replaces:d._ok,gone:true});
-  p.catch(function(e){ console.error(e); alert("Could not delete: "+fbErr(e)) });
+  p.then(function(){ dropLocal(d) }).catch(function(e){ console.error(e); keepLocal(d,{gone:true},"Could not delete in Firebase: "+fbErr(e)) });
 }
+$("rows").addEventListener("input",function(e){ var tr=e.target.closest&&e.target.closest("tr"); if(tr) tr.dataset.dirty="1" });
 ["q","fProg","fSess"].forEach(function(i){ $(i).addEventListener("input",render) });
 
 /* ---------- tabs ---------- */
@@ -435,6 +449,8 @@ $("aSess").onclick=function(){
 };
 $("aExit").onclick=function(){ setAdmin(false) };
 $("aSave").onclick=function(){
+  var items=[]; document.querySelectorAll("#rows tr[data-dirty]").forEach(function(tr){ var b=tr.querySelector("button[onclick^=saveRow]"); if(b) items.push(rowItem(b)) });
+  items.forEach(function(it){ saveItem(it.d,it.o,it.b) });
   if(!window.FB) return alert("Firebase is not connected, so changes cannot be saved. Add the Firebase config first.");
   var texts={};
   editEls.forEach(function(el){ var t=el.textContent.trim(); if(t&&t!==defaults[el.dataset.k].trim()) texts[el.dataset.k]=t });
