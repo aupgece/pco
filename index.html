@@ -28066,7 +28066,7 @@ body.admin-mode .fm-hint{display:block}
       <div class="fm-tools">
         <input type="text" id="fmSearch" placeholder="🔍 Search name, designation, experience, qualifications, expertise…" autocomplete="off">
         <div class="fm-seg" id="fmSeg" role="group" aria-label="Department filter"></div>
-        <button class="fm-btn fm-adm-block" type="button" onclick="fmAdd()">＋ Add member</button>
+        <button class="fm-btn" type="button" onclick="fmAdd()">＋ Add FM</button>
       </div>
       <p class="fm-meta" id="fmMeta"></p>
       <div class="tbl-wrap">
@@ -28088,6 +28088,7 @@ body.admin-mode .fm-hint{display:block}
   <div class="ce-box" role="dialog" aria-modal="true" aria-labelledby="fmEdHead">
     <h3 id="fmEdHead">Update record</h3>
     <div id="fmEdForm">
+      <div id="fmEdSecWrap" style="display:none"><label for="fmEdSec">Department</label><select id="fmEdSec" style="width:100%;font:500 .95rem 'Source Sans 3',sans-serif;color:var(--ink);border:1px solid var(--rule);border-radius:4px;padding:.55rem .7rem;background:#fff"><option value="EE">EE</option><option value="CE">CE</option></select></div>
       <label for="fmEdName">Name</label><input id="fmEdName" type="text" autocomplete="off">
       <label for="fmEdDesig">Designation</label><input id="fmEdDesig" type="text" autocomplete="off">
       <label for="fmEdExt">Extension</label><input id="fmEdExt" type="text" autocomplete="off">
@@ -28112,7 +28113,7 @@ body.admin-mode .fm-hint{display:block}
   var EXP_STEP=6; // teaching experience auto-increases in steps of this many months
   var SEC_NAME={EE:'Electrical Engineering (EE)',CE:'Computer Engineering (CE)'};
   SEED.forEach(function(m,k){ if(!m.id) m.id='fm'+(k<9?'0':'')+(k+1); m.upd=+m.upd||0; FIELDS.forEach(function(f){ if(m[f]==null) m[f]=''; }); });
-  var list=clone(SEED), filter='ALL', query='', editing=false, editId=null;
+  var list=clone(SEED), filter='ALL', query='', editing=false, editId=null, adding=false;
   function uid(){ return 'fm'+Date.now().toString(36)+Math.random().toString(36).slice(2,5); }
   var $=function(id){return document.getElementById(id);};
 
@@ -28297,14 +28298,15 @@ body.admin-mode .fm-hint{display:block}
   }
 
   window.fmAdd=function(){
-    if(!isAdmin()) return;
-    var sec=filter==='CE'?'CE':'EE';
-    list.push({id:uid(),upd:0,name:'New member',sec:sec,desig:'',ext:'',cell:'',exp:'',qual:'',area:'',expY:'',expM:'',expAt:''});
-    save(); render();
-    var tds=$('fmBody').querySelectorAll('td[data-f="name"]');
-    for(var k=0;k<tds.length;k++){
-      if(+tds[k].getAttribute('data-i')===list.length-1){ tds[k].scrollIntoView({block:'center'}); startEdit(tds[k]); break; }
-    }
+    adding=true; editId=null;
+    $('fmEdHead').textContent='Add faculty member';
+    $('fmEdSecWrap').style.display='';
+    $('fmEdSec').value=(filter==='CE'?'CE':'EE');
+    ['Name','Desig','Ext','Cell','Exp','Qual','Area','ExpY','ExpM'].forEach(function(k){ $('fmEd'+k).value=''; });
+    $('fmEdExpY').setAttribute('data-orig',''); $('fmEdExpM').setAttribute('data-orig','');
+    $('fmEdErr').textContent='';
+    $('fmEditOverlay').classList.add('open');
+    setTimeout(function(){ $('fmEdName').focus(); },30);
   };
 
   window.fmExportCsv=function(){
@@ -28354,7 +28356,7 @@ body.admin-mode .fm-hint{display:block}
   // ── faculty self-update ──
   function showPane(){ setTimeout(function(){ var t=$('fmEdDesig'); if(t) t.focus(); },30); }
   function openEdit(m){
-    if(!m) return; editId=m.id;
+    if(!m) return; editId=m.id; adding=false; $('fmEdSecWrap').style.display='none';
     $('fmEdHead').textContent='Update record: '+m.name;
     $('fmEdName').value=m.name; $('fmEdDesig').value=m.desig; $('fmEdExt').value=m.ext; $('fmEdCell').value=m.cell;
     var tm=expMonths(m), ey=(tm===null?'':Math.floor(tm/12)), em=(tm===null?'':tm%12);
@@ -28363,13 +28365,16 @@ body.admin-mode .fm-hint{display:block}
     $('fmEdErr').textContent='';
     $('fmEditOverlay').classList.add('open'); showPane();
   }
-  function closeEdit(){ $('fmEditOverlay').classList.remove('open'); editId=null; }
+  function closeEdit(){ $('fmEditOverlay').classList.remove('open'); editId=null; adding=false; }
   function saveRecord(){
     var nm=$('fmEdName').value.trim();
     if(!nm){ $('fmEdErr').textContent='Name cannot be empty.'; $('fmEdName').focus(); return; }
     var patch={name:nm,desig:$('fmEdDesig').value.trim(),ext:$('fmEdExt').value.trim(),cell:$('fmEdCell').value.trim(),exp:$('fmEdExp').value.trim(),qual:$('fmEdQual').value.trim(),area:$('fmEdArea').value.trim()};
-    var id=editId, now=Date.now();
-    var m=list.filter(function(x){return x.id===id;})[0];
+    var id=editId, now=Date.now(), m;
+    if(adding){
+      id=uid(); patch.sec=($('fmEdSec').value==='CE'?'CE':'EE');
+      m={id:id,upd:0,name:'',sec:patch.sec,desig:'',ext:'',cell:'',exp:'',qual:'',area:'',expY:'',expM:'',expAt:''};
+    } else m=list.filter(function(x){return x.id===id;})[0];
     if(!m){ $('fmEdErr').textContent='This record no longer exists.'; return; }
     // teaching experience: only restart the 6-month counter when the person actually changed the figure
     var yEl=$('fmEdExpY'), mEl=$('fmEdExpM'), yv=yEl.value.trim(), mv=mEl.value.trim();
@@ -28381,6 +28386,7 @@ body.admin-mode .fm-hint{display:block}
     else patch.expAt=m.expAt;
     function apply(t){ for(var k in patch) t[k]=patch[k]; t.upd=now; }
     apply(m);
+    if(adding) list.push(m);
     try{localStorage.setItem(KEY,JSON.stringify(list));}catch(e){}
     if(typeof fbDb!=='undefined' && fbDb){
       // transaction: merge only this member's fields so simultaneous edits by other FMs are not overwritten
