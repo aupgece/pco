@@ -28062,7 +28062,8 @@ body.admin-mode .fm-hint{display:block}
       <div style="display:flex;align-items:center;gap:.6rem;">
         <button class="fm-btn fm-adm-block" type="button" onclick="fmDownloadHtml()" title="Download an index.html with all current records saved inside it">💾 Save to index.html</button>
         <button class="fm-btn" type="button" onclick="fmCopyLink()">🔗 Copy link</button>
-        <button class="fm-btn" type="button" onclick="fmExportCsv()">⬇ Export CSV</button>
+        <button class="fm-btn" type="button" onclick="fmExportXlsx()">⬇ Export Excel</button>
+        <button class="fm-btn" type="button" onclick="fmExportPdf()">⬇ Export PDF</button>
         <button class="close-btn" type="button" onclick="closeFmModal()" aria-label="Close">✕</button>
       </div>
     </div>
@@ -28313,14 +28314,120 @@ body.admin-mode .fm-hint{display:block}
     setTimeout(function(){ $('fmEdName').focus(); },30);
   };
 
-  window.fmExportCsv=function(){
-    var cols=[['name','Name'],['sec','Department'],['desig','Designation'],['ext','Ext.'],['cell','Cell'],['_exp','Teaching experience'],['exp','Other experience / notes'],['qual','Qualifications'],['area','Expertise / Area of Interest']];
-    var q=function(s){return '"'+String(s==null?'':s).replace(/"/g,'""')+'"';};
-    var out=[cols.map(function(c){return q(c[1]);}).join(',')];
-    visible().forEach(function(r){ out.push(cols.map(function(c){return q(c[0]==='_exp'?expText(r.m):r.m[c[0]]);}).join(',')); });
-    var blob=new Blob(['\ufeff'+out.join('\r\n')],{type:'text/csv;charset=utf-8'});
-    var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='Regular_FMs_EE_CE.csv';
-    document.body.appendChild(a); a.click(); a.remove();
+  // ── exports (Excel / PDF): libraries load on first use ──
+  function loadLib(url,ok){
+    return new Promise(function(res,rej){
+      if(ok()) return res();
+      var sc=document.createElement('script'); sc.src=url;
+      sc.onload=function(){ ok()?res():rej(new Error('lib')); };
+      sc.onerror=function(){ rej(new Error('load')); };
+      document.head.appendChild(sc);
+    });
+  }
+  var SUBTITLE='Regular faculty members database · Dept. of Electrical Engineering and Dept. of Computer & Software Engineering · AU, Islamabad';
+  function exportGroups(){
+    var rows=visible(), n=0, out=[];
+    ['EE','CE'].forEach(function(sec){
+      var part=rows.filter(function(r){return r.m.sec===sec;}); if(!part.length) return;
+      out.push({sec:sec,name:SEC_NAME[sec],items:part.map(function(r){ n++; var m=r.m;
+        return [n,m.name||'',m.sec,m.desig||'',m.ext||'',m.cell||'',expText(m)||'',m.exp||'',m.qual||'',m.area||''];
+      })});
+    });
+    return {groups:out,total:n};
+  }
+  function exportStamp(){ return new Date().toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}); }
+  function saveBlob(blob,name){
+    var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name;
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(function(){URL.revokeObjectURL(a.href);},4000);
+  }
+
+  window.fmExportXlsx=function(){
+    loadLib('https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js',function(){return window.ExcelJS;}).then(function(){
+      var d=exportGroups(), NAVY='FF0B2545', LIGHT='FFDCE6F2';
+      var heads=['#','Name','Department','Designation','Ext.','Cell','Teaching experience','Other experience / notes','Qualifications','Expertise / Area of Interest'];
+      var widths=[5,28,12,24,9,16,22,34,38,38];
+      var wb=new ExcelJS.Workbook(); wb.creator='AU Islamabad';
+      var ws=wb.addWorksheet('Regular FMs',{
+        views:[{state:'frozen',ySplit:4}],
+        pageSetup:{paperSize:9,orientation:'landscape',fitToPage:true,fitToWidth:1,fitToHeight:0,margins:{left:.4,right:.4,top:.6,bottom:.6,header:.3,footer:.3}}
+      });
+      ws.columns=widths.map(function(w){return {width:w};});
+      var thin={style:'thin',color:{argb:'FFB8C4D6'}}, box={top:thin,left:thin,bottom:thin,right:thin};
+      ws.mergeCells(1,1,1,10);
+      var t=ws.getCell(1,1); t.value=($('fmTitle').textContent||'Regular FMs').trim();
+      t.font={name:'Calibri',size:16,bold:true,color:{argb:NAVY}}; t.alignment={vertical:'middle'}; ws.getRow(1).height=26;
+      ws.mergeCells(2,1,2,10);
+      var st=ws.getCell(2,1); st.value=SUBTITLE+'  ·  '+d.total+' members  ·  Exported '+exportStamp();
+      st.font={name:'Calibri',size:10,italic:true,color:{argb:'FF555F6E'}};
+      var hr=ws.getRow(4); hr.values=heads; hr.height=24;
+      hr.eachCell(function(c){ c.font={name:'Calibri',size:11,bold:true,color:{argb:'FFFFFFFF'}};
+        c.fill={type:'pattern',pattern:'solid',fgColor:{argb:NAVY}}; c.border=box;
+        c.alignment={vertical:'middle',horizontal:'center',wrapText:true}; });
+      var r=5;
+      d.groups.forEach(function(g){
+        ws.mergeCells(r,1,r,10);
+        var gc=ws.getCell(r,1); gc.value=g.name+'  ('+g.items.length+')';
+        gc.font={name:'Calibri',size:11,bold:true,color:{argb:NAVY}};
+        gc.fill={type:'pattern',pattern:'solid',fgColor:{argb:LIGHT}};
+        gc.alignment={vertical:'middle'}; ws.getRow(r).height=20;
+        for(var k=1;k<=10;k++) ws.getCell(r,k).border=box;
+        r++;
+        g.items.forEach(function(it,ix){
+          var row=ws.getRow(r); row.values=it;
+          var lines=1;
+          it.forEach(function(v,c){ var w=widths[c]*1.05; var l=String(v).split('\n').reduce(function(a,seg){return a+Math.max(1,Math.ceil(seg.length/w));},0); if(l>lines) lines=l; });
+          row.height=Math.max(18,lines*15);
+          row.eachCell({includeEmpty:true},function(c,col){
+            c.font={name:'Calibri',size:10.5,bold:col===2};
+            c.border=box;
+            c.alignment={vertical:'top',wrapText:true,horizontal:(col===1||col===3||col===5)?'center':'left'};
+            if(ix%2) c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFF6F8FB'}};
+          });
+          r++;
+        });
+      });
+      ws.pageSetup.printTitlesRow='4:4';
+      ws.headerFooter={oddFooter:'&LRegular FMs (EE and CE)&RPage &P of &N'};
+      return wb.xlsx.writeBuffer();
+    }).then(function(buf){
+      saveBlob(new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}),'Regular_FMs_EE_CE.xlsx');
+    }).catch(function(e){ console.warn('Excel export error:',e); flash('⚠ Could not create Excel file (check internet connection)'); });
+  };
+
+  window.fmExportPdf=function(){
+    loadLib('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',function(){return window.jspdf&&window.jspdf.jsPDF;})
+    .then(function(){ return loadLib('https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js',function(){return window.jspdf.jsPDF.API.autoTable;}); })
+    .then(function(){
+      var d=exportGroups(), NAVY=[11,37,69], LIGHT=[220,230,242];
+      var doc=new window.jspdf.jsPDF({orientation:'landscape',unit:'mm',format:'a4'});
+      var title=($('fmTitle').textContent||'Regular FMs').trim();
+      doc.setFont('helvetica','bold'); doc.setFontSize(15); doc.setTextColor(NAVY[0],NAVY[1],NAVY[2]); doc.text(title,10,14);
+      doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor(90,95,110);
+      doc.text(SUBTITLE,10,19.5);
+      doc.text(d.total+' members  ·  Exported '+exportStamp(),10,24);
+      var body=[];
+      d.groups.forEach(function(g){
+        body.push([{content:g.name+'  ('+g.items.length+')',colSpan:9,styles:{fillColor:LIGHT,textColor:NAVY,fontStyle:'bold',fontSize:8.5}}]);
+        g.items.forEach(function(it){ body.push([it[0],it[1],it[3],it[4],it[5],it[6],it[7],it[8],it[9]]); });
+      });
+      doc.autoTable({
+        startY:28,
+        head:[['#','Name','Designation','Ext.','Cell','Teaching experience','Other experience / notes','Qualifications','Expertise / Area of Interest']],
+        body:body,
+        theme:'grid',
+        margin:{left:10,right:10,top:12,bottom:12},
+        styles:{font:'helvetica',fontSize:7.5,cellPadding:1.6,lineColor:[184,196,214],lineWidth:.15,valign:'top',overflow:'linebreak',textColor:[30,30,30]},
+        headStyles:{fillColor:NAVY,textColor:255,fontStyle:'bold',halign:'center',valign:'middle'},
+        alternateRowStyles:{fillColor:[246,248,251]},
+        columnStyles:{0:{cellWidth:8,halign:'center'},1:{cellWidth:36,fontStyle:'bold'},2:{cellWidth:30},3:{cellWidth:12,halign:'center'},4:{cellWidth:24},5:{cellWidth:28},6:{cellWidth:40},7:{cellWidth:50},8:{cellWidth:49}},
+        didDrawPage:function(h){
+          doc.setFontSize(7.5); doc.setTextColor(120,125,135);
+          doc.text(title,10,doc.internal.pageSize.getHeight()-6);
+          doc.text('Page '+h.pageNumber,doc.internal.pageSize.getWidth()-10,doc.internal.pageSize.getHeight()-6,{align:'right'});
+        }
+      });
+      doc.save('Regular_FMs_EE_CE.pdf');
+    }).catch(function(e){ console.warn('PDF export error:',e); flash('⚠ Could not create PDF (check internet connection)'); });
   };
 
   var HASH='#regular-fms';
