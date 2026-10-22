@@ -1446,6 +1446,78 @@ a:focus-visible,button:focus-visible,select:focus-visible,input:focus-visible,.p
     </div>
   </div>
 </header>
+<style id="navbar-css">
+#navBar{min-height:46px;position:sticky;top:0;z-index:90;background:#0b2545;border-bottom:3px solid #c9a227;box-shadow:0 3px 10px rgba(11,37,69,.25)}
+body.admin-bar-shown #navBar{top:var(--admbar-h,44px)}
+#navBarInner{display:flex;flex-wrap:wrap;align-items:stretch;padding:0 clamp(1rem,3vw,3rem)}
+.nb-tab{position:relative}
+.nb-btn{display:block;height:100%;background:none;border:0;border-right:1px solid rgba(255,255,255,.12);color:#fff;font:600 .88rem 'Source Sans 3',sans-serif;letter-spacing:.02em;padding:.8rem 1.05rem;cursor:pointer;white-space:nowrap}
+.nb-tab:first-child .nb-btn{border-left:1px solid rgba(255,255,255,.12)}
+.nb-tab:hover .nb-btn,.nb-tab.open .nb-btn,.nb-btn:focus-visible{background:#14407a;outline:0}
+.nb-dd{display:none;position:absolute;left:0;top:100%;min-width:260px;max-width:min(360px,92vw);background:#fff;border:1px solid #cfd8e6;border-top:3px solid #c9a227;border-radius:0 0 6px 6px;box-shadow:0 16px 38px rgba(11,37,69,.28);padding:.35rem 0}
+.nb-dd.r{left:auto;right:0}
+.nb-tab:hover .nb-dd,.nb-tab.open .nb-dd,.nb-tab:focus-within .nb-dd{display:block}
+.nb-dd button{display:block;width:100%;text-align:left;background:none;border:0;font:500 .92rem 'Source Sans 3',sans-serif;color:#1d2733;padding:.45rem 1rem;cursor:pointer}
+.nb-dd button:hover,.nb-dd button:focus{background:#eaf0f8;color:#0b2545;outline:0}
+.nb-dd .nb-go{font:600 .68rem 'Source Code Pro',monospace;letter-spacing:.08em;text-transform:uppercase;color:#6b7a90;border-bottom:1px solid #e6ebf2;margin-bottom:.2rem}
+@media(hover:none){.nb-tab:hover .nb-dd{display:none}.nb-tab.open .nb-dd{display:block}.nb-tab:hover .nb-btn{background:none}.nb-tab.open .nb-btn{background:#14407a}}
+@media(max-width:780px){
+  .nb-tab{position:static}
+  .nb-btn{padding:.75rem .85rem;min-height:44px;font-size:.84rem;white-space:normal;text-align:left;-webkit-tap-highlight-color:transparent}
+  .nb-dd,.nb-dd.r{left:0;right:0;top:100%;min-width:0;max-width:none;border-radius:0 0 6px 6px;max-height:60vh;overflow-y:auto;-webkit-overflow-scrolling:touch}
+  .nb-dd button{padding:.7rem 1.1rem;min-height:44px;font-size:1rem}
+}
+@media print{#navBar{display:none}}
+</style>
+<nav id="navBar" aria-label="Sections"><div id="navBarInner"></div></nav>
+<script>
+(function(){
+  var bar=document.getElementById('navBar'), inner=document.getElementById('navBarInner'), last='';
+  function txt(el){ var c=el.cloneNode(true); Array.prototype.forEach.call(c.querySelectorAll('small'),function(x){x.remove();}); return c.textContent.replace(/\s+/g,' ').trim(); }
+  function jump(el){
+    var off=bar.offsetHeight+((document.body.classList.contains('admin-bar-shown')&&(parseInt(getComputedStyle(document.documentElement).getPropertyValue('--admbar-h'))||44))||0)+8;
+    window.scrollTo({top:el.getBoundingClientRect().top+window.pageYOffset-off,behavior:'smooth'});
+    var o=el.style.transition,b=el.style.boxShadow; el.style.transition='box-shadow .3s'; el.style.boxShadow='0 0 0 3px #c9a227';
+    setTimeout(function(){ el.style.boxShadow=b; el.style.transition=o; },1400);
+  }
+  function groups(){
+    var g=[];
+    var col=document.querySelector('.cards-column'), cur=null; if(!col) return g;
+    Array.prototype.forEach.call(col.children,function(el){
+      if(el.classList.contains('group-title')){ cur={title:txt(el),el:el,items:[]}; g.push(cur); }
+      else if(el.classList.contains('parent-card')&&cur){
+        var halves=el.querySelectorAll('.split-half');
+        if(halves.length) Array.prototype.forEach.call(halves,function(h){ var t=h.querySelector('h2'); if(t) cur.items.push({label:txt(t),run:function(){h.click();}}); });
+        else { var t=el.querySelector('h2'); if(t) cur.items.push({label:txt(t),run:function(){ if(el.id==='sessionCard') jump(el); else el.click(); }}); }
+      }
+    });
+    return g;
+  }
+  function closeAll(){ Array.prototype.forEach.call(inner.querySelectorAll('.nb-tab.open'),function(t){t.classList.remove('open');}); if(document.activeElement&&bar.contains(document.activeElement)) document.activeElement.blur(); }
+  function build(){
+    var g=groups(), sig=JSON.stringify(g.map(function(x){return [x.title,x.items.map(function(i){return i.label;})];}));
+    if(sig===last) return; last=sig; inner.innerHTML='';
+    g.forEach(function(x){
+      var tab=document.createElement('div'); tab.className='nb-tab';
+      var b=document.createElement('button'); b.type='button'; b.className='nb-btn'; b.textContent=x.title; tab.appendChild(b);
+      var dd=document.createElement('div'); dd.className='nb-dd'; dd.setAttribute('role','menu');
+      var go=document.createElement('button'); go.type='button'; go.className='nb-go'; go.textContent='↓ Go to section';
+      go.addEventListener('click',function(){ closeAll(); jump(x.el); }); dd.appendChild(go);
+      x.items.forEach(function(it){ var ib=document.createElement('button'); ib.type='button'; ib.setAttribute('role','menuitem'); ib.textContent=it.label;
+        ib.addEventListener('click',function(){ closeAll(); it.run(); }); dd.appendChild(ib); });
+      tab.appendChild(dd);
+      tab.addEventListener('mouseenter',function(){ dd.classList.toggle('r',tab.getBoundingClientRect().left>window.innerWidth/2); });
+      b.addEventListener('click',function(e){ e.stopPropagation(); var was=tab.classList.contains('open'); closeAll(); dd.classList.toggle('r',tab.getBoundingClientRect().left>window.innerWidth/2); if(!was) tab.classList.add('open'); });
+      inner.appendChild(tab);
+    });
+  }
+  bar.addEventListener('mouseenter',build);
+  document.addEventListener('click',function(e){ if(!bar.contains(e.target)) closeAll(); });
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',build); else build();
+  window.addEventListener('load',build);
+})();
+</script>
+
 
 <main>
   <div class="main-layout">
@@ -28825,4 +28897,5 @@ body.te-on .te-hover{outline:2px dashed var(--gold-lt,#e0b95a);outline-offset:2p
   scan();
 })();
 </script>
+
 </body></html>
