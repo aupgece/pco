@@ -833,6 +833,15 @@
   </div>
 </div>
 
+<div class="notice-modal" id="dayModal" role="alertdialog" aria-modal="true" aria-labelledby="dayModalTitle">
+  <div class="notice-box">
+    <div class="n-icon">📅</div>
+    <h3 id="dayModalTitle">Please select the correct day</h3>
+    <p id="dayModalText"></p>
+    <button class="primary" id="dayModalOk" type="button">OK, understood</button>
+  </div>
+</div>
+
 <main>
 
   <!-- RECORD PANEL -->
@@ -1824,7 +1833,16 @@ function noticeDaySet(){
   box.addEventListener('click', e=>{
     const day = e.target.closest('.dp-day');
     if(!day || day.disabled || !day.dataset.day) return;
-    window._ttDay = parseInt(day.dataset.day, 10);
+    const picked = parseInt(day.dataset.day, 10);
+    // If the admin notice names a weekday, only that day's timetable is to be recorded.
+    const allowed = noticeDaySet();
+    if(allowed.size && !allowed.has(picked)){
+      const names = [...allowed].sort().map(n => DAY_NAMES[n]);
+      document.getElementById('dayModalText').textContent = 'Please click ' + names.join(' or ').toUpperCase() + ' for the timetable.';
+      document.getElementById('dayModal').classList.add('open');
+      return;
+    }
+    window._ttDay = picked;
     input.value = todayStr;
     render(); showClasses();
   });
@@ -2009,6 +2027,7 @@ function showNoticeModal(v){
   document.getElementById('noticeModalText').textContent = text;
   document.getElementById('noticeModal').classList.add('open');
 }
+document.getElementById('dayModalOk').addEventListener('click', ()=> document.getElementById('dayModal').classList.remove('open'));
 document.getElementById('noticeModalOk').addEventListener('click', ()=> document.getElementById('noticeModal').classList.remove('open'));
 (async function loadNoticeOnStart(){
   let v = null;

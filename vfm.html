@@ -188,6 +188,8 @@
   }
   .icon-btn:hover{border-color:var(--ink);color:var(--ink);}
   .icon-btn.danger:hover{border-color:var(--danger);color:var(--danger);}
+  .icon-btn.edit{background:var(--teal);border-color:var(--teal);color:#fff;font-weight:600;}
+  .icon-btn.edit:hover{background:#245a52;border-color:#245a52;color:#fff;}
   .admin-only{display:none;}
   body.is-admin .admin-only{display:inline-block;}
 
@@ -312,6 +314,8 @@
   </header>
 
   <div class="controls">
+    <select class="filter" id="sessionSelect" title="Session"></select>
+    <button type="button" class="icon-btn admin-only" id="addSessionBtn">+ Add Session</button>
     <div class="search-box">
       <input type="text" id="searchInput" placeholder="Search by name, email, course, or section…">
     </div>
@@ -337,7 +341,7 @@
           <th>Courses Teaching</th>
           <th>Qualification</th>
           <th>Status</th>
-          <th></th>
+          <th>Session</th>
         </tr>
       </thead>
       <tbody id="tableBody">
@@ -383,6 +387,10 @@
           <label>Section(s)</label>
           <input type="text" id="f_section" placeholder="e.g. BEEP-F-26-A, BEET-F-26-B">
           <div class="field-error" id="err_section">Section is required.</div>
+        </div>
+        <div class="field">
+          <label>Session</label>
+          <select id="f_session" style="width:100%;padding:11px 12px;border:1px solid var(--line);background:var(--surface);font-size:14px;border-radius:2px;color:var(--ink);font-family:'Inter',sans-serif;"></select>
         </div>
         <div class="field">
           <label>Qualification</label>
@@ -434,7 +442,8 @@ try{
   console.error('Firebase init failed:', e);
 }
 
-let records = [];
+let records = [];      // records of the currently selected session
+let allRecords = [];   // every record from Firestore
 let editingId = null;
 let activeStatus = '';
 let searchTerm = '';
@@ -463,6 +472,68 @@ function toggleAdmin(){
   }
 }
 
+// ── SESSIONS ────────────────────────────────────────────────────────────────
+// Records saved before sessions existed have no "session" field; they belong to Fall-2026.
+const DEFAULT_SESSION = 'Fall-2026';
+const BASE_SESSIONS = ['Fall-2026','Spring-2027','Fall-2027','Spring-2028','Fall-2028','Spring-2029','Fall-2029','Spring-2030','Fall-2030'];
+const SESSIONS_DOC = ['fm_settings','sessions'];
+let customSessions = [];
+let currentSession = DEFAULT_SESSION;
+const sessionSelect = document.getElementById('sessionSelect');
+
+function recSession(r){ return (r && r.session) || DEFAULT_SESSION; }
+function allSessions(){
+  return [...BASE_SESSIONS, ...customSessions.filter(s => !BASE_SESSIONS.includes(s))];
+}
+function renderSessionSelect(){
+  const list = allSessions();
+  if(!list.includes(currentSession)) currentSession = DEFAULT_SESSION;
+  sessionSelect.innerHTML = list.map(s => `<option value="${s}">${s}</option>`).join('');
+  sessionSelect.value = currentSession;
+}
+function fillFormSession(val){
+  const f = document.getElementById('f_session');
+  f.innerHTML = allSessions().map(s => `<option value="${s}">${s}</option>`).join('');
+  f.value = val;
+}
+function applySession(){
+  records = allRecords.filter(r => recSession(r) === currentSession);
+  render();
+}
+function loadSessions(){
+  if(!fbDb) return;
+  fbDb.collection(SESSIONS_DOC[0]).doc(SESSIONS_DOC[1]).onSnapshot((doc)=>{
+    const d = doc.exists ? doc.data() : null;
+    customSessions = (d && Array.isArray(d.list)) ? d.list : [];
+    renderSessionSelect();
+    applySession();
+  }, (err)=>{ console.error('Could not load sessions:', err); });
+}
+async function addSession(){
+  if(!isAdmin){ showToast('Admin access required.'); return; }
+  const input = prompt('Enter new session (e.g. Spring-2031):');
+  if(input === null) return;
+  const name = input.trim().replace(/\s+/g, '-');
+  if(!name){ return; }
+  const existing = allSessions().find(s => s.toLowerCase() === name.toLowerCase());
+  if(existing){
+    currentSession = existing;
+    renderSessionSelect(); applySession();
+    showToast('Session already exists — selected.');
+    return;
+  }
+  try{
+    await fbDb.collection(SESSIONS_DOC[0]).doc(SESSIONS_DOC[1]).set({ list: [...customSessions, name] });
+    currentSession = name;
+    customSessions = [...customSessions, name];
+    renderSessionSelect(); applySession();
+    showToast(`Session ${name} added.`);
+  }catch(e){
+    console.error('Add session failed:', e);
+    showToast('Could not save session — check Firestore rules.');
+  }
+}
+
 const tableBody = document.getElementById('tableBody');
 const emptyState = document.getElementById('emptyState');
 const overlay = document.getElementById('overlay');
@@ -479,8 +550,8 @@ function showToast(msg){
 function loadRecords(){
   if(!fbDb){ showToast('Firebase not available — check your connection.'); render(); return; }
   fbDb.collection(COLLECTION).onSnapshot((snap)=>{
-    records = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    render();
+    allRecords = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    applySession();
   }, (err)=>{
     console.error('Firestore listen failed:', err);
     showToast('Could not load records from Firebase.');
@@ -692,6 +763,7 @@ function mergeGroup(group){
     section: [...sections].sort().join(', '),
     courses: [...courses].sort().join(', '),
     qualification: pick('qualification'),
+    session: recSession(base),
     status: group.some(r => r.status === 'Visiting FM') ? 'Visiting FM' : (pick('status') || 'Shared FM')
   };
   return { merged, removeIds: group.filter(r => r.id !== base.id).map(r => r.id) };
@@ -775,7 +847,7 @@ async function importFromTimetable(){
 
   let ok = 0, fail = 0;
   for(const r of toAdd){
-    const record = { id: uid(), name: r.name, cell: '', email: '', department: r.department, section: r.section, qualification: '', courses: r.courses, status: r.status };
+    const record = { id: uid(), name: r.name, cell: '', email: '', department: r.department, section: r.section, qualification: '', courses: r.courses, status: r.status, session: currentSession };
     const success = await saveRecord(record);
     if(success) ok++; else fail++;
   }
@@ -851,7 +923,7 @@ async function exportToExcel(){
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `Visiting-Faculty-Members-${new Date().toISOString().slice(0,10)}.xlsx`;
+    a.download = `Visiting-Faculty-Members-${currentSession}-${new Date().toISOString().slice(0,10)}.xlsx`;
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -916,7 +988,13 @@ function render(){
 
   tableBody.innerHTML = filtered.map(r => `
     <tr>
-      <td class="name-cell">${escapeHtml(r.name)}</td>
+      <td class="name-cell">
+        ${escapeHtml(r.name)}
+        <div class="row-actions" style="margin-top:8px;">
+          <button class="icon-btn edit" onclick="openEdit('${r.id}')">Edit</button>
+          <button class="icon-btn danger admin-only" onclick="deleteRecord('${r.id}')">Delete</button>
+        </div>
+      </td>
       <td class="mono">${escapeHtml(r.cell)}</td>
       <td class="mono">${escapeHtml(r.email)}</td>
       <td>${escapeHtml(r.department)}</td>
@@ -926,12 +1004,7 @@ function render(){
       <td>
         <span class="badge ${r.status === 'Shared FM' ? 'shared' : 'visiting'}">${escapeHtml(r.status)}</span>
       </td>
-      <td>
-        <div class="row-actions">
-          <button class="icon-btn" onclick="openEdit('${r.id}')">Edit</button>
-          <button class="icon-btn danger admin-only" onclick="deleteRecord('${r.id}')">Delete</button>
-        </div>
-      </td>
+      <td>${escapeHtml(recSession(r))}</td>
     </tr>
   `).join('');
 }
@@ -942,6 +1015,7 @@ function openAdd(){
   document.getElementById('fmForm').reset();
   document.getElementById('fmId').value = '';
   setStatusToggle('');
+  fillFormSession(currentSession);
   clearErrors();
   overlay.classList.add('open');
   document.getElementById('f_name').focus();
@@ -961,6 +1035,7 @@ function openEdit(id){
   document.getElementById('f_qualification').value = r.qualification;
   document.getElementById('f_courses').value = r.courses;
   setStatusToggle(r.status);
+  fillFormSession(recSession(r));
   clearErrors();
   overlay.classList.add('open');
 }
@@ -1010,6 +1085,7 @@ document.getElementById('fmForm').addEventListener('submit', async (e)=>{
   const qualification = document.getElementById('f_qualification').value.trim();
   const courses = document.getElementById('f_courses').value.trim();
   const status = document.getElementById('f_status').value;
+  const session = document.getElementById('f_session').value || currentSession;
 
   let valid = true;
   if(!name){ document.getElementById('err_name').style.display='block'; valid=false; }
@@ -1023,8 +1099,8 @@ document.getElementById('fmForm').addEventListener('submit', async (e)=>{
   saveBtn.textContent = 'Saving…';
 
   const record = editingId
-    ? { id: editingId, name, cell, email, department, section, qualification, courses, status }
-    : { id: uid(), name, cell, email, department, section, qualification, courses, status };
+    ? { id: editingId, name, cell, email, department, section, qualification, courses, status, session }
+    : { id: uid(), name, cell, email, department, section, qualification, courses, status, session };
 
   const ok = await saveRecord(record);
   saveBtn.disabled = false;
@@ -1044,6 +1120,11 @@ document.addEventListener('keydown', (e)=>{
     e.preventDefault();
     toggleAdmin();
   }
+});
+document.getElementById('addSessionBtn').addEventListener('click', addSession);
+sessionSelect.addEventListener('change', (e)=>{
+  currentSession = e.target.value;
+  applySession();
 });
 document.getElementById('cancelBtn').addEventListener('click', closeModal);
 overlay.addEventListener('click', (e)=>{ if(e.target === overlay) closeModal(); });
@@ -1065,7 +1146,9 @@ document.querySelectorAll('.chip').forEach(chip=>{
   });
 });
 
+renderSessionSelect();
 loadRecords();
+loadSessions();
 </script>
 </body>
 </html>
