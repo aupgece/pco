@@ -1459,7 +1459,6 @@ body.admin-bar-shown #navBar{top:var(--admbar-h,44px)}
 .nb-tab:hover .nb-dd,.nb-tab.open .nb-dd,.nb-tab:focus-within .nb-dd{display:block}
 .nb-dd button{display:block;width:100%;text-align:left;background:none;border:0;font:500 .92rem 'Source Sans 3',sans-serif;color:#1d2733;padding:.45rem 1rem;cursor:pointer}
 .nb-dd button:hover,.nb-dd button:focus{background:#eaf0f8;color:#0b2545;outline:0}
-.nb-dd .nb-go{font:600 .68rem 'Source Code Pro',monospace;letter-spacing:.08em;text-transform:uppercase;color:#6b7a90;border-bottom:1px solid #e6ebf2;margin-bottom:.2rem}
 @media(hover:none){.nb-tab:hover .nb-dd{display:none}.nb-tab.open .nb-dd{display:block}.nb-tab:hover .nb-btn{background:none}.nb-tab.open .nb-btn{background:#14407a}}
 @media(max-width:780px){
   .nb-tab{position:static}
@@ -1501,8 +1500,6 @@ body.admin-bar-shown #navBar{top:var(--admbar-h,44px)}
       var tab=document.createElement('div'); tab.className='nb-tab';
       var b=document.createElement('button'); b.type='button'; b.className='nb-btn'; b.textContent=x.title; tab.appendChild(b);
       var dd=document.createElement('div'); dd.className='nb-dd'; dd.setAttribute('role','menu');
-      var go=document.createElement('button'); go.type='button'; go.className='nb-go'; go.textContent='↓ Go to section';
-      go.addEventListener('click',function(){ closeAll(); jump(x.el); }); dd.appendChild(go);
       x.items.forEach(function(it){ var ib=document.createElement('button'); ib.type='button'; ib.setAttribute('role','menuitem'); ib.textContent=it.label;
         ib.addEventListener('click',function(){ closeAll(); it.run(); }); dd.appendChild(ib); });
       tab.appendChild(dd);
