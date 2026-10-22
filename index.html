@@ -28140,6 +28140,7 @@ body.admin-mode .fm-hint{display:block}
       <div class="fm-tools">
         <input type="text" id="fmSearch" placeholder="🔍 Search name, designation, experience, qualifications, expertise…" autocomplete="off">
         <div class="fm-seg" id="fmSeg" role="group" aria-label="Department filter"></div>
+        <select id="fmDesigFilter" aria-label="Filter by designation" style="font:600 .85rem 'Source Sans 3',sans-serif;color:var(--ink);border:1px solid var(--rule);border-radius:4px;padding:.5rem .7rem;background:#fff"><option value="ALL">All designations</option><option value="Lecturer">Lecturers</option><option value="Lab Engineer">Lab Engineers</option><option value="Assistant Professor">Assistant Professors</option><option value="Associate Professor">Associate Professors</option><option value="Professor">Professors</option></select>
         <button class="fm-btn" type="button" onclick="fmAdd()">＋ Add FM</button>
       </div>
       <p class="fm-meta" id="fmMeta"></p>
@@ -28164,7 +28165,7 @@ body.admin-mode .fm-hint{display:block}
     <div id="fmEdForm">
       <div id="fmEdSecWrap" style="display:none"><label for="fmEdSec">Department</label><select id="fmEdSec" style="width:100%;font:500 .95rem 'Source Sans 3',sans-serif;color:var(--ink);border:1px solid var(--rule);border-radius:4px;padding:.55rem .7rem;background:#fff"><option value="EE">EE</option><option value="CE">CE</option></select></div>
       <label for="fmEdName">Name</label><input id="fmEdName" type="text" autocomplete="off">
-      <label for="fmEdDesig">Designation</label><input id="fmEdDesig" type="text" autocomplete="off">
+      <label for="fmEdDesig">Designation</label><select id="fmEdDesig" style="width:100%;font:500 .95rem 'Source Sans 3',sans-serif;color:var(--ink);border:1px solid var(--rule);border-radius:4px;padding:.55rem .7rem;background:#fff"><option value="">— Select designation —</option><option value="Lecturer">Lecturer</option><option value="Lab Engineer">Lab Engineer</option><option value="Assistant Professor">Assistant Professor</option><option value="Associate Professor">Associate Professor</option><option value="Professor">Professor</option></select>
       <label for="fmEdExt">Extension</label><input id="fmEdExt" type="text" autocomplete="off">
       <label for="fmEdCell">Cell no.</label><input id="fmEdCell" type="text" autocomplete="off" placeholder="03xx-xxxxxxx">
       <label>Teaching experience (as of today)</label>
@@ -28187,7 +28188,24 @@ body.admin-mode .fm-hint{display:block}
   var EXP_STEP=6; // teaching experience auto-increases in steps of this many months
   var SEC_NAME={EE:'Electrical Engineering (EE)',CE:'Computer Engineering (CE)'};
   SEED.forEach(function(m,k){ if(!m.id) m.id='fm'+(k<9?'0':'')+(k+1); m.upd=+m.upd||0; FIELDS.forEach(function(f){ if(m[f]==null) m[f]=''; }); });
-  var list=clone(SEED), filter='ALL', query='', editing=false, editId=null, adding=false;
+  var list=clone(SEED), filter='ALL', dfilter='ALL', query='', editing=false, editId=null, adding=false;
+  var DESIGS=['Lecturer','Lab Engineer','Assistant Professor','Associate Professor','Professor'];
+  function desigCat(d){
+    d=String(d||'').toLowerCase();
+    if(/lab\s*eng/.test(d)) return 'Lab Engineer';
+    if(/assistant\s*prof/.test(d)) return 'Assistant Professor';
+    if(/associate\s*prof/.test(d)) return 'Associate Professor';
+    if(/prof/.test(d)) return 'Professor';
+    if(/lecturer/.test(d)) return 'Lecturer';
+    return '';
+  }
+  function setDesig(v){
+    var sel=$('fmEdDesig'), x=sel.querySelector('option.fm-x'); if(x) sel.removeChild(x);
+    v=String(v||'').trim(); if(!v){ sel.value=''; return; }
+    DESIGS.forEach(function(o){ if(o.toLowerCase()===v.toLowerCase()) v=o; });
+    if(DESIGS.indexOf(v)<0){ var o=document.createElement('option'); o.className='fm-x'; o.value=v; o.textContent=v; sel.appendChild(o); }
+    sel.value=v;
+  }
   function uid(){ return 'fm'+Date.now().toString(36)+Math.random().toString(36).slice(2,5); }
   var $=function(id){return document.getElementById(id);};
 
@@ -28250,6 +28268,7 @@ body.admin-mode .fm-hint{display:block}
     var q=query.trim().toLowerCase();
     return list.map(function(m,i){return {m:m,i:i};}).filter(function(r){
       if(filter!=='ALL' && r.m.sec!==filter) return false;
+      if(dfilter!=='ALL' && desigCat(r.m.desig)!==dfilter) return false;
       if(!q) return true;
       return FIELDS.some(function(f){
         return String(r.m[f]).toLowerCase().indexOf(q)!==-1;
@@ -28376,7 +28395,8 @@ body.admin-mode .fm-hint{display:block}
     $('fmEdHead').textContent='Add faculty member';
     $('fmEdSecWrap').style.display='';
     $('fmEdSec').value=(filter==='CE'?'CE':'EE');
-    ['Name','Desig','Ext','Cell','Exp','Qual','Area','ExpY','ExpM'].forEach(function(k){ $('fmEd'+k).value=''; });
+    ['Name','Ext','Cell','Exp','Qual','Area','ExpY','ExpM'].forEach(function(k){ $('fmEd'+k).value=''; });
+    setDesig('');
     $('fmEdExpY').setAttribute('data-orig',''); $('fmEdExpM').setAttribute('data-orig','');
     $('fmEdErr').textContent='';
     $('fmEditOverlay').classList.add('open');
@@ -28538,7 +28558,7 @@ body.admin-mode .fm-hint{display:block}
   function openEdit(m){
     if(!m) return; editId=m.id; adding=false; $('fmEdSecWrap').style.display='none';
     $('fmEdHead').textContent='Update record: '+m.name;
-    $('fmEdName').value=m.name; $('fmEdDesig').value=m.desig; $('fmEdExt').value=m.ext; $('fmEdCell').value=m.cell;
+    $('fmEdName').value=m.name; setDesig(m.desig); $('fmEdExt').value=m.ext; $('fmEdCell').value=m.cell;
     var tm=expMonths(m), ey=(tm===null?'':Math.floor(tm/12)), em=(tm===null?'':tm%12);
     $('fmEdExpY').value=ey; $('fmEdExpM').value=em; $('fmEdExpY').setAttribute('data-orig',ey); $('fmEdExpM').setAttribute('data-orig',em);
     $('fmEdExp').value=m.exp; $('fmEdQual').value=m.qual; $('fmEdArea').value=m.area;
@@ -28592,6 +28612,7 @@ body.admin-mode .fm-hint{display:block}
 
   // events
   $('fmSearch').addEventListener('input',function(){query=this.value;render();});
+  $('fmDesigFilter').addEventListener('change',function(){ dfilter=this.value; render(); });
   $('fmSeg').addEventListener('click',function(e){
     var b=e.target.closest('button[data-s]'); if(!b) return; filter=b.getAttribute('data-s'); render();
   });
