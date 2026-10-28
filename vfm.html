@@ -322,6 +322,7 @@
     <select class="filter" id="sectionFilter">
       <option value="">All sections</option>
     </select>
+    <button type="button" class="icon-btn admin-only" id="renameFilterBtn" title="Rename a section filter option">Rename Filter</button>
     <div class="status-chips">
       <button class="chip active" data-status="">All</button>
       <button class="chip" data-status="Shared FM">Shared FM</button>
@@ -945,18 +946,83 @@ function splitSections(sectionStr){
   return (sectionStr || '').split(/[,\s]+/).map(s => s.trim()).filter(Boolean);
 }
 
+// Program filters: value -> list of section-code prefixes (case-insensitive)
+const PROGRAM_FILTERS = [
+  { value: 'prog:BE',    label: 'BE (EE, EP, ET)', prefixes: ['BEEE','BEEP','BEET'] },
+  { value: 'prog:BE-EE', label: 'BE – EE',         prefixes: ['BEEE'] },
+  { value: 'prog:BE-EP', label: 'BE – EP',         prefixes: ['BEEP'] },
+  { value: 'prog:BE-ET', label: 'BE – ET',         prefixes: ['BEET'] },
+  { value: 'prog:BCE',   label: 'BCE',             prefixes: ['BCE'] },
+  { value: 'prog:BSE',   label: 'BSE',             prefixes: ['BSE'] },
+  { value: 'prog:MSCE',  label: 'MSCE',            prefixes: ['MSCE'] },
+  { value: 'prog:MSEE',  label: 'MSEE',            prefixes: ['MSEE'] },
+  { value: 'prog:PHDEE', label: 'PhDEE',           prefixes: ['PHDEE'] },
+  { value: 'prog:PHDCE', label: 'PhDCE',           prefixes: ['PHDCE'] }
+];
+
+function matchesSectionFilter(sectionStr, filterVal){
+  const secs = splitSections(sectionStr);
+  if(filterVal.startsWith('prog:')){
+    const prog = PROGRAM_FILTERS.find(p => p.value === filterVal);
+    if(!prog) return true;
+    return secs.some(sec => {
+      const u = sec.toUpperCase();
+      return prog.prefixes.some(pre => u.startsWith(pre));
+    });
+  }
+  return secs.includes(filterVal);
+}
+
+// Admin-editable labels for the filter options, saved in Firestore so
+// everyone sees the same names. Only the label changes; matching still
+// uses the original prefixes.
+const FILTER_LABELS_DOC = ['fm_settings', 'section_filter_labels'];
+let filterLabels = {};
+
+function filterLabel(p){ return filterLabels[p.value] || p.label; }
+
 function populateSectionFilter(){
-  const sections = [...new Set(records.flatMap(r => splitSections(r.section)))].sort();
   const current = sectionFilter.value;
   sectionFilter.innerHTML = '<option value="">All sections</option>' +
-    sections.map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join('');
-  sectionFilter.value = sections.includes(current) ? current : '';
+    PROGRAM_FILTERS.map(p => `<option value="${p.value}">${escapeHtml(filterLabel(p))}</option>`).join('');
+  sectionFilter.value = PROGRAM_FILTERS.some(p => p.value === current) ? current : '';
+}
+
+function loadFilterLabels(){
+  if(!fbDb) return;
+  fbDb.collection(FILTER_LABELS_DOC[0]).doc(FILTER_LABELS_DOC[1]).onSnapshot((doc)=>{
+    const d = doc.exists ? doc.data() : null;
+    filterLabels = (d && d.labels && typeof d.labels === 'object') ? d.labels : {};
+    populateSectionFilter();
+  }, (err)=>{ console.error('Could not load filter labels:', err); });
+}
+
+async function renameFilterOption(){
+  if(!isAdmin){ showToast('Admin access required.'); return; }
+  const val = sectionFilter.value;
+  const p = PROGRAM_FILTERS.find(x => x.value === val);
+  if(!p){ showToast('Select a filter option first, then click Rename Filter.'); return; }
+  const input = prompt(`Rename "${filterLabel(p)}" to (leave empty to restore "${p.label}"):`, filterLabel(p));
+  if(input === null) return;
+  const name = input.trim();
+  const next = { ...filterLabels };
+  if(!name || name === p.label) delete next[p.value]; else next[p.value] = name;
+  try{
+    await fbDb.collection(FILTER_LABELS_DOC[0]).doc(FILTER_LABELS_DOC[1]).set({ labels: next });
+    filterLabels = next;
+    populateSectionFilter();
+    sectionFilter.value = p.value;
+    showToast('Filter option renamed.');
+  }catch(e){
+    console.error('Rename filter failed:', e);
+    showToast('Could not save — check Firestore rules.');
+  }
 }
 
 function getFiltered(){
   return records.filter(r=>{
     if(activeStatus && r.status !== activeStatus) return false;
-    if(sectionFilterVal && !splitSections(r.section).includes(sectionFilterVal)) return false;
+    if(sectionFilterVal && !matchesSectionFilter(r.section, sectionFilterVal)) return false;
     if(searchTerm){
       const hay = [r.name, r.email, r.courses, r.department, r.section, r.qualification].join(' ').toLowerCase();
       if(!hay.includes(searchTerm.toLowerCase())) return false;
@@ -1114,6 +1180,7 @@ document.getElementById('emptyAddBtn').addEventListener('click', openAdd);
 document.getElementById('exportBtn').addEventListener('click', exportToExcel);
 document.getElementById('importBtn').addEventListener('click', importFromTimetable);
 document.getElementById('cleanupBtn').addEventListener('click', cleanUpDuplicates);
+document.getElementById('renameFilterBtn').addEventListener('click', renameFilterOption);
 document.getElementById('mainTitle').addEventListener('click', toggleAdmin);
 document.addEventListener('keydown', (e)=>{
   if(e.ctrlKey && e.shiftKey && (e.key === 'A' || e.key === 'a')){
@@ -1149,6 +1216,7 @@ document.querySelectorAll('.chip').forEach(chip=>{
 renderSessionSelect();
 loadRecords();
 loadSessions();
+loadFilterLabels();
 </script>
 </body>
 </html>
