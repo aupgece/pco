@@ -1727,7 +1727,7 @@ body.admin-bar-shown #navBar{top:var(--admbar-h,44px)}
               <button onclick="openSessionModal()" id="sessionViewBtn" style="display: inline-block; font-family: &quot;Source Code Pro&quot;, monospace; font-size: 0.68rem; background: var(--ink); color: var(--cream); border-width: medium; border-style: none; border-color: currentcolor; border-image: initial; padding: 0.35rem 0.9rem; cursor: pointer; letter-spacing: 0.04em; transition: background 0.15s;" onmouseover="this.style.background='var(--ink2)'" onmouseout="this.style.background='var(--ink)'">
                 View Courses ›
               </button>
-              <button onclick="openSessionSectionModal()" id="sessionSectionBtn" style="display:inline-block;">
+              <button onclick="_secMgrOpen=false;openSessionSectionModal()" id="sessionSectionBtn" style="display:inline-block;">
                 View Section-wise ›
               </button>
             </div>
@@ -7196,7 +7196,7 @@ function openSessionModal(){
 
 
 // ── SECTION-WISE VIEW ─────────────────────────────────────────────────────────
-var SECTION_LIST = [
+var SECTION_DEFAULT = [
   "BEEE-F-23-A","BEEE-F-24-A","BEEE-F-24-B","BEEE-F-25-A","BEEE-F-25-B","BEEE-F-26-A","BEEE-F-26-B",
   "BEEP-F-23-A","BEEP-F-24-A","BEEP-F-25-A","BEEP-F-25-B","BEEP-F-26-A","BEEP-F-26-B",
   "BEET-F-23-A","BEET-F-24-A","BEET-F-24-B","BEET-F-25-A","BEET-F-26-A",
@@ -7204,6 +7204,120 @@ var SECTION_LIST = [
   "BCE-F-23-A","BCE-F-23-B","BCE-F-24-A","BCE-F-24-B","BCE-F-25-A","BCE-F-25-B","BCE-F-26-A","BCE-F-26-B",
   "BSE-F-25-A","BSE-F-26-A"
 ];
+var SECTION_LIST = SECTION_DEFAULT.slice();
+
+// ── SECTION MANAGEMENT (admin) ────────────────────────────────────────────────
+var SEC_PROGS=['beee','beep','beet','beev','bce','bse'];
+var _secMgrOpen=false;
+
+function secValid(list){
+  return Array.isArray(list)&&list.every(function(x){return typeof x==='string'&&/^[A-Z]{3,4}-F-\d{2}-[A-Z]{1,2}$/.test(x)&&SEC_PROGS.indexOf(x.split('-')[0].toLowerCase())!==-1;});
+}
+function secSort(){
+  var seen={};
+  var arr=SECTION_LIST.filter(function(x){if(seen[x])return false;seen[x]=1;return true;});
+  arr.sort(function(a,b){
+    var pa=a.split('-'),pb=b.split('-');
+    var d=SEC_PROGS.indexOf(pa[0].toLowerCase())-SEC_PROGS.indexOf(pb[0].toLowerCase());
+    if(d) return d;
+    if(pa[2]!==pb[2]) return pa[2]<pb[2]?-1:1;
+    return pa[3]<pb[3]?-1:pa[3]>pb[3]?1:0;
+  });
+  SECTION_LIST.length=0; arr.forEach(function(x){SECTION_LIST.push(x);});
+}
+function saveSections(){
+  try{ localStorage.setItem('pco_sections',JSON.stringify(SECTION_LIST)); }catch(e){}
+  if(typeof fbDb!=='undefined'&&fbDb){
+    fbDb.ref('pco_sections').set(SECTION_LIST)
+      .then(function(){ if(typeof flashSaved==='function') flashSaved('✓ Sections saved to Firebase'); })
+      .catch(function(err){ console.error(err); alert('⚠ Firebase save failed:\n'+err.message); });
+  }
+}
+function loadSections(){
+  try{
+    var ls=JSON.parse(localStorage.getItem('pco_sections')||'null');
+    if(secValid(ls)&&ls.length){ SECTION_LIST.length=0; ls.forEach(function(x){SECTION_LIST.push(x);}); }
+  }catch(e){}
+  if(typeof fbDb!=='undefined'&&fbDb){
+    fbDb.ref('pco_sections').on('value',function(snap){
+      var v=snap.val();
+      if(v&&!Array.isArray(v)) v=Object.keys(v).map(function(k){return v[k];});
+      if(secValid(v)&&v.length){
+        SECTION_LIST.length=0; v.forEach(function(x){SECTION_LIST.push(x);});
+        try{ localStorage.setItem('pco_sections',JSON.stringify(SECTION_LIST)); }catch(e){}
+      }
+    },function(err){ console.warn('Firebase sections load error:',err); });
+  }
+}
+document.addEventListener('DOMContentLoaded',loadSections);
+
+function secBuildId(prog,batch,letter){
+  var b=String(batch||'').trim().toUpperCase().replace(/\s+/g,'');
+  var mm=b.match(/^F-?(\d{2})$/); if(!mm) return {err:'Intake must look like F-26.'};
+  var l=String(letter||'').trim().toUpperCase();
+  if(!/^[A-Z]{1,2}$/.test(l)) return {err:'Section must be a letter, e.g. A or B.'};
+  if(SEC_PROGS.indexOf(prog)===-1) return {err:'Choose a programme.'};
+  return {id:prog.toUpperCase()+'-F-'+mm[1]+'-'+l};
+}
+function secRefresh(){ _secMgrOpen=true; openSessionSectionModal(); }
+function secMgrSave(i){
+  if(!adminMode) return;
+  var r=document.getElementById('secRow'+i);
+  var res=secBuildId(r.querySelector('.sm-prog').value,r.querySelector('.sm-batch').value,r.querySelector('.sm-let').value);
+  if(res.err){ alert(res.err); return; }
+  if(res.id!==SECTION_LIST[i]&&SECTION_LIST.indexOf(res.id)!==-1){ alert(res.id+' already exists.'); return; }
+  SECTION_LIST[i]=res.id; secSort(); saveSections(); secRefresh();
+}
+function secMgrDelete(i){
+  if(!adminMode) return;
+  if(!confirm('Remove section '+SECTION_LIST[i]+'?')) return;
+  SECTION_LIST.splice(i,1); saveSections(); secRefresh();
+}
+function secMgrAdd(){
+  if(!adminMode) return;
+  var r=document.getElementById('secRowNew');
+  var res=secBuildId(r.querySelector('.sm-prog').value,r.querySelector('.sm-batch').value,r.querySelector('.sm-let').value);
+  if(res.err){ alert(res.err); return; }
+  if(SECTION_LIST.indexOf(res.id)!==-1){ alert(res.id+' already exists.'); return; }
+  SECTION_LIST.push(res.id); secSort(); saveSections(); secRefresh();
+}
+function secMgrReset(){
+  if(!adminMode) return;
+  if(!confirm('Reset the section list to the original 30 sections?')) return;
+  SECTION_LIST.length=0; SECTION_DEFAULT.forEach(function(x){SECTION_LIST.push(x);}); saveSections(); secRefresh();
+}
+function secMgrToggle(){
+  _secMgrOpen=!_secMgrOpen;
+  var el=document.getElementById('secMgrPanel'); if(el) el.style.display=_secMgrOpen?'block':'none';
+}
+function secMgrHtml(){
+  var inp="font-family:'Source Code Pro',monospace;font-size:0.72rem;padding:0.25rem 0.4rem;border:1px solid var(--faint);background:var(--paper);color:var(--ink);";
+  var btn="font-family:'Source Code Pro',monospace;font-size:0.68rem;padding:0.25rem 0.6rem;border:1px solid var(--rule);background:transparent;color:var(--ink);cursor:pointer;";
+  function progSel(v){ return '<select class="sm-prog" style="'+inp+'">'+SEC_PROGS.map(function(p){return '<option value="'+p+'"'+(p===v?' selected':'')+'>'+p.toUpperCase()+'</option>';}).join('')+'</select>'; }
+  var h='<div style="margin-bottom:1rem;">';
+  h+='<button onclick="secMgrToggle()" style="'+btn+'background:var(--ink);color:var(--cream);">⚙ Manage Sections ('+SECTION_LIST.length+')</button>';
+  h+='<div id="secMgrPanel" style="display:'+(_secMgrOpen?'block':'none')+';margin-top:0.7rem;padding:0.8rem;border:1px solid var(--faint);background:var(--parchment);">';
+  h+='<div style="font-size:0.78rem;color:var(--muted);margin-bottom:0.6rem;">Edit a row and press Save, or add a new section. Changes apply to the views and Word reports and are saved to Firebase.</div>';
+  SECTION_LIST.forEach(function(id,i){
+    var pt=id.split('-');
+    h+='<div id="secRow'+i+'" style="display:flex;gap:0.4rem;align-items:center;flex-wrap:wrap;margin-bottom:0.35rem;">'
+      +progSel(pt[0].toLowerCase())
+      +'<input class="sm-batch" value="F-'+pt[2]+'" size="5" style="'+inp+'">'
+      +'<input class="sm-let" value="'+pt[3]+'" size="3" style="'+inp+'">'
+      +'<button onclick="secMgrSave('+i+')" style="'+btn+'">Save</button>'
+      +'<button onclick="secMgrDelete('+i+')" style="'+btn+'color:var(--red);">🗑</button>'
+      +'<span style="font-size:0.7rem;color:var(--muted);">'+id+'</span></div>';
+  });
+  h+='<div id="secRowNew" style="display:flex;gap:0.4rem;align-items:center;flex-wrap:wrap;margin-top:0.8rem;padding-top:0.7rem;border-top:1px dashed var(--rule);">'
+    +progSel('beee')
+    +'<input class="sm-batch" placeholder="F-27" size="5" style="'+inp+'">'
+    +'<input class="sm-let" placeholder="A" size="3" style="'+inp+'">'
+    +'<button onclick="secMgrAdd()" style="'+btn+'background:var(--accent);color:#fff;">＋ Add section</button>'
+    +'<button onclick="secMgrReset()" style="'+btn+'margin-left:auto;">Reset to default</button></div>';
+  h+='</div></div>';
+  return h;
+}
+
 var PROG_COLORS = {beee:'var(--accent)',beep:'var(--gold)',beet:'var(--red)',beev:'#6a4f9e',bce:'#2e7d5b',bse:'#b5651d'};
 
 function sessionSecFilter(id){
@@ -7282,7 +7396,7 @@ function openSessionSectionModal(){
       html+='</tbody></table></div></div>';
     });
   }
-  document.getElementById('sessionModalBody').innerHTML=html;
+  document.getElementById('sessionModalBody').innerHTML=(adminMode?secMgrHtml():'')+html;
   document.getElementById('sessionOverlay').classList.add('open');
   document.body.style.overflow='hidden';
 }
