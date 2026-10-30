@@ -1406,6 +1406,8 @@ main{max-width:none;padding:2.5rem clamp(1rem,3vw,3rem) 4rem}
 #sessionSelect{font-family:'Source Sans 3',sans-serif!important;font-size:.92rem!important;padding:.45rem .7rem!important;border-radius:4px;min-width:240px}
 #sessionViewBtn{font-family:'Source Sans 3',sans-serif!important;font-size:.92rem!important;font-weight:600;letter-spacing:0!important;padding:.5rem 1.1rem!important;border-radius:4px;background:var(--accent)!important}
 #sessionViewBtn:hover{background:var(--accent-lt)!important}
+#sessionSectionBtn{font-family:'Source Sans 3',sans-serif!important;font-size:.92rem!important;font-weight:600;letter-spacing:0!important;padding:.5rem 1.1rem!important;border-radius:4px;background:var(--accent)!important;color:#fff!important;border:none;cursor:pointer}
+#sessionSectionBtn:hover{background:var(--accent-lt)!important}
 .overlay{background:rgba(11,37,69,.62)}
 .modal{border-radius:8px;border-top:4px solid var(--gold-lt);box-shadow:0 24px 64px rgba(11,37,69,.3)}
 .modal-header{border-radius:8px 8px 0 0}
@@ -1725,7 +1727,7 @@ body.admin-bar-shown #navBar{top:var(--admbar-h,44px)}
               <button onclick="openSessionModal()" id="sessionViewBtn" style="display: inline-block; font-family: &quot;Source Code Pro&quot;, monospace; font-size: 0.68rem; background: var(--ink); color: var(--cream); border-width: medium; border-style: none; border-color: currentcolor; border-image: initial; padding: 0.35rem 0.9rem; cursor: pointer; letter-spacing: 0.04em; transition: background 0.15s;" onmouseover="this.style.background='var(--ink2)'" onmouseout="this.style.background='var(--ink)'">
                 View Courses ›
               </button>
-              <button onclick="openSessionSectionModal()" id="sessionSectionBtn" style="display:none;font-family:'Source Code Pro',monospace;font-size:0.68rem;background:var(--accent);color:#fff;border:none;padding:0.38rem 0.9rem;cursor:pointer;letter-spacing:0.06em;text-transform:uppercase;">
+              <button onclick="openSessionSectionModal()" id="sessionSectionBtn" style="display:inline-block;">
                 View Section-wise ›
               </button>
             </div>
@@ -7065,7 +7067,7 @@ function onSessionChange(){
   var btn=document.getElementById('sessionViewBtn');
   var chips=document.getElementById('sessionPreviewChips');
   var sbtn=document.getElementById('sessionSectionBtn');
-  if(!key){btn.style.display='none';if(sbtn)sbtn.style.display='none';chips.innerHTML='';return;}
+  if(!key){btn.style.display='none';chips.innerHTML='';return;}
   if(sbtn)sbtn.style.display='inline-block';
   var cfg=SESSION_CONFIG[key];
   btn.style.display='inline-block';
@@ -7106,6 +7108,7 @@ function openSessionModal(){
   var key=sel.value; if(!key) return;
   var cfg=SESSION_CONFIG[key];
 
+  window._sessionViewMode='sem';
   document.getElementById('sessionModalTitle').textContent='📅 '+cfg.label+' — Session Courses';
   document.getElementById('sessionModalSub').innerHTML=cfg.subLabel;
   document.getElementById('sessionExportBtn').style.display='inline-flex';
@@ -7221,9 +7224,11 @@ function sessionSecFilter(id){
 
 function openSessionSectionModal(){
   var sel=document.getElementById('sessionSelect');
-  var key=sel.value; if(!key) return;
+  if(!sel.value){ sel.value='fall2026'; onSessionChange(); }
+  var key=sel.value;
   var cfg=SESSION_CONFIG[key];
 
+  window._sessionViewMode='sec';
   document.getElementById('sessionModalTitle').textContent='📅 '+cfg.label+' — Section-wise Courses';
   document.getElementById('sessionModalSub').innerHTML=cfg.subLabel;
   document.getElementById('sessionExportBtn').style.display='inline-flex';
@@ -7282,7 +7287,106 @@ function openSessionSectionModal(){
   document.body.style.overflow='hidden';
 }
 
+
+// ── SECTION-WISE WORD REPORT ──────────────────────────────────────────────────
+function exportSessionSectionsToWord(){
+  var sel=document.getElementById('sessionSelect');
+  var key=sel.value; if(!key) return;
+  var cfg=SESSION_CONFIG[key];
+  var btn=document.getElementById('sessionExportBtn');
+  btn.textContent='⏳ Generating…'; btn.disabled=true;
+  function reset(){ btn.textContent='⬇ Export Word'; btn.disabled=false; }
+
+  var lib=(typeof docx!=='undefined'&&docx.Document)?docx:(window.docx&&window.docx.Document)?window.docx:null;
+  if(!lib){ reset(); alert('Word export library not loaded yet.\nPlease check your internet connection and try again.'); return; }
+
+  try{
+    var Document=lib.Document,Packer=lib.Packer,Paragraph=lib.Paragraph,TextRun=lib.TextRun,Table=lib.Table,
+        TableRow=lib.TableRow,TableCell=lib.TableCell,AlignmentType=lib.AlignmentType,BorderStyle=lib.BorderStyle,
+        WidthType=lib.WidthType,ShadingType=lib.ShadingType,VerticalAlign=lib.VerticalAlign,
+        PageOrientation=lib.PageOrientation,ImageRun=lib.ImageRun;
+
+    var border={style:BorderStyle.SINGLE,size:1,color:'CCCCCC'};
+    var borders={top:border,bottom:border,left:border,right:border};
+    var hb={style:BorderStyle.SINGLE,size:1,color:'1A5276'};
+    var hbs={top:hb,bottom:hb,left:hb,right:hb};
+    var TW=12960, cols=[1400,6500,2000,1200]; cols[3]=TW-cols[0]-cols[1]-cols[2];
+
+    function hCell(t,w){return new TableCell({borders:hbs,width:{size:w,type:WidthType.DXA},shading:{fill:'1A5276',type:ShadingType.CLEAR},margins:{top:80,bottom:80,left:120,right:120},verticalAlign:VerticalAlign.CENTER,children:[new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:t,bold:true,color:'FFFFFF',size:18,font:'Arial'})]})]});}
+    function cell(t,w,o){o=o||{};return new TableCell({borders:borders,width:{size:w,type:WidthType.DXA},shading:{fill:o.shade||'FFFFFF',type:ShadingType.CLEAR},margins:{top:60,bottom:60,left:120,right:120},children:[new Paragraph({alignment:o.center?AlignmentType.CENTER:AlignmentType.LEFT,children:[new TextRun({text:String(t||'—'),size:16,font:'Arial',color:o.color||'000000'})]})]});}
+
+    var sessionTag=cfg.label.replace(/\s+/g,'-');
+    var children=[];
+
+    var logoEl=document.getElementById('headerLogo');
+    if(logoEl&&logoEl.src&&logoEl.src.indexOf('base64,')!==-1){
+      var bin=atob(logoEl.src.split('base64,')[1]), bytes=new Uint8Array(bin.length);
+      for(var i=0;i<bin.length;i++) bytes[i]=bin.charCodeAt(i);
+      children.push(new Paragraph({alignment:AlignmentType.CENTER,spacing:{after:120},children:[new ImageRun({type:'png',data:bytes,transformation:{width:90,height:67}})]}));
+    }
+    children.push(new Paragraph({alignment:AlignmentType.CENTER,spacing:{after:20},children:[new TextRun({text:'Air University',bold:true,size:32,font:'Arial',color:'1A5276'})]}));
+    children.push(new Paragraph({alignment:AlignmentType.CENTER,spacing:{after:200},children:[new TextRun({text:'Dept. of Electrical Engineering and Dept. of Computer & Software Engineering',bold:true,size:22,font:'Arial',color:'1A5276'})]}));
+    children.push(new Paragraph({spacing:{after:40},children:[new TextRun({text:'IBD/404/DETE/PCEE/',size:20,font:'Arial'})]}));
+    children.push(new Paragraph({spacing:{after:200},children:[new TextRun({text:'Deputy Registrar,',size:20,font:'Arial'})]}));
+    children.push(new Paragraph({spacing:{after:200},children:[new TextRun({text:'Section-wise courses to be offered to Electrical Engineering and Computer & Software Engineering students during Semester '+sessionTag,bold:true,underline:{},size:22,font:'Arial'})]}));
+    children.push(new Paragraph({spacing:{after:360},children:[new TextRun({text:'The following regular courses are to be offered to the sections listed below during the semester '+sessionTag+':',size:20,font:'Arial'})]}));
+
+    var count=0, lastProg='';
+    SECTION_LIST.forEach(function(id){
+      var pt=id.split('-'), prog=pt[0].toLowerCase(), batch=pt[1]+'-'+pt[2];
+      var slot=cfg.intakes.find(function(x){return x.intakeBatch===batch;});
+      if(!slot) return;
+      var info=getProgSemData(prog,slot.semNum,slot.currYear);
+      var yr=info?info.year:slot.currYear;
+      var accent=yr==='f25'?'0A4A8A':yr==='f24'?'B7950B':'8B2020';
+      var ysLabel=(yr==='f25'?'F-25':yr==='f24'?'F-24':'F-22')+' Curriculum';
+      count++;
+
+      if(prog!==lastProg){
+        lastProg=prog;
+        children.push(new Paragraph({spacing:{before:count>1?360:120,after:80},children:[new TextRun({text:pt[0],bold:true,size:30,font:'Arial',color:'1A5276'})]}));
+      }
+      children.push(new Paragraph({
+        spacing:{before:240,after:100},keepNext:true,
+        border:{bottom:{style:BorderStyle.SINGLE,size:8,color:accent,space:1}},
+        children:[
+          new TextRun({text:id+'   ',bold:true,size:26,font:'Arial',color:accent}),
+          new TextRun({text:'Semester '+slot.semNum+'  ·  '+ysLabel,size:18,font:'Arial',color:'666666'})
+        ]
+      }));
+      if(!info){
+        children.push(new Paragraph({spacing:{after:200},children:[new TextRun({text:'No curriculum data found for this section.',italics:true,size:18,font:'Arial',color:'888888'})]}));
+        return;
+      }
+      var head=new TableRow({tableHeader:true,children:[hCell('Code',cols[0]),hCell('Course Title',cols[1]),hCell('Pre-req',cols[2]),hCell('Cr Hrs',cols[3])]});
+      var rows=info.rows.map(function(r,ri){
+        var sh=ri%2===0?'F4F8FB':'FFFFFF';
+        return new TableRow({cantSplit:true,children:[cell(r[0],cols[0],{shade:sh,center:true,color:'0A4A8A'}),cell(r[1],cols[1],{shade:sh}),cell(r[2]||'—',cols[2],{shade:sh,center:true,color:'666666'}),cell(r[3],cols[3],{shade:sh,center:true})]});
+      });
+      children.push(new Table({width:{size:TW,type:WidthType.DXA},columnWidths:cols,rows:[head].concat(rows)}));
+      children.push(new Paragraph({spacing:{after:200},children:[new TextRun({text:'',size:12})]}));
+    });
+
+    children.push(new Paragraph({spacing:{before:480},alignment:AlignmentType.CENTER,children:[new TextRun({text:'Generated from PCO2 — '+cfg.label+' (section-wise)',size:14,font:'Arial',color:'AAAAAA',italics:true})]}));
+
+    var doc=new Document({
+      styles:{default:{document:{run:{font:'Arial',size:20}}}},
+      sections:[{properties:{page:{size:{width:12240,height:15840,orientation:PageOrientation.LANDSCAPE},margin:{top:1080,right:1080,bottom:1080,left:1080}}},children:children}]
+    });
+    Packer.toBlob(doc).then(function(blob){
+      var url=URL.createObjectURL(blob), a=document.createElement('a');
+      a.href=url; a.download='Session_Sections_'+cfg.label.replace(/\s/g,'_')+'.docx';
+      document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+      reset();
+    });
+  }catch(err){
+    console.error('Export error:',err); reset();
+    alert('Export failed: '+err.message);
+  }
+}
+
 function exportSessionToWord(){
+  if(window._sessionViewMode==='sec') return exportSessionSectionsToWord();
   var sel=document.getElementById('sessionSelect');
   var key=sel.value; if(!key) return;
   var cfg=SESSION_CONFIG[key];
