@@ -1725,6 +1725,9 @@ body.admin-bar-shown #navBar{top:var(--admbar-h,44px)}
               <button onclick="openSessionModal()" id="sessionViewBtn" style="display: inline-block; font-family: &quot;Source Code Pro&quot;, monospace; font-size: 0.68rem; background: var(--ink); color: var(--cream); border-width: medium; border-style: none; border-color: currentcolor; border-image: initial; padding: 0.35rem 0.9rem; cursor: pointer; letter-spacing: 0.04em; transition: background 0.15s;" onmouseover="this.style.background='var(--ink2)'" onmouseout="this.style.background='var(--ink)'">
                 View Courses ›
               </button>
+              <button onclick="openSessionSectionModal()" id="sessionSectionBtn" style="display:none;font-family:'Source Code Pro',monospace;font-size:0.68rem;background:var(--accent);color:#fff;border:none;padding:0.38rem 0.9rem;cursor:pointer;letter-spacing:0.06em;text-transform:uppercase;">
+                View Section-wise ›
+              </button>
             </div>
             <div id="sessionPreviewChips" style="display:flex;gap:0.4rem;flex-wrap:wrap;margin-top:0.6rem;"><span class="chip gold">Fall 2026</span><span class="chip">Sem 1 · F-26</span><span class="chip">Sem 3 · F-25</span><span class="chip">Sem 5 · F-24</span><span class="chip">Sem 7 · F-23</span></div>
           </div>
@@ -7061,7 +7064,9 @@ function onSessionChange(){
   var key=sel.value;
   var btn=document.getElementById('sessionViewBtn');
   var chips=document.getElementById('sessionPreviewChips');
-  if(!key){btn.style.display='none';chips.innerHTML='';return;}
+  var sbtn=document.getElementById('sessionSectionBtn');
+  if(!key){btn.style.display='none';if(sbtn)sbtn.style.display='none';chips.innerHTML='';return;}
+  if(sbtn)sbtn.style.display='inline-block';
   var cfg=SESSION_CONFIG[key];
   btn.style.display='inline-block';
   // Build one chip per intake slot
@@ -7181,6 +7186,97 @@ function openSessionModal(){
   });
 
   if(!html) html='<p class="no-results" style="padding:2rem;">No data found for this session.</p>';
+  document.getElementById('sessionModalBody').innerHTML=html;
+  document.getElementById('sessionOverlay').classList.add('open');
+  document.body.style.overflow='hidden';
+}
+
+
+// ── SECTION-WISE VIEW ─────────────────────────────────────────────────────────
+var SECTION_LIST = [
+  "BEEE-F-23-A","BEEE-F-24-A","BEEE-F-24-B","BEEE-F-25-A","BEEE-F-25-B","BEEE-F-26-A","BEEE-F-26-B",
+  "BEEP-F-23-A","BEEP-F-24-A","BEEP-F-25-A","BEEP-F-25-B","BEEP-F-26-A","BEEP-F-26-B",
+  "BEET-F-23-A","BEET-F-24-A","BEET-F-24-B","BEET-F-25-A","BEET-F-26-A",
+  "BEEV-F-25-A","BEEV-F-26-A",
+  "BCE-F-23-A","BCE-F-23-B","BCE-F-24-A","BCE-F-24-B","BCE-F-25-A","BCE-F-25-B","BCE-F-26-A","BCE-F-26-B",
+  "BSE-F-25-A","BSE-F-26-A"
+];
+var PROG_COLORS = {beee:'var(--accent)',beep:'var(--gold)',beet:'var(--red)',beev:'#6a4f9e',bce:'#2e7d5b',bse:'#b5651d'};
+
+function sessionSecFilter(id){
+  var blocks=document.querySelectorAll('#sessionModalBody .sec-block');
+  var chips=document.querySelectorAll('#sessionModalBody .sec-chip');
+  blocks.forEach(function(b){ b.style.display=(!id||b.getAttribute('data-sec')===id)?'':'none'; });
+  document.querySelectorAll('#sessionModalBody .sec-prog-head').forEach(function(h){
+    var any=false, n=h.nextElementSibling;
+    while(n && !n.classList.contains('sec-prog-head')){ if(n.classList.contains('sec-block') && n.style.display!=='none') any=true; n=n.nextElementSibling; }
+    h.style.display=any?'':'none';
+  });
+  chips.forEach(function(c){
+    var on=(c.getAttribute('data-sec')||'')===(id||'');
+    c.style.background=on?'var(--ink)':'transparent';
+    c.style.color=on?'var(--cream)':'var(--muted)';
+  });
+}
+
+function openSessionSectionModal(){
+  var sel=document.getElementById('sessionSelect');
+  var key=sel.value; if(!key) return;
+  var cfg=SESSION_CONFIG[key];
+
+  document.getElementById('sessionModalTitle').textContent='📅 '+cfg.label+' — Section-wise Courses';
+  document.getElementById('sessionModalSub').innerHTML=cfg.subLabel;
+  document.getElementById('sessionExportBtn').style.display='inline-flex';
+
+  var secs=[];
+  SECTION_LIST.forEach(function(id){
+    var pt=id.split('-');               // [BEEE, F, 23, A]
+    var prog=pt[0].toLowerCase(), batch=pt[1]+'-'+pt[2], sec=pt[3];
+    var slot=cfg.intakes.find(function(s){return s.intakeBatch===batch;});
+    if(!slot) return;                   // this intake is not active in the chosen session
+    var info=getProgSemData(prog, slot.semNum, slot.currYear);
+    secs.push({id:id,prog:prog,batch:batch,sec:sec,slot:slot,info:info});
+  });
+
+  var html='';
+  if(!secs.length){
+    html='<p class="no-results" style="padding:2rem;">No sections are active in this session.</p>';
+  } else {
+    // Filter chips
+    html+='<div style="display:flex;flex-wrap:wrap;gap:0.35rem;margin-bottom:1rem;padding-bottom:0.8rem;border-bottom:1px solid var(--faint);">';
+    var chipCss="font-family:'Source Code Pro',monospace;font-size:0.68rem;padding:0.22rem 0.6rem;border:1px solid var(--faint);cursor:pointer;";
+    html+='<button class="sec-chip" data-sec="" onclick="sessionSecFilter(\'\')" style="'+chipCss+'background:var(--ink);color:var(--cream);">All ('+secs.length+')</button>';
+    secs.forEach(function(x){
+      html+='<button class="sec-chip" data-sec="'+x.id+'" onclick="sessionSecFilter(\''+x.id+'\')" style="'+chipCss+'background:transparent;color:var(--muted);border-left:3px solid '+PROG_COLORS[x.prog]+';">'+x.id+'</button>';
+    });
+    html+='</div>';
+
+    var lastProg='';
+    secs.forEach(function(x){
+      var col=PROG_COLORS[x.prog]||'var(--accent)';
+      var ys=yrStyle(x.slot.currYear);
+      if(x.prog!==lastProg){
+        lastProg=x.prog;
+        html+='<h3 class="sec-prog-head" style="font-family:\'Source Code Pro\',monospace;font-size:0.8rem;letter-spacing:0.12em;text-transform:uppercase;color:'+col+';margin:1.4rem 0 0.6rem;">'+x.prog.toUpperCase()+'</h3>';
+      }
+      html+='<div class="all-sems-section sec-block" data-sec="'+x.id+'" style="margin-bottom:1.6rem;">';
+      html+='<div class="all-sems-header" style="border-left-color:'+col+';background:'+ys.bg+';font-size:1.05rem;display:flex;align-items:center;flex-wrap:wrap;gap:0.5rem;">';
+      html+='<strong>'+x.id+'</strong>';
+      html+='<span class="sem-badge" style="color:'+col+';border-color:'+col+';margin-left:0.3rem;">Semester '+x.slot.semNum+'</span>';
+      html+='<span class="sem-badge" style="color:'+ys.color+';border-color:'+ys.color+';">'+(x.info?yrStyle(x.info.year).label:ys.label)+' Curriculum</span>';
+      if(x.info) html+='<span class="sem-badge" style="margin-left:auto;">'+x.info.rows.length+' courses</span>';
+      html+='</div>';
+      if(!x.info){
+        html+='<p class="no-results" style="padding:1rem;">No curriculum data found for this section.</p></div>';
+        return;
+      }
+      html+='<div class="tbl-wrap"><table><thead><tr><th>Code</th><th>Course Title</th><th>Pre-req</th><th>Cr Hrs</th><th>Area</th></tr></thead><tbody>';
+      x.info.rows.forEach(function(r){
+        html+='<tr><td class="code">'+(r[0]||'')+'</td><td>'+(r[1]||'')+'</td><td class="pre">'+(r[2]||'—')+'</td><td class="credits">'+(r[3]||'')+'</td><td><span class="area-tag">'+(r[4]||'')+'</span></td></tr>';
+      });
+      html+='</tbody></table></div></div>';
+    });
+  }
   document.getElementById('sessionModalBody').innerHTML=html;
   document.getElementById('sessionOverlay').classList.add('open');
   document.body.style.overflow='hidden';
