@@ -7109,13 +7109,14 @@ function openSessionModal(){
   var cfg=SESSION_CONFIG[key];
 
   window._sessionViewMode='sem';
-  document.getElementById('sessionModalTitle').textContent='📅 '+cfg.label+' — Session Courses';
+  document.getElementById('sessionModalTitle').textContent='📅 '+cfg.label+' — Session Courses'+deptTag();
   document.getElementById('sessionModalSub').innerHTML=cfg.subLabel;
-  document.getElementById('sessionExportBtn').style.display='inline-flex';
+  document.getElementById('sessionExportBtn').style.display='inline-flex';document.getElementById('sessionExcelBtn').style.display='inline-flex';
 
   var html='';
 
   cfg.intakes.forEach(function(slot, slotIdx){
+    slot=deptSlot(slot);
     var semNum   = slot.semNum;
     var currYear = slot.currYear;
     var intakeColor = INTAKE_COLORS[slotIdx % INTAKE_COLORS.length];
@@ -7189,7 +7190,7 @@ function openSessionModal(){
   });
 
   if(!html) html='<p class="no-results" style="padding:2rem;">No data found for this session.</p>';
-  document.getElementById('sessionModalBody').innerHTML=html;
+  document.getElementById('sessionModalBody').innerHTML=deptBarHtml()+html;
   document.getElementById('sessionOverlay').classList.add('open');
   document.body.style.overflow='hidden';
 }
@@ -7343,12 +7344,13 @@ function openSessionSectionModal(){
   var cfg=SESSION_CONFIG[key];
 
   window._sessionViewMode='sec';
-  document.getElementById('sessionModalTitle').textContent='📅 '+cfg.label+' — Section-wise Courses';
+  document.getElementById('sessionModalTitle').textContent='📅 '+cfg.label+' — Section-wise Courses'+deptTag();
   document.getElementById('sessionModalSub').innerHTML=cfg.subLabel;
-  document.getElementById('sessionExportBtn').style.display='inline-flex';
+  document.getElementById('sessionExportBtn').style.display='inline-flex';document.getElementById('sessionExcelBtn').style.display='inline-flex';
 
   var secs=[];
   SECTION_LIST.forEach(function(id){
+    if(!deptOk(id.split('-')[0].toLowerCase())) return;
     var pt=id.split('-');               // [BEEE, F, 23, A]
     var prog=pt[0].toLowerCase(), batch=pt[1]+'-'+pt[2], sec=pt[3];
     var slot=cfg.intakes.find(function(s){return s.intakeBatch===batch;});
@@ -7396,14 +7398,219 @@ function openSessionSectionModal(){
       html+='</tbody></table></div></div>';
     });
   }
-  document.getElementById('sessionModalBody').innerHTML=(adminMode?secMgrHtml():'')+html;
+  document.getElementById('sessionModalBody').innerHTML=deptBarHtml()+(adminMode?secMgrHtml():'')+html;
   document.getElementById('sessionOverlay').classList.add('open');
   document.body.style.overflow='hidden';
 }
 
 
+
+
+// ── DEPARTMENT FILTER (EE: BEEE/BEET/BEEP/BEEV · C&SE: BCE/BSE) ───────────────
+window._sessionDept='all';
+var DEPTS={
+  ee: {label:'Electrical Engineering',          progs:['beee','beet','beep','beev'],line:'Dept. of Electrical Engineering',          studs:'Electrical Engineering',          file:'_EE'},
+  cse:{label:'Computer & Software Engineering', progs:['bce','bse'],                line:'Dept. of Computer & Software Engineering', studs:'Computer & Software Engineering', file:'_CSE'},
+  all:{label:'All Departments',                 progs:null,                         line:'Dept. of Electrical Engineering and Dept. of Computer & Software Engineering', studs:'Electrical Engineering and Computer & Software Engineering', file:''}
+};
+function deptInfo(){ return DEPTS[window._sessionDept]||DEPTS.all; }
+function deptOk(prog){ var d=deptInfo(); return !d.progs||d.progs.indexOf(prog)!==-1; }
+function deptSlot(slot){ var o={}; for(var k in slot) o[k]=slot[k]; o.progs=slot.progs.filter(deptOk); return o; }
+function deptTag(){ return window._sessionDept==='all'?'':' · '+deptInfo().label; }
+function setSessionDept(d){
+  window._sessionDept=d;
+  if(window._sessionViewMode==='sec') openSessionSectionModal(); else openSessionModal();
+}
+function deptBarHtml(){
+  var css="font-family:'Source Code Pro',monospace;font-size:0.7rem;padding:0.3rem 0.8rem;border:1px solid var(--rule);cursor:pointer;";
+  var h='<div style="display:flex;flex-wrap:wrap;align-items:center;gap:0.4rem;margin-bottom:1rem;">'
+       +'<span style="font-family:\'Source Code Pro\',monospace;font-size:0.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;margin-right:0.3rem;">Department:</span>';
+  [['all','All'],['ee','Electrical Engineering'],['cse','Computer & Software Engineering']].forEach(function(x){
+    var on=window._sessionDept===x[0];
+    h+='<button onclick="setSessionDept(\''+x[0]+'\')" style="'+css+(on?'background:var(--ink);color:var(--cream);':'background:transparent;color:var(--ink);')+'">'+x[1]+'</button>';
+  });
+  return h+'</div>';
+}
+
+// ── LIBRARY LOADER (docx / ExcelJS load on first use) ─────────────────────────
+function pcoLoadLib(urls,ok){
+  return new Promise(function(res,rej){
+    if(ok()) return res();
+    var i=0;
+    (function next(){
+      if(i>=urls.length) return rej(new Error('Could not load library'));
+      var sc=document.createElement('script'); sc.src=urls[i++];
+      sc.onload=function(){ ok()?res():next(); };
+      sc.onerror=next;
+      document.head.appendChild(sc);
+    })();
+  });
+}
+var DOCX_URLS=['https://cdn.jsdelivr.net/npm/docx@7.8.2/build/index.js','https://unpkg.com/docx@7.8.2/build/index.js'];
+var EXCELJS_URLS=['https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js','https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js'];
+// returns true when docx is missing: it is loaded, then `retry` runs again
+function pcoNeedDocx(retry){
+  if(window.docx&&window.docx.Document) return false;
+  var b=document.getElementById('sessionExportBtn'); if(b){b.textContent='⏳ Loading…';b.disabled=true;}
+  pcoLoadLib(DOCX_URLS,function(){return window.docx&&window.docx.Document;})
+    .then(function(){ if(b){b.textContent='⬇ Export Word';b.disabled=false;} retry(); })
+    .catch(function(){ if(b){b.textContent='⬇ Export Word';b.disabled=false;} alert('Word export library could not be loaded.\nPlease check your internet connection and try again.'); });
+  return true;
+}
+
+// ── EXCEL REPORT (same layout as the Word report) ─────────────────────────────
+function exportSessionToExcel(){
+  var sel=document.getElementById('sessionSelect');
+  var key=sel.value; if(!key) return;
+  var cfg=SESSION_CONFIG[key];
+  var mode=window._sessionViewMode==='sec'?'sec':'sem';
+  var btn=document.getElementById('sessionExcelBtn');
+  btn.textContent='⏳ Generating…'; btn.disabled=true;
+  function reset(){ btn.textContent='⬇ Export Excel'; btn.disabled=false; }
+
+  pcoLoadLib(EXCELJS_URLS,function(){return window.ExcelJS;}).then(function(){
+    var sessionTag=cfg.label.replace(/\s+/g,'-');
+    var wb=new ExcelJS.Workbook();
+    wb.creator='PCO2'; wb.created=new Date();
+    var ws=wb.addWorksheet(mode==='sec'?'Section-wise':'Semester-wise',{
+      pageSetup:{paperSize:9,orientation:'landscape',fitToPage:true,fitToWidth:1,fitToHeight:0,
+        margins:{left:0.5,right:0.5,top:0.6,bottom:0.6,header:0.3,footer:0.3}},
+      views:[{showGridLines:false}]
+    });
+    ws.columns=[{width:14},{width:68},{width:22},{width:10}];
+    var FONT='Arial', thin={style:'thin',color:{argb:'FFCCCCCC'}};
+    var cellB={top:thin,bottom:thin,left:thin,right:thin};
+
+    function merged(text,o){
+      o=o||{};
+      var r=ws.addRow([text,'','','']);
+      ws.mergeCells(r.number,1,r.number,4);
+      var c=r.getCell(1);
+      c.value=text;
+      c.font={name:FONT,size:o.size||10,bold:!!o.bold,italic:!!o.italic,underline:!!o.underline,color:{argb:'FF'+(o.color||'000000')}};
+      c.alignment={horizontal:o.align||'left',vertical:'middle',wrapText:true};
+      if(o.fill) c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF'+o.fill}};
+      if(o.rule) for(var k=1;k<=4;k++) r.getCell(k).border={bottom:{style:'medium',color:{argb:'FF'+o.rule}}};
+      r.height=o.height||(((o.size||10)+8));
+      return r;
+    }
+    function gap(h){ var r=ws.addRow([]); r.height=h||8; return r; }
+
+    // ── letterhead ──
+    var logoEl=document.getElementById('headerLogo');
+    if(logoEl&&logoEl.src&&logoEl.src.indexOf('base64,')!==-1){
+      var ext=/image\/jpe?g/.test(logoEl.src)?'jpeg':'png';
+      var imgId=wb.addImage({base64:logoEl.src.split('base64,')[1],extension:ext});
+      var lr=ws.addRow([]); lr.height=54;
+      ws.addImage(imgId,{tl:{col:1.55,row:0.06},ext:{width:72,height:54}});
+    }
+    merged('Air University',{size:16,bold:true,color:'1A5276',align:'center',height:24});
+    merged(deptInfo().line,{size:11,bold:true,color:'1A5276',align:'center',height:20});
+    gap(8);
+    merged('IBD/404/DETE/PCEE/',{size:10});
+    merged('Deputy Registrar,',{size:10});
+    gap(6);
+    merged((mode==='sec'?'Section-wise courses':'Courses')+' to be offered to '+deptInfo().studs+' students during Semester '+sessionTag,{size:11,bold:true,underline:true,height:30});
+    merged('The following regular courses are to be offered '+(mode==='sec'?'to the sections listed below ':'')+'during the semester '+sessionTag+':',{size:10,height:20});
+    gap(10);
+
+    function yrInfo(y){ return y==='f25'?{a:'0A4A8A',l:'F-25 Curriculum'}:y==='f24'?{a:'B7950B',l:'F-24 Curriculum'}:{a:'8B2020',l:'F-22 Curriculum'}; }
+
+    function table(rows){
+      var h=ws.addRow(['Code','Course Title','Pre-req','Cr Hrs']);
+      h.height=22;
+      for(var k=1;k<=4;k++){
+        var c=h.getCell(k);
+        c.font={name:FONT,size:9,bold:true,color:{argb:'FFFFFFFF'}};
+        c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF1A5276'}};
+        c.alignment={horizontal:'center',vertical:'middle'};
+        c.border={top:{style:'thin',color:{argb:'FF1A5276'}},bottom:{style:'thin',color:{argb:'FF1A5276'}},left:{style:'thin',color:{argb:'FF1A5276'}},right:{style:'thin',color:{argb:'FF1A5276'}}};
+      }
+      ws.getRow(h.number).getCell(1); // keep header row for repeat
+      rows.forEach(function(rw,ri){
+        var r=ws.addRow([String(rw[0]||''),String(rw[1]||''),String(rw[2]||'—'),String(rw[3]||'')]);
+        r.height=18;
+        var fill={type:'pattern',pattern:'solid',fgColor:{argb:ri%2===0?'FFF4F8FB':'FFFFFFFF'}};
+        for(var k=1;k<=4;k++){
+          var c=r.getCell(k);
+          c.fill=fill; c.border=cellB;
+          c.alignment={horizontal:k===2?'left':'center',vertical:'middle',wrapText:true};
+          c.font={name:FONT,size:9,color:{argb:k===1?'FF0A4A8A':k===3?'FF666666':'FF000000'}};
+        }
+      });
+      gap(12);
+    }
+
+    var blocks=0;
+    if(mode==='sec'){
+      var lastProg='';
+      SECTION_LIST.forEach(function(id){
+    if(!deptOk(id.split('-')[0].toLowerCase())) return;
+        var pt=id.split('-'), prog=pt[0].toLowerCase(), batch=pt[1]+'-'+pt[2];
+        var slot=cfg.intakes.find(function(x){return x.intakeBatch===batch;});
+        if(!slot) return;
+        var info=getProgSemData(prog,slot.semNum,slot.currYear);
+        var yi=yrInfo(info?info.year:slot.currYear);
+        if(prog!==lastProg){
+          if(lastProg){ var br=ws.getRow(ws.rowCount); br.addPageBreak(); }
+          lastProg=prog;
+          merged(pt[0],{size:15,bold:true,color:'1A5276',height:26});
+        }
+        var r=merged(id+'     Semester '+slot.semNum+'  ·  '+yi.l,{size:13,bold:true,color:yi.a,rule:yi.a,height:24});
+        r.getCell(1).font={name:FONT,size:13,bold:true,color:{argb:'FF'+yi.a}};
+        gap(4);
+        blocks++;
+        if(!info){ merged('No curriculum data found for this section.',{size:9,italic:true,color:'888888'}); gap(10); return; }
+        table(info.rows);
+      });
+    } else {
+      cfg.intakes.forEach(function(slot){
+        slot=deptSlot(slot);
+        var entries=[];
+        slot.progs.forEach(function(prog){ var info=getProgSemData(prog,slot.semNum,slot.currYear); if(info) entries.push(info); });
+        if(!entries.length) return;
+        var groups=[];
+        entries.forEach(function(e){
+          var g=groups.find(function(x){return x.fp===e.fp;});
+          if(g) g.members.push(e); else groups.push({fp:e.fp,rows:e.rows,year:e.year,members:[e]});
+        });
+        var yi=yrInfo(slot.currYear);
+        merged('Semester '+slot.semNum+'     '+slot.intakeBatch+' Intake  ·  '+yi.l,{size:13,bold:true,color:yi.a,rule:yi.a,height:24});
+        var pn=slot.progs.map(function(p){
+          var pm=PROG_CURR_MAP[p]; if(!pm) return p.toUpperCase();
+          var yr=pm[slot.currYear]?slot.currYear:'f25';
+          var c=curricula.find(function(x){return x.id===pm[yr];});
+          return c?c.badge.split(' ')[0]:p.toUpperCase();
+        }).join('  ·  ');
+        merged('Programmes:  '+pn,{size:9,italic:true,color:'444444',height:18});
+        gap(4);
+        groups.forEach(function(g){
+          var names=g.members.map(function(m){return m.badge.split(' ')[0];}).join('  ·  ');
+          merged(names+(g.members.length>1?'   (same courses — '+g.members.length+' streams)':''),{size:10,bold:true,color:'1A1A1A',height:20});
+          table(g.rows);
+        });
+        blocks++;
+      });
+    }
+    merged('Generated from PCO2 — '+cfg.label+(mode==='sec'?' (section-wise)':''),{size:8,italic:true,color:'AAAAAA',align:'center'});
+
+    return wb.xlsx.writeBuffer().then(function(buf){
+      var blob=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+      var a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+      a.download=(mode==='sec'?'Session_Sections_':'Session_Courses_')+cfg.label.replace(/\s/g,'_')+deptInfo().file+'.xlsx';
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(function(){URL.revokeObjectURL(a.href);},4000);
+      reset();
+    });
+  }).catch(function(err){
+    console.error('Excel export error:',err); reset();
+    alert('Excel export failed: '+err.message+'\n\nMake sure you are connected to the internet (ExcelJS loads from CDN).');
+  });
+}
+
 // ── SECTION-WISE WORD REPORT ──────────────────────────────────────────────────
 function exportSessionSectionsToWord(){
+  if(pcoNeedDocx(exportSessionSectionsToWord)) return;
   var sel=document.getElementById('sessionSelect');
   var key=sel.value; if(!key) return;
   var cfg=SESSION_CONFIG[key];
@@ -7439,14 +7646,15 @@ function exportSessionSectionsToWord(){
       children.push(new Paragraph({alignment:AlignmentType.CENTER,spacing:{after:120},children:[new ImageRun({type:'png',data:bytes,transformation:{width:90,height:67}})]}));
     }
     children.push(new Paragraph({alignment:AlignmentType.CENTER,spacing:{after:20},children:[new TextRun({text:'Air University',bold:true,size:32,font:'Arial',color:'1A5276'})]}));
-    children.push(new Paragraph({alignment:AlignmentType.CENTER,spacing:{after:200},children:[new TextRun({text:'Dept. of Electrical Engineering and Dept. of Computer & Software Engineering',bold:true,size:22,font:'Arial',color:'1A5276'})]}));
+    children.push(new Paragraph({alignment:AlignmentType.CENTER,spacing:{after:200},children:[new TextRun({text:deptInfo().line,bold:true,size:22,font:'Arial',color:'1A5276'})]}));
     children.push(new Paragraph({spacing:{after:40},children:[new TextRun({text:'IBD/404/DETE/PCEE/',size:20,font:'Arial'})]}));
     children.push(new Paragraph({spacing:{after:200},children:[new TextRun({text:'Deputy Registrar,',size:20,font:'Arial'})]}));
-    children.push(new Paragraph({spacing:{after:200},children:[new TextRun({text:'Section-wise courses to be offered to Electrical Engineering and Computer & Software Engineering students during Semester '+sessionTag,bold:true,underline:{},size:22,font:'Arial'})]}));
+    children.push(new Paragraph({spacing:{after:200},children:[new TextRun({text:'Section-wise courses to be offered to '+deptInfo().studs+' students during Semester '+sessionTag,bold:true,underline:{},size:22,font:'Arial'})]}));
     children.push(new Paragraph({spacing:{after:360},children:[new TextRun({text:'The following regular courses are to be offered to the sections listed below during the semester '+sessionTag+':',size:20,font:'Arial'})]}));
 
     var count=0, lastProg='';
     SECTION_LIST.forEach(function(id){
+    if(!deptOk(id.split('-')[0].toLowerCase())) return;
       var pt=id.split('-'), prog=pt[0].toLowerCase(), batch=pt[1]+'-'+pt[2];
       var slot=cfg.intakes.find(function(x){return x.intakeBatch===batch;});
       if(!slot) return;
@@ -7489,7 +7697,7 @@ function exportSessionSectionsToWord(){
     });
     Packer.toBlob(doc).then(function(blob){
       var url=URL.createObjectURL(blob), a=document.createElement('a');
-      a.href=url; a.download='Session_Sections_'+cfg.label.replace(/\s/g,'_')+'.docx';
+      a.href=url; a.download='Session_Sections_'+cfg.label.replace(/\s/g,'_')+deptInfo().file+'.docx';
       document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
       reset();
     });
@@ -7501,6 +7709,7 @@ function exportSessionSectionsToWord(){
 
 function exportSessionToWord(){
   if(window._sessionViewMode==='sec') return exportSessionSectionsToWord();
+  if(pcoNeedDocx(exportSessionToWord)) return;
   var sel=document.getElementById('sessionSelect');
   var key=sel.value; if(!key) return;
   var cfg=SESSION_CONFIG[key];
@@ -7597,7 +7806,7 @@ function exportSessionToWord(){
     children.push(new Paragraph({
       alignment:AlignmentType.CENTER,
       spacing:{after:200},
-      children:[new TextRun({text:'Dept. of Electrical Engineering and Dept. of Computer & Software Engineering',bold:true,size:22,font:'Arial',color:'1A5276'})]
+      children:[new TextRun({text:deptInfo().line,bold:true,size:22,font:'Arial',color:'1A5276'})]
     }));
     children.push(new Paragraph({
       alignment:AlignmentType.LEFT,
@@ -7612,15 +7821,16 @@ function exportSessionToWord(){
     children.push(new Paragraph({
       alignment:AlignmentType.LEFT,
       spacing:{after:200},
-      children:[new TextRun({text:'Courses to be offered to Electrical Engineering and Computer & Software Engineering students during Semester '+sessionTag,bold:true,underline:{},size:22,font:'Arial',color:'000000'})]
+      children:[new TextRun({text:'Courses to be offered to '+deptInfo().studs+' students during Semester '+sessionTag,bold:true,underline:{},size:22,font:'Arial',color:'000000'})]
     }));
     children.push(new Paragraph({
       alignment:AlignmentType.LEFT,
       spacing:{after:360},
-      children:[new TextRun({text:'The following regular courses are to be offered to students of Electrical Engineering and Computer & Software Engineering during the semester '+sessionTag+':',size:20,font:'Arial',color:'000000'})]
+      children:[new TextRun({text:'The following regular courses are to be offered to students of '+deptInfo().studs+' during the semester '+sessionTag+':',size:20,font:'Arial',color:'000000'})]
     }));
 
     cfg.intakes.forEach(function(slot,slotIdx){
+      slot=deptSlot(slot);
       var semNum=slot.semNum;
       var currYear=slot.currYear;
       var ysLabel=currYear==='f25'?'F-25 Curriculum':currYear==='f24'?'F-24 Curriculum':'F-22 Curriculum';
@@ -7734,7 +7944,7 @@ function exportSessionToWord(){
       var url=URL.createObjectURL(blob);
       var a=document.createElement('a');
       a.href=url;
-      a.download='Session_Courses_'+cfg.label.replace(/\s/g,'_')+'.docx';
+      a.download='Session_Courses_'+cfg.label.replace(/\s/g,'_')+deptInfo().file+'.docx';
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -7782,6 +7992,9 @@ function exportData(){
         <p id="sessionModalSub">Odd Semesters — F-26 (Sem I) · F-25 (Sem III) · F-24 (Sem V) · F-23 (Sem VII)</p>
       </div>
       <div style="display:flex;align-items:center;gap:0.6rem;">
+                <button id="sessionExcelBtn" onclick="exportSessionToExcel()" style="display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.4rem 0.9rem; background: #1D6F42; color: rgb(255, 255, 255); border: none; border-radius: 5px; font-size: 0.8rem; font-family: 'Source Code Pro', monospace; cursor: pointer; white-space: nowrap;">
+          ⬇ Export Excel
+        </button>
         <button id="sessionExportBtn" onclick="exportSessionToWord()" style="display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.4rem 0.9rem; background: var(--accent); color: rgb(255, 255, 255); border-width: medium; border-style: none; border-color: currentcolor; border-image: initial; border-radius: 5px; font-size: 0.8rem; font-family: &quot;Source Code Pro&quot;, monospace; cursor: pointer; white-space: nowrap;">
           ⬇ Export Word
         </button>
