@@ -401,15 +401,18 @@ table.grid.weekly .entry .te, table.grid.weekly .entry .rm{font-size:calc(var(--
   <section class="view" id="view-search">
     <div class="panel">
       <h2>Search &amp; filter classes</h2>
-      <p class="hint">For a teacher's full schedule use the <strong>Teacher</strong> tab, and for open rooms use <strong>Free Rooms</strong>. This tab is for combined/text search across everything.</p>
-      <div class="controls">
+      <p class="hint no-print">For a teacher's full schedule use the <strong>Teacher</strong> tab, and for open rooms use <strong>Free Rooms</strong>. This tab is for combined/text search across everything.</p>
+      <div class="controls no-print">
         <div class="field-wrap"><label class="field">Section</label><select id="f-section"><option value="">All</option></select></div>
         <div class="field-wrap"><label class="field">Day</label><select id="f-day"><option value="">All</option><option value="Mo">Monday</option><option value="Tu">Tuesday</option><option value="We">Wednesday</option><option value="Th">Thursday</option><option value="Fr">Friday</option></select></div>
         <div class="field-wrap"><label class="field">Teacher</label><select id="f-teacher"><option value="">All</option></select></div>
         <div class="field-wrap"><label class="field">Room</label><select id="f-room"><option value="">All</option></select></div>
         <div class="field-wrap"><label class="field">Type</label><select id="f-type"><option value="">All</option><option value="lecture">Lecture</option><option value="lab">Lab</option></select></div>
         <div class="field-wrap"><label class="field">Text search</label><input type="text" id="f-text" placeholder="subject, teacher, room…"></div>
+        <div class="field-wrap no-print"><label class="field">&nbsp;</label><button class="btn secondary small" id="printSearchBtn">🖨 Print schedule</button></div>
       </div>
+      <h2 id="searchPrintTitle" class="print-only" style="margin:6px 0 4px;color:var(--navy);"></h2>
+      <p id="searchPrintFilters" class="print-only" style="margin:0 0 10px;font-size:9pt;color:#333;"></p>
       <div id="teacherPrompt"></div>
       <div id="searchResults"><p class="hint">0 classes found.</p><table class="list"><thead><tr><th>Section</th><th>Day</th><th>Time</th><th>Subject</th><th>Teacher</th><th>Room</th><th>Type</th></tr></thead><tbody></tbody></table></div>
     </div>
@@ -1231,6 +1234,8 @@ function populateSearchFilters(){
   ['f-section','f-day','f-teacher','f-room','f-type'].forEach(id=>document.getElementById(id).addEventListener('change', renderSearch));
   document.getElementById('f-text').addEventListener('input', renderSearch);
 }
+document.getElementById('printSearchBtn').addEventListener('click', ()=>window.print());
+
 function renderSearch(){
   const fs = document.getElementById('f-section').value;
   const fd = document.getElementById('f-day').value;
@@ -1260,7 +1265,18 @@ function renderSearch(){
     return true;
   }).sort((a,b)=> DAYS.indexOf(a.d)-DAYS.indexOf(b.d) || a.t-b.t || a.s.localeCompare(b.s));
 
-  let html = `<p class="hint">${rows.length} class${rows.length===1?'':'es'} found.</p>`;
+  const dayName = {Mo:'Monday',Tu:'Tuesday',We:'Wednesday',Th:'Thursday',Fr:'Friday'};
+  const parts = [];
+  if(fs) parts.push('Section: '+fs);
+  if(fd) parts.push('Day: '+(dayName[fd]||fd));
+  if(ft) parts.push('Teacher: '+ft);
+  if(fr) parts.push('Room: '+fr);
+  if(fty) parts.push('Type: '+fty);
+  if(txt) parts.push('Search: "'+txt+'"');
+  document.getElementById('searchPrintTitle').textContent = fs ? fs+' — Class Schedule' : 'Class Schedule';
+  document.getElementById('searchPrintFilters').textContent = (parts.length ? parts.join('  |  ')+'  |  ' : '') + rows.length + ' class' + (rows.length===1?'':'es');
+
+  let html = `<p class="hint no-print">${rows.length} class${rows.length===1?'':'es'} found.</p>`;
   html += '<table class="list"><thead><tr><th>Section</th><th>Day</th><th>Time</th><th>Subject</th><th>Teacher</th><th>Room</th><th>Type</th></tr></thead><tbody>';
   rows.forEach(e=>{
     const time = SLOTS[e.t].split('-')[0] + '–' + SLOTS[e.t+e.n-1].split('-')[1];
