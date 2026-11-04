@@ -3896,6 +3896,12 @@ function courseCodeProgram(code){
   for(const p of sorted){
     if(p.prefix && c.startsWith(String(p.prefix).toUpperCase())) return p.key;
   }
+  // CE-code and SW-code courses and labs (CE101, CE110L, SW201, …) belong in
+  // the CSE course list too, so they file under the CSE Courses tab (and the
+  // CSE counts) instead of "fms required from other depts".
+  if(lists.programs.some(p=>p.key==='CSE') && (c.startsWith('CE') || c.startsWith('SW'))){
+    return 'CSE';
+  }
   // Courses whose code prefix belongs to another department (MT, HU, EM,
   // CE/SW, MA, ME, FQ, PH, EL — see DEPT_PREFIX_MAP) file into the "fms
   // required from other depts" tab, as long as that tab hasn't been removed.
