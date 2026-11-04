@@ -1383,8 +1383,8 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
         <div style="font-size:12.5px; color:var(--muted); margin-top:4px;" id="odfSectionsLine"></div>
       </div>
       <div style="font-size:12px; color:var(--muted);">
-        <span class="odf-pill open">open</span> = no FM found (not in CL or the timetable) &nbsp;
-        <span class="odf-pill suggested">from timetable</span> = FM per the current timetable &nbsp;
+        <span class="odf-pill open">open</span> <span id="odfOpenLegend">= no FM found (not in CL or the timetable)</span> &nbsp;
+        <span id="odfTtLegend"><span class="odf-pill suggested">from timetable</span> = FM per the current timetable &nbsp;</span>
         <span class="odf-pill taken">confirmed</span> = FM recorded in Course Loading
       </div>
     </div>
@@ -1480,6 +1480,13 @@ CSE100L	Electric Circuit Analysis Lab	1	8"></textarea>
             "(Theory-Lab-Credit)", and the section count set from how many program × section-letter combinations
             that block's title implies. Sections go into the <strong>Classes / Sections</strong> tab as
             <strong>PROGRAM-F-YY-LETTER</strong> codes (e.g. BEEV-F-26-A, BEEE-F-25-B) built from each block's title.
+            <br><br>
+            <strong>Course Initiation sheet (Spring-2027 layout) is also supported:</strong> one block per section group, each starting with
+            a heading like <strong>"BEEE-F-24-A and B &nbsp;Semester 6 · F-24 Curriculum"</strong>, then a header row
+            (S. No., Code, Course Title, Pre-req, Cr Hrs) and its course rows (credit hours like <strong>"3-0-3"</strong>).
+            This is detected automatically. Sections are created exactly as written in the headings
+            (BEEE-F-24-A, BEEE-F-24-B …), a course shared by several blocks is linked to all of their sections, and
+            everything goes into whichever semester is currently selected — so choose <strong>Spring 2027</strong> first.
           </div>
           <div class="bulk-actions">
             <input type="file" id="smartSheetInput" accept=".xlsx,.xls,.csv" style="max-width:280px;">
@@ -2073,8 +2080,19 @@ try {
 // Uses a second, named Firebase app instance so it doesn't collide with the
 // main Firestore connection above.
 let timetableSessions = [];
+// Which timetable feeds which semester. Only Fall 2026 has one right now
+// (timetable.html). Spring 2027 has NO timetable yet, so nothing is pulled
+// and no "from timetable" suggestions are shown for it. When the Spring-2027
+// timetable (tts27.html) exists, add its Realtime-Database node here, e.g.
+//   'S-2027': {path:'<its node name>', file:'tts27.html'}
+// and the "from timetable" option comes on for that semester automatically.
+const TIMETABLE_SOURCES = {
+  'F-2026': {path:'pco_timetable_data', file:'timetable.html'}
+};
+const TT_SOURCE = TIMETABLE_SOURCES[SEM.id] || null;
 function initTimetableLink(){
   try{
+    if(!TT_SOURCE) return;      // this semester has no timetable — nothing to link
     if(typeof firebase === 'undefined') return;
     const TIMETABLE_FB_CONFIG = {
       apiKey: "AIzaSyAW6Z6c1N5QVpB7iCWXhyjxHQImeCYRgxs",
@@ -2088,7 +2106,7 @@ function initTimetableLink(){
     const existing = firebase.apps.find(a=>a.name==='timetableLink');
     const tApp = existing || firebase.initializeApp(TIMETABLE_FB_CONFIG, 'timetableLink');
     const tDb = tApp.database();
-    tDb.ref('pco_timetable_data').on('value', snap=>{
+    tDb.ref(TT_SOURCE.path).on('value', snap=>{
       const val = snap.val();
       timetableSessions = (val && val.items) || [];
       renderOtherDeptFms();
@@ -4613,8 +4631,12 @@ function renderOtherDeptFms(){
   let totalSections = 0, totalTaken = 0;
   const bySections = matches.map(c => ({c, sec: resolveOtherDeptSections(c)}));
   bySections.forEach(({sec})=>{ totalSections += sec.count; totalTaken += sec.takenCount; });
+  const _ttLeg = document.getElementById('odfTtLegend'); if(_ttLeg) _ttLeg.style.display = TT_SOURCE ? '' : 'none';
+  const _opLeg = document.getElementById('odfOpenLegend'); if(_opLeg) _opLeg.textContent = TT_SOURCE ? '= no FM found (not in CL or the timetable)' : '= no FM recorded in Course Loading yet';
   document.getElementById('odfSectionsLine').textContent =
-    totalSections > 0 ? `${totalTaken} of ${totalSections} sections confirmed in Course Loading — the rest show the FM per the timetable, where found` : '';
+    totalSections > 0 ? (TT_SOURCE
+      ? `${totalTaken} of ${totalSections} sections confirmed in Course Loading — the rest show the FM per the timetable, where found`
+      : `${totalTaken} of ${totalSections} sections confirmed in Course Loading`) : '';
 
   // Group by department for the summary cards
   const byDept = {};
@@ -5986,6 +6008,94 @@ function smartSheetLinkCourseSections(parsedCourses){
   return linked;
 }
 
+// ─── Smart Sheet Import — "Course Initiation" layout (Spring-2027 style) ───
+// A second, separate layout the importer now also understands. Each block is:
+//   BEEE-F-24-A and B   Semester 6  ·  F-24 Curriculum      <- section heading
+//   S. No. | Code | Course Title | Pre-req | Cr Hrs           <- header row
+//   1      | EM332 | Engineering Economics | — | 2-0-2         <- course rows
+// (serial numbers may be merged across a course + its lab; "BEEE" / "BEEP" /
+// "BEET" / "BEEV" program rows and the letter header above the first block are ignored).
+// The Fall-2026 style parser above is not touched — this only runs when the
+// uploaded sheet is detected to be in this layout.
+const S27_HEADING_RE = /^([A-Z]{3,6})\s*-\s*([FS])\s*-\s*(\d{2})\s*-\s*([A-Z](?:\s*(?:and|&|\/|,)\s*[A-Z])*)\s+Semester\s+(\d+)/i;
+
+function smartSheetIsS27Layout(rows){
+  return rows.some(r=>{
+    const t = (r||[]).map(c=>String(c===undefined?'':c).trim()).filter(Boolean).join(' ');
+    return S27_HEADING_RE.test(t);
+  });
+}
+
+function smartSheetParseS27Rows(rows){
+  const byCode = {};            // code -> {code,name,cr,sectionCodes:Set}
+  const order = [];
+  const sectionSet = new Set();
+  const blocks = [];
+  let state = null, inTable = false, blockCodes = null;
+  let colIdx = {code:1, name:2, credit:4};
+
+  rows.forEach(rawRow=>{
+    const cells = (rawRow||[]).map(c=>String(c===undefined?'':c).trim());
+    const nonEmpty = cells.filter(Boolean);
+    if(!nonEmpty.length){ inTable = false; return; }
+    const joined = nonEmpty.join(' ');
+
+    const hm = joined.match(S27_HEADING_RE);
+    if(hm){
+      const prog = hm[1].toUpperCase(), season = hm[2].toUpperCase(), yy = hm[3];
+      const letters = hm[4].toUpperCase().split(/AND|&|\/|,/).map(s=>s.trim()).filter(Boolean);
+      const semNo = hm[5];
+      const sectionCodes = letters.map(l=>`${prog}-${season}-${yy}-${l}`);
+      sectionCodes.forEach(s=>sectionSet.add(s));
+      const ordLabel = `${semNo}${smartSheetOrdinalSuffix(semNo)} Sem`;
+      state = {ordLabel, sectionCodes};
+      blockCodes = new Set();
+      blocks.push({title: joined, programs:[prog], letters, season, year2: yy, ordLabel, sectionCodes});
+      inTable = false;
+      return;
+    }
+
+    if(!inTable){
+      const lower = cells.map(c=>c.toLowerCase());
+      const codeI = lower.findIndex(c=>c==='code' || c.includes('code'));
+      const courseI = lower.findIndex((c,i)=>/course/.test(c) && i!==codeI);
+      const creditI = lower.findIndex(c=>/^cr\b/.test(c) || c.includes('credit'));
+      if(state && codeI>=0 && courseI>=0){
+        colIdx = {code: codeI, name: courseI, credit: creditI>=0 ? creditI : cells.length-1};
+        inTable = true;
+      }
+      return;
+    }
+
+    let codeVal = (cells[colIdx.code]||'').toUpperCase().replace(/\s+/g,'');
+    let nameVal = (cells[colIdx.name]||'').replace(/\s*\*+\s*$/,'').replace(/\s+/g,' ').trim();
+    const creditVal = cells[colIdx.credit]||'';
+    if(!codeVal || !smartSheetLooksLikeCode(codeVal) || !nameVal) return;
+
+    // A lab typed with its theory course's code (e.g. "MA221" twice in one block,
+    // second one named "... Lab") would otherwise be dropped as a duplicate —
+    // give it the usual "L" suffix.
+    if(blockCodes.has(codeVal) && /\b(lab|laboratory)\b/i.test(nameVal) && !codeVal.endsWith('L')) codeVal += 'L';
+    blockCodes.add(codeVal);
+
+    const m = creditVal.match(/(\d+)\s*-\s*(\d+)\s*-\s*(\d+)/);
+    const cr = m ? Number(m[3]) : '';
+    if(!byCode[codeVal]){
+      byCode[codeVal] = {code: codeVal, name: `${nameVal} (${state.ordLabel})`, cr, sectionCodes: new Set()};
+      order.push(codeVal);
+    }
+    state.sectionCodes.forEach(s=>byCode[codeVal].sectionCodes.add(s));
+  });
+
+  // One entry per course code; section count = every section it runs in across all blocks
+  const courses = order.map(code=>{
+    const c = byCode[code];
+    const sc = [...c.sectionCodes];
+    return {code: c.code, name: c.name, cr: c.cr, sections: sc.length, sectionCodes: sc};
+  });
+  return {courses, sectionCodes: [...sectionSet], blocks};
+}
+
 document.getElementById('smartSheetInput').addEventListener('change', (e)=>{
   const file = e.target.files && e.target.files[0];
   const resEl = document.getElementById('smartSheetResult');
@@ -6003,7 +6113,7 @@ document.getElementById('smartSheetInput').addEventListener('change', (e)=>{
       const wb = XLSX.read(data, {type:'array'});
       const sheet = wb.Sheets[wb.SheetNames[0]];
       const rows = XLSX.utils.sheet_to_json(sheet, {header:1, raw:false, defval:''});
-      const {courses, sectionCodes, blocks} = smartSheetParseRows(rows);
+      const {courses, sectionCodes, blocks} = smartSheetIsS27Layout(rows) ? smartSheetParseS27Rows(rows) : smartSheetParseRows(rows);
 
       if(!blocks.length){
         resEl.textContent = 'No semester title rows found — check that each block has a title row containing both "Semester" and "Section".';
