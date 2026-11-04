@@ -1382,7 +1382,11 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
         <div style="font-size:12.5px; color:var(--muted);">courses taught by another department</div>
         <div style="font-size:12.5px; color:var(--muted); margin-top:4px;" id="odfSectionsLine"></div>
       </div>
-      <div style="font-size:12px; color:var(--muted);">
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <button class="btn" id="odfPrintBtn" type="button" onclick="printOtherDeptLoad()" title="Print or save as PDF">🖨 Print / PDF</button>
+        <button class="btn" id="odfExcelBtn" type="button" onclick="exportOtherDeptExcel()" title="Download formatted Excel file">Export Excel</button>
+      </div>
+      <div style="font-size:12px; color:var(--muted); flex-basis:100%;">
         <span class="odf-pill open">open</span> <span id="odfOpenLegend">= no FM found (not in CL or the timetable)</span> &nbsp;
         <span id="odfTtLegend"><span class="odf-pill suggested">from timetable</span> = FM per the current timetable &nbsp;</span>
         <span class="odf-pill taken">confirmed</span> = FM recorded in Course Loading
@@ -4686,6 +4690,177 @@ function renderOtherDeptFms(){
         <td>${secHtml}</td>
       </tr>`;
     }).join('');
+}
+
+// ── Cross-Dept Load: Print / PDF and styled Excel export ─────────────────────
+// Both exports use the same data as the on-screen tab: every course filed
+// under "fms required from other depts", grouped by owning department, with
+// one line per section (confirmed in CL / from the timetable / still open).
+function getOdfExportData(){
+  const matches = lists.courses.filter(c => courseCodeProgram(c.code) === 'otherDeptFms');
+  const items = matches.map(c => ({c, dept: effectiveDept(c) || 'Unspecified', sec: resolveOtherDeptSections(c)}));
+  items.sort((a,b)=> a.dept.localeCompare(b.dept) || (a.c.code||'').localeCompare(b.c.code||''));
+  let totalSections = 0, totalTaken = 0;
+  items.forEach(({sec})=>{ totalSections += sec.count; totalTaken += sec.takenCount; });
+  const byDept = {};
+  items.forEach(it=>{ (byDept[it.dept] = byDept[it.dept] || []).push(it); });
+  return {items, byDept, totalCourses: items.length, totalSections, totalTaken};
+}
+function odfSecStatus(i){
+  if(i.taken) return {label:'Confirmed', fm:i.fm||''};
+  if(i.suggestedFm) return {label:'From timetable', fm:i.suggestedFm};
+  return {label:'Open', fm:''};
+}
+
+function printOtherDeptLoad(){
+  const d = getOdfExportData();
+  if(!d.totalCourses){ alert('There are no cross-department courses to print.'); return; }
+  const css = PRINT_CSS_PROGRAM + `
+    thead{display:table-header-group !important;}
+    .odf-dept td{background:#1F3D5A !important;color:#fff;font-family:'Source Serif 4',serif;font-size:11pt;font-weight:600;padding:7px;}
+    .odf-dept .cnt{float:right;font-family:'IBM Plex Mono',monospace;font-size:9pt;font-weight:500;}
+    .pill{display:inline-block;margin:1px 4px 2px 0;padding:1px 7px;border-radius:9px;font-size:8.5pt;border:1px solid #C9D3E0;}
+    .pill.taken{background:#E9F2FF;color:#16243B;}
+    .pill.suggested{background:#FFF6E5;color:#946200;border-color:#F0C36D;font-style:italic;}
+    .pill.open{background:#E3F4EE;color:#047857;border-color:#059669;font-weight:600;}
+    .legend{font-size:8.5pt;color:#3C4A60;margin-bottom:12px;}
+    @media print{thead{display:table-header-group !important;} .odf-dept{page-break-after:avoid;} tr{page-break-inside:avoid;}}
+  `;
+  let rows = '';
+  Object.keys(d.byDept).forEach(dept=>{
+    rows += `<tr class="odf-dept"><td colspan="4">${escHtml(dept)}<span class="cnt">${d.byDept[dept].length} course${d.byDept[dept].length===1?'':'s'}</span></td></tr>`;
+    d.byDept[dept].forEach(({c, sec})=>{
+      const pills = sec.items.length ? sec.items.map(i=>{
+        const st = odfSecStatus(i);
+        if(st.label==='Confirmed') return `<span class="pill taken">${escHtml(i.name)}${st.fm?' — '+escHtml(st.fm):''}</span>`;
+        if(st.label==='From timetable') return `<span class="pill suggested">${escHtml(i.name)} — ${escHtml(st.fm)} (timetable)</span>`;
+        return `<span class="pill open">${escHtml(i.name)} — open</span>`;
+      }).join('') : '—';
+      rows += `<tr><td style="white-space:nowrap;font-family:'IBM Plex Mono',monospace;font-size:8.5pt;">${escHtml(c.code||'—')}</td><td>${escHtml(c.name||'—')}</td><td class="num">${sec.count}</td><td>${pills}</td></tr>`;
+    });
+  });
+  const html = `<!doctype html><html><head><meta charset="utf-8"><title>Cross-Dept Load — CSE ${SEM.label}</title><style>${css}</style></head><body>
+    <h1>Cross-Department Load</h1>
+    <div class="sub">Department of Computer &amp; Software Engineering &nbsp;·&nbsp; ${SEM.label} &nbsp;·&nbsp; Generated ${new Date().toLocaleDateString()}</div>
+    <div class="summary-bar">${d.totalCourses} courses taught by other departments &nbsp;·&nbsp; ${d.totalTaken} of ${d.totalSections} sections confirmed in Course Loading</div>
+    <div class="legend"><span class="pill taken">confirmed</span> FM recorded in Course Loading &nbsp; <span class="pill suggested">from timetable</span> FM per the timetable &nbsp; <span class="pill open">open</span> no FM found</div>
+    <table>
+      <thead><tr><th style="width:11%">Code</th><th style="width:30%">Course Name</th><th style="width:8%;text-align:center">Sections</th><th>Section / Faculty</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+  </body></html>`;
+  openPrintWindow(html);
+}
+
+// Loads the style-capable SheetJS build on demand (the page's own XLSX global,
+// used by the import features, is left untouched). Falls back to plain XLSX.
+let _xlsxStylePromise = null;
+function loadStyledXlsx(){
+  if(_xlsxStylePromise) return _xlsxStylePromise;
+  _xlsxStylePromise = new Promise(resolve=>{
+    const prev = window.XLSX;
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js';
+    s.onload = ()=>{ const styled = window.XLSX; window.XLSX = prev || styled; resolve(styled); };
+    s.onerror = ()=>{ window.XLSX = prev; resolve(null); };
+    document.head.appendChild(s);
+  });
+  return _xlsxStylePromise;
+}
+
+async function exportOtherDeptExcel(){
+  const d = getOdfExportData();
+  if(!d.totalCourses){ alert('There are no cross-department courses to export.'); return; }
+  const X = (await loadStyledXlsx()) || window.XLSX;
+  if(!X){ alert('Excel library could not be loaded. Check your internet connection and try again.'); return; }
+
+  const thin = {style:'thin', color:{rgb:'C9D3E0'}};
+  const border = {top:thin, bottom:thin, left:thin, right:thin};
+  const sTitle = {font:{bold:true, sz:16, color:{rgb:'16243B'}}, alignment:{vertical:'center'}};
+  const sSub   = {font:{sz:10, color:{rgb:'6B7586'}}, alignment:{vertical:'center'}};
+  const sHead  = {font:{bold:true, color:{rgb:'FFFFFF'}, sz:11}, fill:{fgColor:{rgb:'047857'}}, alignment:{horizontal:'center', vertical:'center', wrapText:true}, border};
+  const sDept  = {font:{bold:true, color:{rgb:'FFFFFF'}, sz:11}, fill:{fgColor:{rgb:'1F3D5A'}}, alignment:{vertical:'center'}, border};
+  const sCell  = {alignment:{vertical:'center', wrapText:true}, border};
+  const sCtr   = {alignment:{horizontal:'center', vertical:'center'}, border};
+  const sCode  = {font:{name:'Consolas', sz:10}, alignment:{vertical:'center'}, border};
+  const statusFill = {
+    'Confirmed':      {fill:{fgColor:{rgb:'E9F2FF'}}, font:{color:{rgb:'16243B'}}},
+    'From timetable': {fill:{fgColor:{rgb:'FFF6E5'}}, font:{color:{rgb:'946200'}, italic:true}},
+    'Open':           {fill:{fgColor:{rgb:'D1FAE5'}}, font:{color:{rgb:'047857'}, bold:true}}
+  };
+
+  // ── Sheet 1: Cross-Dept Load (one row per section) ──
+  const NC = 6;
+  const aoa = [];
+  const styleMap = [];            // parallel to aoa: array of style per cell
+  const merges = [];
+  const push = (cells, styles)=>{ aoa.push(cells); styleMap.push(styles); };
+  const pad = (v)=>{ const a=[v]; while(a.length<NC) a.push(''); return a; };
+
+  push(pad('Cross-Department Load'), Array(NC).fill(sTitle));
+  merges.push({s:{r:0,c:0}, e:{r:0,c:NC-1}});
+  push(pad(`Department of Computer & Software Engineering  ·  ${SEM.label}  ·  Generated ${new Date().toLocaleDateString()}`), Array(NC).fill(sSub));
+  merges.push({s:{r:1,c:0}, e:{r:1,c:NC-1}});
+  push(pad(`${d.totalCourses} courses taught by other departments  ·  ${d.totalTaken} of ${d.totalSections} sections confirmed in Course Loading`), Array(NC).fill(sSub));
+  merges.push({s:{r:2,c:0}, e:{r:2,c:NC-1}});
+  push(Array(NC).fill(''), Array(NC).fill({}));
+  const headRow = aoa.length;
+  push(['Code','Course Name','Department','Section','Status','Faculty Member'], Array(NC).fill(sHead));
+
+  Object.keys(d.byDept).forEach(dept=>{
+    const r = aoa.length;
+    push(pad(`${dept}  —  ${d.byDept[dept].length} course${d.byDept[dept].length===1?'':'s'}`), Array(NC).fill(sDept));
+    merges.push({s:{r, c:0}, e:{r, c:NC-1}});
+    d.byDept[dept].forEach(({c, sec})=>{
+      if(!sec.items.length){
+        push([c.code||'', c.name||'', dept, '—', 'No sections', ''], [sCode,sCell,sCell,sCtr,sCtr,sCell]);
+        return;
+      }
+      sec.items.forEach(i=>{
+        const st = odfSecStatus(i);
+        const stStyle = Object.assign({}, sCtr, statusFill[st.label]);
+        push([c.code||'', c.name||'', dept, i.name, st.label, st.fm], [sCode,sCell,sCell,sCtr,stStyle,sCell]);
+      });
+    });
+  });
+
+  const ws = X.utils.aoa_to_sheet(aoa);
+  styleMap.forEach((row, r)=> row.forEach((s, c)=>{
+    const ref = X.utils.encode_cell({r, c});
+    if(!ws[ref]) ws[ref] = {t:'s', v:''};
+    ws[ref].s = s;
+  }));
+  ws['!merges'] = merges;
+  ws['!cols'] = [{wch:12},{wch:42},{wch:30},{wch:20},{wch:16},{wch:30}];
+  ws['!rows'] = [{hpt:26},{hpt:16},{hpt:16},{hpt:8},{hpt:22}];
+  ws['!freeze'] = {xSplit:0, ySplit:headRow+1};
+  ws['!views'] = [{state:'frozen', ySplit:headRow+1}];
+  ws['!autofilter'] = {ref: X.utils.encode_range({s:{r:headRow,c:0}, e:{r:aoa.length-1,c:NC-1}})};
+  ws['!pageSetup'] = {orientation:'landscape', fitToWidth:1, fitToHeight:0};
+  ws['!margins'] = {left:0.4, right:0.4, top:0.5, bottom:0.5, header:0.3, footer:0.3};
+
+  // ── Sheet 2: department summary ──
+  const aoa2 = [['Department','Courses','Sections','Confirmed','Open / timetable']];
+  const st2 = [Array(5).fill(sHead)];
+  Object.keys(d.byDept).forEach(dept=>{
+    let secs=0, conf=0;
+    d.byDept[dept].forEach(({sec})=>{ secs+=sec.count; conf+=sec.takenCount; });
+    aoa2.push([dept, d.byDept[dept].length, secs, conf, secs-conf]);
+    st2.push([sCell,sCtr,sCtr,sCtr,sCtr]);
+  });
+  aoa2.push(['TOTAL', d.totalCourses, d.totalSections, d.totalTaken, d.totalSections-d.totalTaken]);
+  const sTot = {font:{bold:true}, fill:{fgColor:{rgb:'F1F3F5'}}, border};
+  st2.push([sTot, Object.assign({},sTot,{alignment:{horizontal:'center'}}), Object.assign({},sTot,{alignment:{horizontal:'center'}}), Object.assign({},sTot,{alignment:{horizontal:'center'}}), Object.assign({},sTot,{alignment:{horizontal:'center'}})]);
+  const ws2 = X.utils.aoa_to_sheet(aoa2);
+  st2.forEach((row, r)=> row.forEach((s, c)=>{ const ref = X.utils.encode_cell({r,c}); if(ws2[ref]) ws2[ref].s = s; }));
+  ws2['!cols'] = [{wch:34},{wch:12},{wch:12},{wch:12},{wch:18}];
+  ws2['!rows'] = [{hpt:22}];
+
+  const wb = X.utils.book_new();
+  X.utils.book_append_sheet(wb, ws, 'Cross-Dept Load');
+  X.utils.book_append_sheet(wb, ws2, 'By Department');
+  const safeSem = String(SEM.label||'').replace(/[^A-Za-z0-9\-]+/g,'_');
+  X.writeFile(wb, `CSE_Cross-Dept_Load_${safeSem}.xlsx`);
 }
 
 // ── CSE / CE split-button print dropdowns ─────────────────────────────────────
