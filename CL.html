@@ -966,8 +966,17 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style id="bootHide">
+  body > *:not(#bootSplash):not(#semPicker){visibility:hidden !important;}
+  #bootSplash{position:fixed; inset:0; z-index:2000; display:flex; align-items:center; justify-content:center; flex-direction:column; gap:14px;
+    background:linear-gradient(160deg,#1A0842 0%,#32117A 55%,#4F1FA8 100%); color:#E6DCFF; font:500 13px 'IBM Plex Sans',system-ui,sans-serif; visibility:visible !important;}
+  #bootSplash i{width:34px; height:34px; border-radius:50%; border:3px solid rgba(255,255,255,.2); border-top-color:#F5C451; animation:bootSpin .8s linear infinite;}
+  @keyframes bootSpin{to{transform:rotate(360deg);}}
+  @keyframes bootIn{from{opacity:0;} to{opacity:1;}}
+</style>
 </head>
 <body class="view-only">
+<div id="bootSplash"><i></i><span>Loading…</span></div>
 
 <div class="topbar">
   <div class="topbar-inner">
@@ -1771,6 +1780,17 @@ function setCourseSections(code, arr){
 }
 
 
+// Reveals the app only once the picker / first data is ready, so nothing
+// half-built (or a previous view) flashes on refresh.
+let _bootDone = false;
+function bootReady(keepAppHidden){
+  if(_bootDone) return; _bootDone = true;
+  const h = document.getElementById('bootHide'); if(h && !keepAppHidden) h.remove();   // in picker mode the app stays hidden behind the picker
+  const sp = document.getElementById('bootSplash');
+  if(sp){ sp.style.transition = 'opacity .25s'; sp.style.opacity = '0'; setTimeout(()=>sp.remove(), 280); }
+}
+setTimeout(bootReady, 8000);   // safety net: never leave the splash up forever
+
 // ─── SEMESTER MODEL ──────────────────────────────────────────────────────────
 // Same Firebase project / same 'ee_workload' collection as before — every
 // semester is just its own document in it. The existing Fall 2026 data lives
@@ -1856,7 +1876,7 @@ const SEM_ICON = {F:'🍁', S:'🌸'};   // change these two emojis to restyle t
   });
   document.addEventListener('click', e=>{ if(!menu.hidden && !e.target.closest('#semBar')) close(); });
   document.addEventListener('keydown', e=>{ if(e.key==='Escape') close(); });
-  if(SEM_PICK) showSemPicker(false);
+  if(SEM_PICK){ showSemPicker(false); bootReady(true); }
 })();
 
 function showSemPicker(canClose){
@@ -2233,6 +2253,7 @@ async function loadData(){
     recomputeSnos();
     renderAll();
     renderModal();
+    bootReady();
     return;
   }
   ind.textContent = 'connecting...'; ind.className='save-indicator';
@@ -2247,7 +2268,7 @@ async function loadData(){
         recomputeSnos();
         renderAll(); renderModal();
         ind.textContent = 'Firebase connected (no data yet)'; ind.className='save-indicator ok';
-        renderSemBanner('empty');
+        renderSemBanner('empty'); bootReady();
       }
       return;
     }
@@ -2257,7 +2278,7 @@ async function loadData(){
     const isInitial = !gotFirst;
     gotFirst = true;
     applyRemoteSnapshot(snapshot.data(), isInitial);
-    renderSemBanner();
+    renderSemBanner(); bootReady();
     ind.textContent = snapshot.metadata.fromCache ? 'Firebase connected (cached)' : 'Firebase connected (live)';
     ind.className = 'save-indicator ok';
   }, err=>{
@@ -2271,6 +2292,7 @@ async function loadData(){
       recomputeSnos();
       renderAll(); renderModal();
     }
+    bootReady();
   });
 }
 
