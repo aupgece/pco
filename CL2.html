@@ -7,7 +7,7 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
 </style>
 
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-<title>CSE Faculty Workload — Spring 2027</title>
+<title>CSE Faculty Workload</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2310B981' stroke-width='2'%3E%3Crect x='4' y='4' width='16' height='16' rx='2'/%3E%3Crect x='9' y='9' width='6' height='6'/%3E%3Cline x1='9' y1='1' x2='9' y2='4'/%3E%3Cline x1='15' y1='1' x2='15' y2='4'/%3E%3Cline x1='9' y1='20' x2='9' y2='23'/%3E%3Cline x1='15' y1='20' x2='15' y2='23'/%3E%3Cline x1='20' y1='9' x2='23' y2='9'/%3E%3Cline x1='20' y1='14' x2='23' y2='14'/%3E%3Cline x1='1' y1='9' x2='4' y2='9'/%3E%3Cline x1='1' y1='14' x2='4' y2='14'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com/">
 <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600;8..60,700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -41,6 +41,56 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
     font-family:'IBM Plex Sans',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
     -webkit-font-smoothing:antialiased;
   }
+
+  /* ── Semester switcher (pill + menu) ── */
+  .sem-bar{position:relative; display:flex; align-items:center;}
+  .sem-pill{
+    display:inline-flex; align-items:center; gap:8px; cursor:pointer;
+    background:rgba(255,255,255,.14); color:#fff; border:1px solid rgba(255,255,255,.3);
+    border-radius:999px; padding:7px 14px 7px 12px; font:600 13px 'IBM Plex Sans',sans-serif;
+    transition:background .15s, box-shadow .15s;
+  }
+  .sem-pill:hover,.sem-pill[aria-expanded="true"]{background:rgba(255,255,255,.26); box-shadow:0 2px 12px rgba(0,0,0,.2);}
+  .sem-pill:focus-visible{outline:2px solid #fff; outline-offset:2px;}
+  .sem-pill .sem-caret{font-size:10px; opacity:.8;}
+  .ico{width:14px; height:14px; vertical-align:-2px; flex:none;}
+  .sem-pill .ico{width:15px; height:15px; vertical-align:middle;}
+  .sem-menu .sm-h .ico{margin-right:5px; vertical-align:-2px;}
+  .sem-menu .sm-all{display:flex; align-items:center; justify-content:center; gap:7px;}
+  .sem-pill .sem-caret{transition:transform .2s;}
+  .sem-pill[aria-expanded="true"] .sem-caret{transform:rotate(180deg);}
+  .sem-menu{
+    position:absolute; right:0; top:calc(100% + 8px); z-index:60; width:272px;
+    background:#fff; color:#0F1B35; border:1px solid #D9D2F5; border-radius:14px; padding:8px;
+    box-shadow:0 14px 36px rgba(30,10,80,.3); transform-origin:top right; animation:smPop .18s ease-out;
+  }
+  .sem-menu[hidden]{display:none;}
+  @keyframes smPop{from{opacity:0; transform:translateY(-6px) scale(.97);} to{opacity:1; transform:none;}}
+  .sem-menu .sm-h{font:600 10px 'IBM Plex Mono',monospace; letter-spacing:.1em; text-transform:uppercase; color:#8A7FB8; padding:8px 6px 4px;}
+  .sem-menu .sm-row{display:flex; gap:6px; padding:0 2px 2px;}
+  .sem-menu button.sm-item{
+    flex:1; display:flex; align-items:center; justify-content:center; gap:6px; background:#F5F2FF; border:1px solid #E7E0FB;
+    border-radius:9px; padding:8px 0; cursor:pointer; font:500 12.5px 'IBM Plex Sans',sans-serif; color:#0F1B35;
+    transition:transform .12s, background .12s, box-shadow .12s;
+  }
+  .sem-menu button.sm-item:hover,.sem-menu button.sm-item:focus-visible{background:#E9DFFF; transform:translateY(-1px); box-shadow:0 3px 8px rgba(108,63,235,.2); outline:none;}
+  .sem-menu button.sm-item.on{background:linear-gradient(135deg,#5B2FD6,#9B4DF0); color:#fff; font-weight:600; border-color:transparent;}
+  .sem-menu .sm-none{flex:1;}
+  .sem-menu .sm-all{display:block; width:100%; margin-top:6px; padding:8px; border:none; border-top:1px solid #ECE8FA; background:none; cursor:pointer; font:600 12.5px 'IBM Plex Sans',sans-serif; color:#4D2CB5; border-radius:0 0 9px 9px; transition:background .12s;}
+  .sem-menu .sm-all:hover{background:#F5F2FF;}
+  @media (max-width:560px){ .sem-menu{position:fixed; right:12px; top:64px;} }
+  @media (prefers-reduced-motion:reduce){ .sem-menu,.sem-menu button{animation:none!important; transition:none!important;} }
+  .sem-banner{max-width:1400px; margin:12px auto 0; padding:0 16px;}
+  .sem-banner .box{
+    border-radius:10px; padding:11px 14px; font-size:13px; display:flex; gap:10px;
+    align-items:center; flex-wrap:wrap; border:1px solid;
+  }
+  .sem-banner .box.archive{background:#FFF6E5; border-color:#F0C36D; color:#6B4700;}
+  .sem-banner .box.fresh{background:#EEF0FF; border-color:#B9B2F5; color:#2D2A6B;}
+  .sem-banner .box b{font-weight:600;}
+  .sem-banner .grow{flex:1 1 240px;}
+  .sem-banner select{padding:6px 8px; border-radius:7px; border:1px solid var(--line); font:inherit; background:#fff;}
+  .sem-banner .btn{padding:7px 11px; font-size:12.5px;}
   .topbar{
     position:sticky; top:0; z-index:40;
     background: var(--gradient-topbar);
@@ -938,10 +988,14 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
         </svg>
         <div>
           <div class="eyebrow">Department of Computer & Software Engineering</div>
-          <h1>Faculty Workload — Spring 2027</h1>
+          <h1>Faculty Workload — <span id="semTitle">…</span></h1>
         </div>
       </div>
       <div style="display:flex;align-items:center;gap:10px;">
+        <div class="sem-bar" id="semBar">
+          <button class="sem-pill" id="semPill" aria-haspopup="true" aria-expanded="false" title="Change semester"><span id="semPillIco"></span><span id="semPillLabel">Semester</span><span class="sem-caret">▾</span></button>
+          <div class="sem-menu" id="semMenu" hidden></div>
+        </div>
         <a href="https://aupgece.github.io/pco/index.html" title="Back to Dashboard" style="display:inline-flex;align-items:center;gap:5px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:#EDEFF3;border-radius:7px;padding:6px 12px;font-family:&#39;IBM Plex Sans&#39;,sans-serif;font-size:12.5px;font-weight:500;text-decoration:none;transition:background .15s;" onmouseover="this.style.background=&#39;rgba(255,255,255,.15)&#39;" onmouseout="this.style.background=&#39;rgba(255,255,255,.08)&#39;">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
           Home
@@ -1234,6 +1288,7 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
   </div>
 </div>
 
+<div class="sem-banner" id="semBanner"></div>
 <main>
 
   <!-- DETAIL PANEL -->
@@ -1730,18 +1785,247 @@ function setCourseSections(code, arr){
   lists.courseSections[key] = arr.slice();
 }
 
+
+// ─── SEMESTER MODEL ──────────────────────────────────────────────────────────
+// Same Firebase project as CL.html, but CSE's own collection — every
+// semester is just its own document in it (e.g. 'spring2027', 'fall2026').
+const SEM_FIRST = {term:'F', year:2026};          // earliest semester offered
+const SEM_LAST_YEAR = 2032;                         // dropdown runs up to Spring/Fall of this year
+const LEGACY_SEM_DOCS = {};
+const SEM_COLLECTION = 'cse_workload';   // CSE's own collection (EE uses 'ee_workload') so the two never overwrite each other
+
+function semLabel(id){ const [t,y]=id.split('-'); return (t==='S'?'Spring ':'Fall ')+y; }
+function semDocId(id){
+  if(LEGACY_SEM_DOCS[id]) return LEGACY_SEM_DOCS[id];
+  const [t,y]=id.split('-'); return (t==='S'?'spring':'fall')+y;
+}
+function semOrderKey(id){ const [t,y]=id.split('-'); return Number(y)*2 + (t==='F'?1:0); }
+function buildSemList(){
+  const out=[];
+  for(let y=SEM_FIRST.year; y<=SEM_LAST_YEAR; y++){
+    ['S','F'].forEach(t=>{
+      const id=t+'-'+y;
+      if(semOrderKey(id) >= semOrderKey(SEM_FIRST.term+'-'+SEM_FIRST.year)) out.push(id);
+    });
+  }
+  return out;
+}
+const SEM_LIST = buildSemList();
+// With no ?sem= in the link, nothing opens by default: the semester picker
+// is shown first and no data is loaded until one is chosen.
+let SEM_PICK = false;
+const SEM = (function(){
+  let id = null;
+  try{ id = new URLSearchParams(location.search).get('sem'); }catch(e){}
+  if(id) id = id.toUpperCase().replace(/^(SPRING|S)[-_ ]?/, 'S-').replace(/^(FALL|F)[-_ ]?/, 'F-');
+  if(!id || SEM_LIST.indexOf(id)<0){ SEM_PICK = true; id = SEM_LIST[0]; }   // placeholder only; never loaded in picker mode
+  return {id, label: semLabel(id), docId: semDocId(id)};
+})();
+
+// No semester is locked or treated as default; edits are still protected by the admin password.
+let READ_ONLY = false;
+
+document.title = SEM_PICK ? document.title : ('EE Faculty Workload — ' + SEM.label);
+function gotoSemester(id){
+  const u = new URL(location.href); u.searchParams.set('sem', id); location.href = u.toString();
+}
+// Academic years run Fall → Spring (e.g. Fall 2026 + Spring 2027 = 2026–27).
+function semAcademicYears(){
+  const out = [];
+  for(let y=SEM_FIRST.year; y<=SEM_LAST_YEAR; y++){
+    const terms = ['F-'+y, 'S-'+(y+1)].filter(id=>SEM_LIST.indexOf(id)>=0);
+    if(terms.length) out.push({label: y+'–'+String((y+1)%100).padStart(2,'0'), terms});
+  }
+  return out;
+}
+const SEM_SVG = (d)=>'<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'+d+'</svg>';
+const ICO = {
+  cal:   SEM_SVG('<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/>'),
+  book:  SEM_SVG('<path d="M2 4h6a4 4 0 0 1 4 4v13a3 3 0 0 0-3-3H2z"/><path d="M22 4h-6a4 4 0 0 0-4 4v13a3 3 0 0 1 3-3h7z"/>'),
+  grid:  SEM_SVG('<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>'),
+  eye:   SEM_SVG('<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>'),
+  pen:   SEM_SVG('<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/>'),
+  copy:  SEM_SVG('<rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>'),
+  down:  SEM_SVG('<path d="m6 9 6 6 6-6"/>'),
+  arrow: SEM_SVG('<path d="M5 12h14M13 6l6 6-6 6"/>')
+};
+const SEM_ICON = {F:'🍁', S:'🌸'};   // change these two emojis to restyle the Fall / Spring icons
+(function initSemUI(){
+  document.getElementById('semTitle').textContent = SEM_PICK ? 'Select semester' : SEM.label;
+  document.getElementById('semPillLabel').textContent = SEM_PICK ? 'Select semester' : SEM.label;
+  const pill = document.getElementById('semPill'), menu = document.getElementById('semMenu');
+  document.getElementById('semPillIco').innerHTML = ICO.cal;
+  const years = [...new Set(SEM_LIST.map(i=>i.split('-')[1]))];
+  menu.innerHTML = semAcademicYears().slice(0,4).map(ay=>'<div class="sm-h">'+ICO.book+'Academic year '+ay.label+'</div><div class="sm-row">' +
+      ay.terms.map(id=>{ const on = id===SEM.id && !SEM_PICK;
+        return '<button class="sm-item'+(on?' on':'')+'" data-sem="'+id+'"><span>'+SEM_ICON[id[0]]+'</span>'+(id[0]==='F'?'Fall ':'Spring ')+id.split('-')[1]+'</button>'; }).join('') +
+      (ay.terms.length<2 ? '<span class="sm-none"></span>' : '') + '</div>').join('') +
+    '<button class="sm-all" id="semAllBtn">'+ICO.grid+'Browse all semesters '+ICO.arrow+'</button>';
+  const close = ()=>{ menu.hidden = true; pill.setAttribute('aria-expanded','false'); };
+  pill.addEventListener('click', e=>{ e.stopPropagation(); const open = menu.hidden; menu.hidden = !open; pill.setAttribute('aria-expanded', String(open)); });
+  menu.addEventListener('click', e=>{
+    const b = e.target.closest('[data-sem]');
+    if(b){ if(b.getAttribute('data-sem')!==SEM.id || SEM_PICK) gotoSemester(b.getAttribute('data-sem')); else close(); return; }
+    if(e.target.closest('#semAllBtn')){ close(); showSemPicker(true); }
+  });
+  document.addEventListener('click', e=>{ if(!menu.hidden && !e.target.closest('#semBar')) close(); });
+  document.addEventListener('keydown', e=>{ if(e.key==='Escape') close(); });
+  if(SEM_PICK) showSemPicker(false);
+})();
+
+function showSemPicker(canClose){
+  let el = document.getElementById('semPicker');
+  if(el){ el.hidden = false; return; }
+  const dept = (document.querySelector('.eyebrow')||{}).textContent || 'Faculty Workload';
+  const st = document.createElement('style');
+  st.textContent = `
+    #semPicker{position:fixed; inset:0; z-index:1000; overflow:auto; display:flex; justify-content:center; align-items:flex-start; padding:16px;
+      font-family:'IBM Plex Sans',system-ui,sans-serif; background:linear-gradient(160deg,#1A0842 0%,#32117A 55%,#4F1FA8 100%); animation:spFade .35s ease-out;}
+    #semPicker::before,#semPicker::after{content:''; position:fixed; border-radius:50%; filter:blur(60px); opacity:.35; pointer-events:none; animation:spFloat 12s ease-in-out infinite alternate;}
+    #semPicker::before{width:340px; height:340px; background:#A855F7; top:-80px; left:-60px;}
+    #semPicker::after{width:300px; height:300px; background:#F0ABFC; bottom:-90px; right:-50px; animation-delay:-6s;}
+    #semPicker[hidden]{display:none;}
+    #semPicker .sp-card{margin:auto; position:relative; z-index:1; width:100%; max-width:430px; background:#fff; border-radius:18px; overflow:hidden; box-shadow:0 22px 60px rgba(10,0,40,.5); animation:spUp .45s cubic-bezier(.2,.8,.2,1);}
+    #semPicker .sp-card.leaving{animation:spOut .22s ease-in forwards;}
+    #semPicker .sp-head{position:relative; padding:20px 22px 16px; color:#fff; background:linear-gradient(135deg,#2A0B5E,#5B21B6);}
+    #semPicker .sp-head::after{content:''; position:absolute; left:0; right:0; bottom:0; height:3px; background:linear-gradient(90deg,#F5C451,#F0ABFC,#F5C451);}
+    #semPicker .sp-cap{width:34px; height:34px; margin-bottom:8px; color:#F5C451; animation:spBob 3.2s ease-in-out infinite;}
+    #semPicker .sp-eyebrow{font:600 10px 'IBM Plex Mono',monospace; letter-spacing:.14em; text-transform:uppercase; color:#D9C9FF; margin-bottom:3px; padding-right:30px;}
+    #semPicker h2{margin:0; font:700 22px/1.2 'Source Serif 4',Georgia,serif; color:#fff;}
+    #semPicker .sp-sub{margin:4px 0 0; font-size:12.5px; color:#DCD0FA;}
+    #semPicker .sp-x{position:absolute; top:12px; right:12px; width:28px; height:28px; border-radius:50%; border:none; background:rgba(255,255,255,.16); color:#fff; font-size:16px; cursor:pointer; transition:background .15s, transform .15s;}
+    #semPicker .sp-x:hover{background:rgba(255,255,255,.3); transform:rotate(90deg);}
+    #semPicker .sp-body{padding:10px 18px 16px;}
+    #semPicker .sp-ay{padding:8px 0 2px; opacity:0; animation:spUp .45s cubic-bezier(.2,.8,.2,1) forwards; animation-delay:calc(var(--i)*55ms + 150ms);}
+    #semPicker .sp-ay h3{margin:0 0 6px; font:600 11px 'IBM Plex Mono',monospace; letter-spacing:.1em; text-transform:uppercase; color:#7A6FB0;}
+    #semPicker .sp-pair{display:flex; gap:8px;}
+    #semPicker button.sp-chip{flex:1; display:flex; align-items:center; gap:9px; cursor:pointer; text-align:left; border:1.5px solid #E5E0F8; background:#FAF8FF; border-radius:11px; padding:9px 12px; color:#0F1B35; transition:transform .15s, box-shadow .15s, border-color .15s, background .15s;}
+    #semPicker button.sp-chip .ic{font-size:20px; transition:transform .25s;}
+    #semPicker button.sp-chip b{display:block; font:700 13.5px 'IBM Plex Sans',sans-serif;}
+    #semPicker button.sp-chip small{display:block; font:500 11px 'IBM Plex Sans',sans-serif; color:#8A84A8;}
+    #semPicker button.sp-chip:hover,#semPicker button.sp-chip:focus-visible{transform:translateY(-2px); border-color:#7C4DEB; background:#F3EDFF; box-shadow:0 6px 16px rgba(108,63,235,.25); outline:none;}
+    #semPicker button.sp-chip:hover .ic{transform:scale(1.2) rotate(-8deg);}
+    #semPicker button.sp-chip:active{transform:scale(.97);}
+    #semPicker .sp-none{flex:1;}
+    #semPicker .sp-ay h3 .ico{margin-right:6px; width:13px; height:13px; vertical-align:-2px;}
+    #semPicker button.sp-showmore{display:none; align-items:center; justify-content:center; gap:6px;}
+    #semPicker button.sp-showmore .ico{margin:0;}
+    #semPicker .sp-foot{display:flex; flex-wrap:wrap; gap:6px 16px; justify-content:center; padding:11px 16px 13px; background:#F8F6FF; border-top:1px solid #EEEAFB; font:500 11.5px 'IBM Plex Sans',sans-serif; color:#6F688F;}
+    #semPicker .sp-foot span{display:inline-flex; align-items:center; gap:5px;}
+    #semPicker .sp-foot .ico{color:#7C4DEB; width:13px; height:13px;}
+    #semPicker .sp-more{display:none;}
+    #semPicker.expanded .sp-more{display:block;}
+    #semPicker button.sp-showmore{display:block; width:100%; margin-top:10px; padding:9px; border:1.5px dashed #CFC6F2; background:none; border-radius:10px; cursor:pointer; font:600 12.5px 'IBM Plex Sans',sans-serif; color:#5B3FC4; transition:background .15s, border-color .15s;}
+    #semPicker button.sp-showmore:hover{background:#F5F2FF; border-color:#7C4DEB;}
+    #semPicker button.sp-showmore{display:flex !important;}
+    #semPicker.expanded button.sp-showmore{display:none !important;}
+    #semPicker .sp-card{max-width:980px; display:grid; grid-template-columns:300px 1fr;}
+    #semPicker .sp-head{display:flex; flex-direction:column; padding:30px 26px; background:linear-gradient(180deg,#2A0B5E 0%,#4C1D95 60%,#5B21B6 100%);}
+    #semPicker .sp-head::after{left:auto; top:0; right:0; bottom:0; width:3px; height:auto; background:linear-gradient(180deg,#F5C451,#F0ABFC,#F5C451);}
+    #semPicker .sp-cap{width:48px; height:48px; margin-bottom:14px;}
+    #semPicker h2{font-size:30px;}
+    #semPicker .sp-sub{font-size:13.5px; margin-top:8px;}
+    #semPicker .sp-head .sp-foot{flex-direction:column; align-items:flex-start; gap:10px; margin-top:auto; padding:26px 0 0; background:none; border:none; color:#DCD0FA; font-size:12.5px; justify-content:flex-start;}
+    #semPicker .sp-head .sp-foot .ico{color:#F5C451;}
+    #semPicker .sp-body{padding:24px 26px; display:flex; align-items:center;}
+    #semPicker .sp-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:14px; width:100%;}
+    #semPicker .sp-ay h3{font-size:13px; letter-spacing:.06em; white-space:nowrap;}
+    #semPicker .sp-ay{padding:12px; background:#FBFAFF; border:1px solid #EEEAFB; border-radius:14px; transition:box-shadow .2s, border-color .2s;}
+    #semPicker .sp-ay:hover{border-color:#D5C8FA; box-shadow:0 6px 18px rgba(108,63,235,.12);}
+    #semPicker .sp-pair{flex-direction:column; gap:8px;}
+    #semPicker .sp-x{background:rgba(15,27,53,.07); color:#5A6580;}
+    #semPicker .sp-x:hover{background:rgba(15,27,53,.15);}
+    @media (max-width:780px){
+      #semPicker .sp-card{grid-template-columns:1fr; max-width:460px;}
+      #semPicker .sp-head{padding:22px 22px 18px;}
+      #semPicker .sp-head::after{left:0; right:0; top:auto; bottom:0; width:auto; height:3px; background:linear-gradient(90deg,#F5C451,#F0ABFC,#F5C451);}
+      #semPicker .sp-head .sp-foot{display:none;}
+      #semPicker h2{font-size:24px;}
+      #semPicker .sp-x{background:rgba(255,255,255,.2); color:#fff;}
+    }
+    @keyframes spFade{from{opacity:0;} to{opacity:1;}}
+    @keyframes spUp{from{opacity:0; transform:translateY(14px);} to{opacity:1; transform:none;}}
+    @keyframes spOut{to{opacity:0; transform:translateY(-10px) scale(.97);}}
+    @keyframes spBob{0%,100%{transform:translateY(0) rotate(-4deg);} 50%{transform:translateY(-4px) rotate(4deg);}}
+    @keyframes spFloat{from{transform:translate(0,0);} to{transform:translate(40px,30px);}}
+    @media (prefers-reduced-motion:reduce){ #semPicker,#semPicker *,#semPicker::before,#semPicker::after{animation:none!important; transition:none!important; opacity:1!important;} }
+  `;
+  document.head.appendChild(st);
+  el = document.createElement('div');
+  el.id = 'semPicker';
+  const cap = '<svg class="sp-cap" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M22 9 12 4 2 9l10 5 10-5z"/><path d="M6 11.2V16c0 1.2 2.7 3 6 3s6-1.8 6-3v-4.8"/><path d="M22 9v6"/></svg>';
+  el.innerHTML = '<div class="sp-card">' + (canClose?'<button class="sp-x" id="spClose" aria-label="Close">×</button>':'') +
+    '<aside class="sp-head">' + cap +
+      '<div class="sp-eyebrow">'+dept+'</div><h2>Course Loading</h2><p class="sp-sub">Select an academic term to continue</p>' +
+      '<div class="sp-foot"><span>'+ICO.eye+'View loading</span><span>'+ICO.pen+'Edit with admin access</span><span>'+ICO.copy+'Copy setup to new term</span></div>' +
+    '</aside>' +
+    '<section class="sp-body"><div class="sp-grid">' +
+      semAcademicYears().map((ay,i)=>'<div class="sp-ay" style="--i:'+i+'"><h3>'+ICO.book+ay.label+'</h3><div class="sp-pair">' +
+        ay.terms.map(id=>'<button class="sp-chip" data-sem="'+id+'"><span class="ic">'+SEM_ICON[id[0]]+'</span><span><b>'+(id[0]==='F'?'Fall':'Spring')+' '+id.split('-')[1]+'</b><small>'+(id[0]==='F'?'Fall':'Spring')+' semester</small></span></button>').join('') +
+        (ay.terms.length<2 ? '<span class="sp-none"></span>' : '') + '</div></div>').join('') +
+    '</div></section></div>';
+  el.addEventListener('click', e=>{
+    if(e.target.closest('#spMore')){ el.classList.add('expanded'); return; }
+    const b = e.target.closest('[data-sem]');
+    if(b){ if(b.getAttribute('data-sem')===SEM.id && !SEM_PICK){ el.hidden = true; } else { const card = el.querySelector('.sp-card'); if(card) card.classList.add('leaving'); setTimeout(()=>gotoSemester(b.getAttribute('data-sem')), 200); } return; }
+    if(e.target.closest('#spClose') || (canClose && e.target===el)) el.hidden = true;
+  });
+  document.addEventListener('keydown', e=>{ if(e.key==='Escape' && canClose) el.hidden = true; });
+  document.body.appendChild(el);
+}
+
+function renderSemBanner(state){
+  const el = document.getElementById('semBanner');
+  if(!el) return;
+  let html = '';
+  if(state==='empty'){
+    const idx = SEM_LIST.indexOf(SEM.id);
+    const opts = SEM_LIST.slice(0, Math.max(idx,0)).reverse()
+      .map(id=>`<option value="${id}">${semLabel(id)}</option>`).join('');
+    html = `<div class="box fresh"><span class="grow">🆕 <b>${SEM.label}</b> has no data yet. Start blank, or copy the setup
+      (faculty list, course list, tabs — <i>not</i> assignments or section names) from an earlier semester.</span>
+      ${opts ? `<select id="semCopyFrom">${opts}</select><button class="btn primary" id="semCopyBtn">Copy setup</button>` : ''}</div>`;
+  }
+  el.innerHTML = html;
+  const cp = document.getElementById('semCopyBtn'); if(cp) cp.onclick = copySetupFromSemester;
+}
+
+async function copySetupFromSemester(){
+  const from = document.getElementById('semCopyFrom').value;
+  const ind = document.getElementById('saveIndicator');
+  try{
+    ind.textContent='copying setup...'; ind.className='save-indicator';
+    const snap = await SEM_DB.collection(SEM_COLLECTION).doc(semDocId(from)).get();
+    if(!snap.exists){ alert(semLabel(from)+' has no data to copy.'); return; }
+    const p = snap.data(), pl = p.lists || {};
+    lists = {
+      courses: (pl.courses||[]).map(c=>({code:c.code, name:c.name, cr:c.cr, category:c.category})),
+      fms: JSON.parse(JSON.stringify(pl.fms||[])),
+      sections: [], courseSections: {}, removedCourses: [], removedSections: [],
+      programs: JSON.parse(JSON.stringify(pl.programs||[]))
+    };
+    // Carry the faculty roster into the table as empty assignment rows is NOT done:
+    // rows start empty; faculty/courses are available from the pick-lists.
+    data = []; nextId = 1;
+    if(p.adminPassword) ADMIN_PASSWORD = p.adminPassword;
+    mergeFall2026Lists(); ensureCourseSections(); recomputeSnos(); trackKnownPrograms();
+    scheduleSave(true);
+    renderSemBanner(); renderAll(); renderModal();
+  }catch(e){ console.error(e); ind.textContent='Copy failed - '+e.message; ind.className='save-indicator err'; }
+}
+
 // ─── FIREBASE SETUP ───────────────────────────────────────────────────────────
 let FB_DOC = null;
+let SEM_DB = null;
 try {
-  if(typeof firebase !== 'undefined') {
+  if(typeof firebase !== 'undefined' && !SEM_PICK) {
     const firebaseConfig = {
-      // TODO: paste your own Firebase project config here
-      apiKey: "",
-      authDomain: "",
-      projectId: "",
-      storageBucket: "",
-      messagingSenderId: "",
-      appId: ""
+      apiKey: "AIzaSyBnXz5R3r9JZtVLwW1mTi57AegA4PZSjEA",
+      authDomain: "ececl-8fbef.firebaseapp.com",
+      projectId: "ececl-8fbef",
+      storageBucket: "ececl-8fbef.firebasestorage.app",
+      messagingSenderId: "403872659930",
+      appId: "1:403872659930:web:ecf8fa01efd09a914128e3"
     };
     if(!firebaseConfig.apiKey) throw new Error('No Firebase config set — running without cloud sync.');
     firebase.initializeApp(firebaseConfig);
@@ -1755,7 +2039,8 @@ try {
     db.enablePersistence({synchronizeTabs:true}).catch(e=>{
       console.warn('Firestore persistence not enabled:', e.code);
     });
-    FB_DOC = db.collection('ee_workload').doc('spring2026');
+    SEM_DB = db;
+    FB_DOC = db.collection(SEM_COLLECTION).doc(SEM.docId);
   }
 } catch(e) {
   console.warn('Firebase init failed:', e);
@@ -1977,6 +2262,7 @@ async function loadData(){
         recomputeSnos();
         renderAll(); renderModal();
         ind.textContent = 'Firebase connected (no data yet)'; ind.className='save-indicator ok';
+        renderSemBanner('empty');
       }
       return;
     }
@@ -1986,6 +2272,7 @@ async function loadData(){
     const isInitial = !gotFirst;
     gotFirst = true;
     applyRemoteSnapshot(snapshot.data(), isInitial);
+    renderSemBanner();
     ind.textContent = snapshot.metadata.fromCache ? 'Firebase connected (cached)' : 'Firebase connected (live)';
     ind.className = 'save-indicator ok';
   }, err=>{
@@ -2074,6 +2361,10 @@ let saveTimer = null;
 // in Rank/Notes/etc), where writing on every keystroke would be wasteful.
 function scheduleSave(immediate){
   const ind = document.getElementById('saveIndicator');
+  if(READ_ONLY){
+    ind.textContent = 'Archived semester - read-only, not saved'; ind.className='save-indicator err';
+    return;
+  }
   if(!FB_DOC){
     ind.textContent = 'Offline - changes not saved to cloud'; ind.className='save-indicator err';
     return;
@@ -2104,7 +2395,7 @@ function scheduleSave(immediate){
 // field), flush it immediately instead of losing that last edit.
 ['beforeunload','pagehide'].forEach(evt=>{
   window.addEventListener(evt, ()=>{
-    if(saveTimer && FB_DOC){
+    if(saveTimer && FB_DOC && !READ_ONLY){
       clearTimeout(saveTimer);
       saveTimer = null;
       FB_DOC.set({rows: data, lists, adminPassword: ADMIN_PASSWORD, updatedAt: new Date().toISOString()}).catch(()=>{});
@@ -2724,7 +3015,7 @@ function renderDetail(){
       <td><div class="course-combo" data-id="${r.id}">
         <input type="text" class="cc-input" data-id="${r.id}" data-field="course_combined" autocomplete="off" placeholder="Search course…" value="${escAttr(courseComboLabel(r.code, r.course))}">
         <div class="cc-list" id="cc-list-${r.id}"></div>
-      </div><span class="sec-badge" id="sb-${r.id}" title="Sections still available / total offered in Spring 2027">${getSectionBadge(r.code)}</span></td>
+      </div><span class="sec-badge" id="sb-${r.id}" title="Sections still available / total offered in ${SEM.label}">${getSectionBadge(r.code)}</span></td>
       <td class="num"><input data-id="${r.id}" data-field="cr" value="${escAttr(r.cr)}" style="width:34px;"></td>
       <td><select data-id="${r.id}" data-field="s1">${sectionOptions(r.s1, r.code, r.id, 's1')}</select></td>
       <td><select data-id="${r.id}" data-field="s2">${sectionOptions(r.s2, r.code, r.id, 's2')}</select></td>
@@ -3148,9 +3439,9 @@ function printFacultySummary(){
     return header + courses;
   }).join('');
 
-  const html = `<!doctype html><html><head><meta charset="utf-8"><title>Faculty Summary — CSE Spring 2027</title><style>${PRINT_CSS}</style></head><body>
+  const html = `<!doctype html><html><head><meta charset="utf-8"><title>Faculty Summary — CSE ${SEM.label}</title><style>${PRINT_CSS}</style></head><body>
     <h1>Faculty Workload Summary</h1>
-    <div class="sub">Department of Computer & Software Engineering &nbsp;·&nbsp; Spring 2027 &nbsp;·&nbsp; Generated ${new Date().toLocaleDateString()}</div>
+    <div class="sub">Department of Computer & Software Engineering &nbsp;·&nbsp; ${SEM.label} &nbsp;·&nbsp; Generated ${new Date().toLocaleDateString()}</div>
     <table>
       <tbody>${rows}</tbody>
       <tfoot><tr class="grand"><td colspan="3">GRAND TOTAL</td><td class="num">${calcSum}</td></tr></tfoot>
@@ -3181,9 +3472,9 @@ function printSectionSummary(){
     rows += `<tr class="sec-total"><td colspan="2" style="text-align:right;color:#8A93A3;">Total</td><td></td><td class="num">${totalHrs}</td></tr>`;
   });
 
-  const html = `<!doctype html><html><head><meta charset="utf-8"><title>Section-wise Summary — CSE Spring 2027</title><style>${PRINT_CSS}</style></head><body>
+  const html = `<!doctype html><html><head><meta charset="utf-8"><title>Section-wise Summary — CSE ${SEM.label}</title><style>${PRINT_CSS}</style></head><body>
     <h1>Section-wise Workload Summary</h1>
-    <div class="sub">Department of Computer & Software Engineering &nbsp;·&nbsp; Spring 2027 &nbsp;·&nbsp; Generated ${new Date().toLocaleDateString()}</div>
+    <div class="sub">Department of Computer & Software Engineering &nbsp;·&nbsp; ${SEM.label} &nbsp;·&nbsp; Generated ${new Date().toLocaleDateString()}</div>
     <table>
       <tbody>${rows}</tbody>
     </table>
@@ -3232,7 +3523,7 @@ const PRINT_CSS_PROGRAM = `
 // Shared header block for all program reports
 function programReportHeader(programLabel, accentColor, summaryLine){
   return `<h1 style="color:${accentColor};">${escHtml(programLabel)} Course Loading Report</h1>
-  <div class="sub">Department of Computer & Software Engineering &nbsp;·&nbsp; Spring 2027 &nbsp;·&nbsp; Generated ${new Date().toLocaleDateString()}</div>
+  <div class="sub">Department of Computer & Software Engineering &nbsp;·&nbsp; ${SEM.label} &nbsp;·&nbsp; Generated ${new Date().toLocaleDateString()}</div>
   <div class="summary-bar" style="border-color:${accentColor}33;background:${accentColor}0d;color:${accentColor};">${summaryLine}</div>`;
 }
 
@@ -3451,7 +3742,7 @@ function buildCategoryAssignedFmView(categoryKey){
 function printCategoryReport(categoryKey, categoryLabel, accentColor){
   const { html: bodyHtml, summary } = buildCategoryAssignedFmView(categoryKey);
   const fullHtml = `<!doctype html><html><head><meta charset="utf-8">
-    <title>${escHtml(categoryLabel)} — Assigned Faculty — Spring 2027</title>
+    <title>${escHtml(categoryLabel)} — Assigned Faculty — ${SEM.label}</title>
     <style>${PRINT_CSS_PROGRAM}</style></head><body>
     ${programReportHeader(categoryLabel, accentColor || '#1F3D5A', summary)}
     ${bodyHtml}
@@ -3465,7 +3756,7 @@ function printProgramLoading(prefix, programLabel, accentColor, view){
   const { html: bodyHtml, summary } = builder(prefix);
   const viewLabel = view==='section' ? 'Section-wise' : view==='detail' ? 'Detailed' : 'Faculty Summary';
   const fullHtml = `<!doctype html><html><head><meta charset="utf-8">
-    <title>${programLabel} Course Loading — ${viewLabel} — Spring 2027</title>
+    <title>${programLabel} Course Loading — ${viewLabel} — ${SEM.label}</title>
     <style>${PRINT_CSS_PROGRAM}</style></head><body>
     ${programReportHeader(programLabel, accentColor, summary)}
     ${bodyHtml}
@@ -4680,7 +4971,7 @@ document.getElementById('exportCsvBtn').addEventListener('click', ()=>{
 </head>
 <body>
 <table>
-  <caption>CSE Faculty Workload — Spring 2027 &nbsp;·&nbsp; Generated ${new Date().toLocaleDateString()} &nbsp;·&nbsp; Grand Total: ${grandTotal} hrs</caption>
+  <caption>CSE Faculty Workload — ${SEM.label} &nbsp;·&nbsp; Generated ${new Date().toLocaleDateString()} &nbsp;·&nbsp; Grand Total: ${grandTotal} hrs</caption>
   <colgroup>${colgroup}</colgroup>
   <thead><tr>${headHtml}</tr></thead>
   <tbody>${bodyRows}</tbody>
@@ -6022,7 +6313,7 @@ document.getElementById('superAdminRevealOverlay').addEventListener('click', e=>
 // Start in view-only mode (also fixes admin badge label/state on load)
 setAdminMode(false);
 
-loadData();
+if(!SEM_PICK) loadData();
 </script>
 
 
