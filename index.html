@@ -28663,6 +28663,18 @@ body.admin-mode .fm-hint{display:block}
 .fm-card:hover{border-color:var(--accent-lt)}
 .fm-card.on{background:var(--accent);border-color:var(--accent)}
 .fm-card.on b,.fm-card.on span{color:#fff}
+.fm-cdept.EE{--dc:#1b5fa8;--dcbg:#eaf2fc;--dcbd:#b9d3f0}
+.fm-cdept.CE{--dc:#0f7a6a;--dcbg:#e5f5f1;--dcbd:#a9dccf}
+.fm-cdept{border-top:4px solid var(--dc,var(--rule))}
+.fm-cdept h4 .fm-dh{display:flex;align-items:center;gap:.55rem}
+.fm-dico{width:34px;height:34px;border-radius:50%;background:var(--dc);color:#fff;display:inline-flex;align-items:center;justify-content:center;flex:none}
+.fm-dico svg{width:20px;height:20px}
+.fm-cdept .fm-card{background:var(--dcbg);border-color:var(--dcbd);position:relative;padding-right:2.4rem}
+.fm-cdept .fm-card b{color:var(--dc)}
+.fm-cdept .fm-card .fm-cico{position:absolute;top:.5rem;right:.55rem;width:20px;height:20px;color:var(--dc);opacity:.55}
+.fm-cdept .fm-card:hover{border-color:var(--dc)}
+.fm-cdept .fm-card.on{background:var(--dc);border-color:var(--dc)}
+.fm-cdept .fm-card.on b,.fm-cdept .fm-card.on span,.fm-cdept .fm-card.on .fm-cico{color:#fff;opacity:1}
 @media(min-width:781px){
   #fmTable th.fm-name,#fmTable td.fm-name{position:sticky;left:0;z-index:1;background:#fff}
   #fmTable tbody tr:nth-child(even) td.fm-name{background:#f7f9fc}
@@ -28875,6 +28887,10 @@ body.admin-mode .fm-hint{display:block}
   }
 
 
+  var ICO={
+    EE:'<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M13.5 2 5 13.5h5.5L9.5 22 19 9.5h-5.7z"/></svg>',
+    CE:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="1.5"/><path d="M9.5 10.5 8 12l1.5 1.5M14.5 10.5 16 12l-1.5 1.5M3 9h3M3 15h3M18 9h3M18 15h3M9 3v3M15 3v3M9 18v3M15 18v3"/></svg>'
+  };
   function renderCards(){
     var el=$('fmCards'); if(!el) return;
     var PL={'Lecturer':'Lecturers','Lab Engineer':'Lab Engineers','Assistant Professor':'Assistant Professors','Associate Professor':'Associate Professors','Professor':'Professors'};
@@ -28886,11 +28902,11 @@ body.admin-mode .fm-hint{display:block}
         cnt[k]=(cnt[k]||0)+1;
         if(order.indexOf(k)<0) order.push(k);
       });
-      html+='<div class="fm-cdept"><h4><span>'+esc(SEC_NAME[sec])+'</span><small>'+mem.length+' total</small></h4><div class="fm-crow">';
+      html+='<div class="fm-cdept '+sec+'"><h4><span class="fm-dh"><span class="fm-dico">'+ICO[sec]+'</span>'+esc(SEC_NAME[sec])+'</span><small>'+mem.length+' total</small></h4><div class="fm-crow">';
       order.forEach(function(k){
         var n=cnt[k]||0, std=DESIGS.indexOf(k)>=0;
         var on=std && filter===sec && dfilter===k;
-        html+='<button type="button" class="fm-card'+(n?'':' zero')+(on?' on':'')+'" data-csec="'+sec+'"'+(std?' data-cd="'+esc(k)+'"':'')+'><b>'+n+'</b><span>'+esc(PL[k]||k)+'</span></button>';
+        html+='<button type="button" class="fm-card'+(n?'':' zero')+(on?' on':'')+'" data-csec="'+sec+'"'+(std?' data-cd="'+esc(k)+'"':'')+'><span class="fm-cico">'+ICO[sec]+'</span><b>'+n+'</b><span>'+esc(PL[k]||k)+'</span></button>';
       });
       html+='</div></div>';
     });
