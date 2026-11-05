@@ -28609,7 +28609,7 @@ header p{animation:fxSlide .8s .4s both}
 <!-- ══ REGULAR FACULTY MEMBERS (EE & CE) DATABASE ══ -->
 <style id="fm-css">
 #fmOverlay .modal{max-width:1280px}
-body.admin-bar-shown #fmOverlay,body.admin-bar-shown #fmEditOverlay{top:var(--admbar-h,44px)}
+body.admin-bar-shown #fmOverlay,body.admin-bar-shown #fmEditOverlay,body.admin-bar-shown #fmLabOverlay,body.admin-bar-shown #fmLfOverlay{top:var(--admbar-h,44px)}
 .fm-tools{display:flex;flex-wrap:wrap;gap:.6rem;align-items:center;margin-bottom:1rem}
 .fm-tools input[type=text]{flex:1 1 240px;min-width:200px;font:500 .95rem 'Source Sans 3',sans-serif;color:var(--ink);background:#fff;border:1px solid var(--rule);border-radius:4px;padding:.55rem .8rem}
 .fm-seg{display:inline-flex;gap:.35rem;flex-wrap:wrap}
@@ -28646,6 +28646,36 @@ body.admin-mode #fmTable td.fm-e:hover{background:rgba(201,162,74,.12);outline:1
 .fm-upd{font:600 .82rem 'Source Sans 3',sans-serif;color:var(--accent);background:#fff;border:1px solid var(--rule);border-radius:999px;padding:.25rem .75rem;cursor:pointer;white-space:nowrap}
 .fm-upd:hover{background:var(--accent);color:#fff;border-color:var(--accent)}
 .fm-stamp{display:block;font:500 .74rem 'Source Sans 3',sans-serif;color:var(--muted);margin-top:.15rem}
+.fm-labs{margin-top:1.8rem}
+.fm-labs-head{display:flex;flex-wrap:wrap;gap:.6rem;align-items:center;justify-content:space-between;margin-bottom:.5rem}
+.fm-labs-head h3{margin:0;font:600 1.35rem 'EB Garamond',serif;color:var(--ink);display:flex;align-items:center;gap:.5rem}
+.fm-labs-head h3 svg{width:22px;height:22px;color:var(--accent)}
+.fm-labs-sub{font:500 .9rem 'Source Sans 3',sans-serif;color:var(--muted);margin:0 0 .7rem}
+#fmLabTable{min-width:1000px}
+#fmLabTable td{vertical-align:top}
+#fmLabTable td.lb-name{font-weight:700;color:var(--ink);min-width:170px}
+#fmLabTable td.lb-num{color:var(--muted);width:2.5rem}
+#fmLabTable td.lb-long{min-width:200px;max-width:320px;white-space:pre-wrap;line-height:1.45}
+#fmLabTable td.lb-ph{white-space:nowrap;font-family:'Source Code Pro',monospace;font-size:.82rem}
+#fmLabTable tr.fm-grp td{background:var(--parchment)!important;font:600 1.05rem 'EB Garamond',serif;color:var(--ink);padding:.55rem 1rem;border-bottom:2px solid var(--rule);position:static!important}
+#fmLabTable tr.fm-grp td small{font:600 .82rem 'Source Sans 3',sans-serif;color:var(--muted);margin-left:.6rem}
+body.admin-mode #fmLabTable td.lb-e{cursor:pointer}
+body.admin-mode #fmLabTable td.lb-e:hover{background:rgba(201,162,74,.12);outline:1px dashed var(--gold-lt)}
+#fmLabTable td.lb-ed{padding:.3rem}
+#fmLabTable td.lb-ed input,#fmLabTable td.lb-ed textarea,#fmLabTable td.lb-ed select{width:100%;min-width:140px;font:500 .9rem 'Source Sans 3',sans-serif;color:var(--ink);border:1px solid var(--accent-lt);border-radius:4px;padding:.4rem .5rem;background:#fff}
+#fmLabTable td.lb-ed textarea{min-height:5rem;resize:vertical}
+.fm-labs .fm-sec.EE{background:#eaf2fc;border-color:#b9d3f0;color:#1b5fa8}
+.fm-labs .fm-sec.CE{background:#e5f5f1;border-color:#a9dccf;color:#0f7a6a}
+#fmLabOverlay .ce-box,#fmLfOverlay .ce-box{max-width:620px;max-height:92vh;overflow-y:auto}
+#fmLfOverlay .ce-box{max-width:680px}
+.lf-row{display:grid;grid-template-columns:1fr 160px auto;gap:.4rem;align-items:center;margin-bottom:.45rem}
+.lf-row input,.lf-row select{width:100%;font:500 .9rem 'Source Sans 3',sans-serif;color:var(--ink);border:1px solid var(--rule);border-radius:4px;padding:.45rem .55rem;background:#fff}
+.lf-row .lf-b{display:flex;gap:.25rem}
+.lf-row .lf-b button{font:600 .85rem 'Source Sans 3',sans-serif;border:1px solid var(--rule);background:#fff;border-radius:4px;padding:.3rem .5rem;cursor:pointer;color:var(--accent)}
+.lf-row .lf-b button:disabled{opacity:.35;cursor:not-allowed}
+.lf-row .lf-b .lf-x{color:var(--red);border-color:#e1c3c3}
+.lf-core{font:500 .78rem 'Source Sans 3',sans-serif;color:var(--muted);margin:-.2rem 0 .5rem}
+.fm-lfbtn{margin-top:.2rem}
 #fmEditOverlay .ce-box{max-width:620px;max-height:92vh;overflow-y:auto}
 #fmEditOverlay .fm-note{font:500 .9rem 'Source Sans 3',sans-serif;color:var(--muted);margin:-.4rem 0 .4rem}
 #fmEditOverlay .fm-ro{background:var(--parchment);color:var(--muted)}
@@ -28706,7 +28736,8 @@ body.admin-mode .fm-hint{display:block}
         <input type="text" id="fmSearch" placeholder="🔍 Search name, designation, experience, qualifications, expertise…" autocomplete="off">
         <div class="fm-seg" id="fmSeg" role="group" aria-label="Department filter"></div>
         <select id="fmDesigFilter" aria-label="Filter by designation" style="font:600 .85rem 'Source Sans 3',sans-serif;color:var(--ink);border:1px solid var(--rule);border-radius:4px;padding:.5rem .7rem;background:#fff"><option value="ALL">All designations</option><option value="Lecturer">Lecturers</option><option value="Lab Engineer">Lab Engineers</option><option value="Assistant Professor">Assistant Professors</option><option value="Associate Professor">Associate Professors</option><option value="Professor">Professors</option></select>
-        <button class="fm-btn" type="button" onclick="fmAdd()">＋ Add FM</button>
+        <button class="fm-btn" type="button" onclick="fmAdd()">＋ Add FMs/LEs</button>
+        <button class="fm-btn" type="button" onclick="fmLabAdd()">＋ Add Lab details</button>
       </div>
       <div class="fm-cards" id="fmCards"></div>
       <p class="fm-meta" id="fmMeta"></p>
@@ -28719,6 +28750,21 @@ body.admin-mode .fm-hint{display:block}
           <tbody id="fmBody"></tbody>
         </table>
       </div>
+      <section class="fm-labs" id="fmLabs" aria-labelledby="fmLabsTitle">
+        <div class="fm-labs-head">
+          <h3 id="fmLabsTitle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 3h6M10 3v6.2L4.6 18.4A2 2 0 0 0 6.3 21.5h11.4a2 2 0 0 0 1.7-3.1L14 9.2V3"/><path d="M7.5 15h9"/></svg>Laboratories &amp; Lab Staff</h3>
+          <span style="display:inline-flex;gap:.5rem;flex-wrap:wrap"><button class="fm-btn fm-adm-block" type="button" onclick="fmLabDesign(false)" title="Admin: rename, add, remove or reorder the fields of the lab form">⚙ Customize lab form</button><button class="fm-btn" type="button" onclick="fmLabAdd()">＋ Add lab details</button></span>
+        </div>
+        <p class="fm-labs-sub">Lab in-charges and lab staff: use <b>＋ Add lab details</b> to enter your lab, its in-charge and its location, or <b>✎ Update</b> on a lab to correct it. Only the admin can edit cells directly, remove a lab, or change the form’s fields.</p>
+        <p class="fm-meta" id="fmLabMeta"></p>
+        <div class="tbl-wrap">
+          <table id="fmLabTable">
+            <thead id="fmLabHead"></thead>
+            <tbody id="fmLabBody"></tbody>
+          </table>
+        </div>
+        <datalist id="fmLabNames"></datalist>
+      </section>
       <p class="fm-note-pub" style="font:500 .88rem 'Source Sans 3',sans-serif;color:var(--muted);margin-top:.7rem">Faculty members: click <b>✎ Update</b> under your name to edit your own name, designation, extension, cell number, experience, qualifications and expertise. Teaching experience updates automatically every month.</p>
       <p class="fm-hint">Admin: click any cell or department heading to edit it (Enter saves, Esc cancels; Shift+Enter adds a new line in the long columns). Changes sync through Firebase.</p>
     </div>
@@ -28746,11 +28792,35 @@ body.admin-mode .fm-hint{display:block}
   </div>
 </div>
 
+<div class="ce-overlay" id="fmLabOverlay">
+  <div class="ce-box" role="dialog" aria-modal="true" aria-labelledby="fmLbHead">
+    <h3 id="fmLbHead">Add lab details</h3>
+    <div id="fmLbForm">
+      <div id="fmLbFields"></div>
+      <p class="ce-err" id="fmLbErr" role="alert"></p>
+      <div class="ce-btns"><button type="button" class="ce-save" id="fmLbSave">Save lab details</button><button type="button" data-lbcancel>Cancel</button><button type="button" class="fm-adm-block fm-lfbtn" onclick="fmLabDesign(true)" title="Admin: change the fields of this form">⚙ Customize form</button></div>
+    </div>
+  </div>
+</div>
+
+<div class="ce-overlay" id="fmLfOverlay">
+  <div class="ce-box" role="dialog" aria-modal="true" aria-labelledby="fmLfHead">
+    <h3 id="fmLfHead">Customize lab form</h3>
+    <p class="fm-note" style="font:500 .9rem 'Source Sans 3',sans-serif;color:var(--muted);margin:-.4rem 0 .8rem">Rename fields, change their type, reorder them, add new ones or delete them. These fields appear both in the form and as columns of the lab table. Deleting a field also deletes what was entered in it.</p>
+    <div id="fmLfRows"></div>
+    <p class="lf-core">“Lab name” and “Department” are core fields: they can be renamed but not deleted.</p>
+    <p class="ce-err" id="fmLfErr" role="alert"></p>
+    <div class="ce-btns"><button type="button" class="ce-save" id="fmLfSave">Save form</button><button type="button" id="fmLfAdd">＋ Add field</button><button type="button" id="fmLfReset" title="Restore the original fields">Reset to default</button><button type="button" data-lfcancel>Cancel</button></div>
+  </div>
+</div>
+
 <script>
 (function(){
   var KEY='pco_regular_fms';
   var SEED=[{"name": "Dr. Hafiz Ashiq Hussain", "sec": "EE", "desig": "Chair ECE", "cell": "0334-9293039", "ext": "411", "exp": "", "qual": "", "area": ""}, {"name": "Dr. Waseem Khan", "sec": "EE", "desig": "Associate Professor", "cell": "0333-5531093", "ext": "419", "exp": "", "qual": "", "area": ""}, {"name": "Dr. Syed Ahmed Pasha", "sec": "EE", "desig": "Associate Professor", "cell": "0333-5623481", "ext": "418", "exp": "", "qual": "", "area": ""}, {"name": "Dr. Imran Farid", "sec": "EE", "desig": "Assistant Professor", "cell": "0332-7788566", "ext": "418", "exp": "", "qual": "", "area": ""}, {"name": "Dr. Sara Saeed", "sec": "EE", "desig": "Assistant Professor", "cell": "0333-9206575", "ext": "429", "exp": "", "qual": "", "area": ""}, {"name": "Dr. Muhammad Zaheer", "sec": "EE", "desig": "Assistant Professor", "cell": "0333-5353996", "ext": "415", "exp": "", "qual": "", "area": ""}, {"name": "Dr. Ahsan Sarwar Rana", "sec": "EE", "desig": "Assistant Professor", "cell": "0317-5299380", "ext": "425", "exp": "", "qual": "", "area": ""}, {"name": "Dr. Sher Ali", "sec": "EE", "desig": "Assistant Professor", "cell": "0345-1887696", "ext": "413", "exp": "", "qual": "", "area": ""}, {"name": "Dr. Ashfaq Ahmed", "sec": "EE", "desig": "Assistant Professor", "cell": "0334-9893934", "ext": "413", "exp": "", "qual": "", "area": ""}, {"name": "Dr. Shahzad Ahmad", "sec": "EE", "desig": "Assistant Professor", "cell": "", "ext": "419", "exp": "", "qual": "", "area": ""}, {"name": "Dr. Qumrish Arooj", "sec": "EE", "desig": "Assistant Professor", "cell": "", "ext": "417", "exp": "", "qual": "", "area": ""}, {"name": "Ms. Seema Tahir", "sec": "EE", "desig": "Assistant Professor", "cell": "0335-9185742", "ext": "462", "exp": "", "qual": "", "area": ""}, {"name": "Mr. Faizan Munir", "sec": "EE", "desig": "Lecturer", "cell": "0321-5668575", "ext": "435", "exp": "", "qual": "", "area": ""}, {"name": "Mr. Atique Ur Rehman", "sec": "EE", "desig": "Lecturer", "cell": "0336-5808657", "ext": "433", "exp": "", "qual": "", "area": ""}, {"name": "Muhammad Ali Raza", "sec": "EE", "desig": "Lecturer", "cell": "0300-9797315", "ext": "452", "exp": "", "qual": "", "area": ""}, {"name": "Ms. Madeeha Uzma", "sec": "EE", "desig": "Lecturer", "cell": "0321-5935177", "ext": "431", "exp": "", "qual": "", "area": ""}, {"name": "Mr. Muhammad Tilal", "sec": "EE", "desig": "Lecturer", "cell": "0332-0561173", "ext": "422", "exp": "", "qual": "", "area": ""}, {"name": "Mr. Sami Ullah", "sec": "EE", "desig": "Lecturer", "cell": "0333-5370670", "ext": "493", "exp": "", "qual": "", "area": ""}, {"name": "Ms. Saba Mumtaz", "sec": "EE", "desig": "Lecturer", "cell": "0331-5531536", "ext": "431", "exp": "", "qual": "", "area": ""}, {"name": "Ms. Ambreen Ali Ch.", "sec": "EE", "desig": "Lecturer", "cell": "0312-5533950", "ext": "440", "exp": "", "qual": "", "area": ""}, {"name": "Mr. Mashood Ahmed", "sec": "EE", "desig": "Lecturer", "cell": "0333-5210386", "ext": "437", "exp": "", "qual": "", "area": ""}, {"name": "Mr. Hussain Asif", "sec": "EE", "desig": "Lecturer", "cell": "0349-9023665", "ext": "459", "exp": "", "qual": "", "area": ""}, {"name": "Ms. Hiba Hareem", "sec": "EE", "desig": "Lecturer", "cell": "0334-5889328", "ext": "431", "exp": "", "qual": "", "area": ""}, {"name": "Dr. Fawad Islam Khan", "sec": "CE", "desig": "Associate Professor", "cell": "", "ext": "414", "exp": "", "qual": "", "area": ""}, {"name": "Dr. Jehanzeb Khan", "sec": "CE", "desig": "Assistant Professor", "cell": "0346-5319339", "ext": "416", "exp": "", "qual": "", "area": ""}, {"name": "Dr. Ayesha Salman", "sec": "CE", "desig": "Assistant Professor", "cell": "0334-5309530", "ext": "428", "exp": "", "qual": "", "area": ""}, {"name": "Dr. Hadi Abdullah", "sec": "CE", "desig": "Assistant Professor", "cell": "", "ext": "", "exp": "", "qual": "", "area": ""}, {"name": "Dr. Mumajjed Ul Mudassir", "sec": "CE", "desig": "Assistant Professor", "cell": "0300-9103925", "ext": "445", "exp": "", "qual": "", "area": ""}, {"name": "Mr. Atif Bajwa", "sec": "CE", "desig": "Lecturer", "cell": "0300-5288926", "ext": "427", "exp": "", "qual": "", "area": ""}, {"name": "Ms. Mariam Sabir", "sec": "CE", "desig": "Lecturer", "cell": "0341-0589619", "ext": "460", "exp": "", "qual": "", "area": ""}, {"name": "Ms. Zo Afshan", "sec": "CE", "desig": "Lecturer", "cell": "0349-518848", "ext": "460", "exp": "", "qual": "", "area": ""}, {"name": "Mr. Usman Hameed", "sec": "CE", "desig": "Lecturer", "cell": "0315-7203603", "ext": "460", "exp": "", "qual": "", "area": ""}, {"name": "Mr. Aniq Ahmad", "sec": "CE", "desig": "Lecturer", "cell": "", "ext": "433", "exp": "", "qual": "", "area": ""}, {"name": "Mr. Basharat Ahmad", "sec": "CE", "desig": "Lecturer", "cell": "", "ext": "419", "exp": "", "qual": "", "area": ""}, {"name": "Ms. Maryam Sabir", "sec": "CE", "desig": "Lecturer", "cell": "", "ext": "443", "exp": "", "qual": "", "area": ""}];
   var FIELDS=['name','sec','desig','ext','cell','exp','qual','area','expY','expM','expAt'];
+  var LAB_SEED=[];
+  var LAB_CFG=null;
   var EXP_STEP=1; // teaching experience auto-increases in steps of this many months
   var SEC_NAME={EE:'Electrical Engineering (EE)',CE:'Computer Engineering (CE)'};
   SEED.forEach(function(m,k){ if(!m.id) m.id='fm'+(k<9?'0':'')+(k+1); m.upd=+m.upd||0; FIELDS.forEach(function(f){ if(m[f]==null) m[f]=''; }); });
@@ -28883,6 +28953,7 @@ body.admin-mode .fm-hint{display:block}
     $('fmBody').innerHTML=html;
     $('fmMeta').textContent='Showing '+n+' of '+list.length+' regular faculty members';
     renderCards();
+    renderLabs();
     updateCard();
   }
 
@@ -29120,7 +29191,7 @@ body.admin-mode .fm-hint{display:block}
     try{ if(location.hash!==HASH) history.replaceState(null,'',pageUrl()+HASH); }catch(e){}
   };
   window.closeFmModal=function(){
-    if(editing) return;
+    if(editing || labEditing) return;
     $('fmOverlay').classList.remove('open'); document.body.style.overflow='';
     try{ if(location.hash===HASH) history.replaceState(null,'',pageUrl()); }catch(e){}
   };
@@ -29131,6 +29202,16 @@ body.admin-mode .fm-hint{display:block}
     var re=/(var SEED=)\[[\s\S]*?\](;\s*\n\s*var FIELDS=)/;
     if(!re.test(src)) throw new Error('The hosted index.html does not have the faculty list yet. Upload this version once, then use Save again.');
     src=src.replace(re,function(_,x,y){ return x+json+y; });
+    var lre=/(var LAB_SEED=)\[.*\](;)/;
+    if(lre.test(src)){
+      var ljson=JSON.stringify(labs).replace(/<\//g,'<\\/');
+      src=src.replace(lre,function(_,x,y){ return x+ljson+y; });
+    }
+    var cre=/(var LAB_CFG=).*(;)/;
+    if(cre.test(src)){
+      var cjson=JSON.stringify(cfg).replace(/<\//g,'<\\/');
+      src=src.replace(cre,function(_,x,y){ return x+cjson+y; });
+    }
     var tre=/(var SEC_NAME=)\{[^}]*\};/;
     if(tre.test(src)) src=src.replace(tre,function(_,x){ return x+JSON.stringify(SEC_NAME).replace(/</g,'\\u003c')+';'; });
     return src;
@@ -29204,6 +29285,287 @@ body.admin-mode .fm-hint{display:block}
     else if(e.key==='Enter' && e.target.tagName==='INPUT'){ e.preventDefault(); saveRecord(); }
   });
 
+
+  // ── laboratories & lab staff ──
+  var LKEY=KEY+'_labs', CKEY=KEY+'_labs_cfg';
+  var TYPES=[['text','Short text'],['long','Long text'],['phone','Phone / number'],['person','Faculty / person name']];
+  var DEFCFG=[
+    {k:'lab',label:'Lab name',type:'text'},{k:'sec',label:'Department',type:'dept'},
+    {k:'incharge',label:'Lab in-charge',type:'person'},{k:'staff',label:'Lab engineer / staff',type:'person'},
+    {k:'bldg',label:'Building / Floor',type:'text'},{k:'room',label:'Room no.',type:'phone'},
+    {k:'ext',label:'Ext.',type:'phone'},{k:'equip',label:'Equipment / Notes',type:'long'}
+  ];
+  function isCore(k){ return k==='lab'||k==='sec'; }
+  function normCfg(v){
+    if(!v) return null;
+    var arr=Array.isArray(v)?v:Object.keys(v).map(function(k){return v[k];});
+    var seen={}, out=[];
+    arr.forEach(function(f){
+      if(!f||typeof f!=='object'||!f.k||seen[f.k]) return;
+      var t=f.k==='sec'?'dept':(['text','long','phone','person'].indexOf(f.type)>=0?f.type:'text');
+      var lab=String(f.label==null?'':f.label).trim(); if(!lab) return;
+      seen[f.k]=1; out.push({k:String(f.k),label:lab,type:t});
+    });
+    DEFCFG.forEach(function(d,i){ if(isCore(d.k) && !seen[d.k]){ out.splice(Math.min(i,out.length),0,clone(d)); seen[d.k]=1; } });
+    return out.length?out:null;
+  }
+  var cfg=normCfg(LAB_CFG)||clone(DEFCFG);
+  var labs=clone(LAB_SEED), labEditId=null, labAdding=false, labEditing=false, labsInit=false, cfgInit=false, lfFromForm=false;
+  function uidL(){ return 'lb'+Date.now().toString(36)+Math.random().toString(36).slice(2,5); }
+  function newKey(){ return 'c'+Date.now().toString(36)+Math.random().toString(36).slice(2,5); }
+  LAB_SEED.forEach(function(m,k){ if(!m.id) m.id='lb'+(k+1); });
+  function normLabs(v){
+    if(!v) return null;
+    var arr=Array.isArray(v)?v:Object.keys(v).map(function(k){return v[k];});
+    arr=arr.filter(function(m){return m && typeof m==='object' && m.lab;}).map(function(m){
+      var o={};
+      Object.keys(m).forEach(function(k){ if(m[k]!=null && typeof m[k]!=='object') o[k]=String(m[k]); });
+      cfg.forEach(function(f){ if(o[f.k]==null) o[f.k]=''; });
+      o.sec=(o.sec==='CE'?'CE':'EE'); o.upd=+m.upd||0; o.id=m.id?String(m.id):uidL();
+      return o;
+    });
+    return arr.length?arr:null;
+  }
+  function saveLabs(){
+    try{localStorage.setItem(LKEY,JSON.stringify(labs));}catch(e){}
+    if(typeof fbDb!=='undefined' && fbDb){
+      fbDb.ref(LKEY).set(labs.length?labs:null)
+        .then(function(){flash('✓ Saved to Firebase');})
+        .catch(function(err){console.warn('Lab details save error:',err);flash('⚠ Saved on this device only');});
+    } else flash('✓ Saved on this device');
+  }
+  function saveCfg(){
+    try{localStorage.setItem(CKEY,JSON.stringify(cfg));}catch(e){}
+    if(typeof fbDb!=='undefined' && fbDb){
+      fbDb.ref(CKEY).set(cfg)
+        .then(function(){flash('✓ Form saved to Firebase');})
+        .catch(function(err){console.warn('Lab form save error:',err);flash('⚠ Saved on this device only');});
+    } else flash('✓ Saved on this device');
+  }
+  function clsOf(t){ return t==='long'?'lb-long':(t==='phone'?'lb-ph':''); }
+
+  function renderLabs(){
+    var body=$('fmLabBody'); if(!body) return;
+    var dl=$('fmLabNames');
+    if(dl) dl.innerHTML=list.map(function(m){return '<option value="'+esc(m.name)+'">';}).join('');
+    $('fmLabHead').innerHTML='<tr><th>#</th>'+cfg.map(function(f){return '<th>'+esc(f.label)+'</th>';}).join('')+'<th class="fm-adm"></th></tr>';
+    var span=cfg.length+2, html='', n=0;
+    ['EE','CE'].forEach(function(sec){
+      if(filter!=='ALL' && filter!==sec) return;
+      var part=[]; labs.forEach(function(l,i){ if(l.sec===sec) part.push({l:l,i:i}); });
+      if(!part.length) return;
+      html+='<tr class="fm-grp"><td colspan="'+span+'">'+esc(SEC_NAME[sec])+'<small>'+part.length+' lab'+(part.length===1?'':'s')+'</small></td></tr>';
+      part.forEach(function(r){
+        var l=r.l,i=r.i; n++;
+        html+='<tr><td class="lb-num">'+n+'</td>';
+        cfg.forEach(function(f){
+          var v=l[f.k], a=' data-li="'+i+'" data-lf="'+esc(f.k)+'"';
+          if(f.k==='lab'){
+            html+='<td class="lb-name lb-e"'+a+'>'+esc(v)+(l.upd?'<span class="fm-stamp">Updated '+new Date(l.upd).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})+'</span>':'')+'<button type="button" class="fm-upd" data-lupd="'+i+'" style="display:block;margin-top:.4rem">✎ Update</button></td>';
+          } else if(f.k==='sec'){
+            html+='<td class="lb-e"'+a+'><span class="fm-sec '+l.sec+'">'+l.sec+'</span></td>';
+          } else {
+            html+='<td class="'+clsOf(f.type)+' lb-e"'+a+'>'+(v?esc(v):'<span class="fm-none">—</span>')+'</td>';
+          }
+        });
+        html+='<td class="fm-adm"><button type="button" class="fm-del" data-ldel="'+i+'" title="Remove this lab">🗑</button></td></tr>';
+      });
+    });
+    if(!n) html='<tr><td colspan="'+span+'" style="text-align:center;padding:1.6rem;color:var(--muted)">No lab details entered yet. Lab staff can add theirs with “＋ Add lab details”.</td></tr>';
+    body.innerHTML=html;
+    var tot=labs.length;
+    $('fmLabMeta').textContent=tot+' lab'+(tot===1?'':'s')+' listed · EE '+labs.filter(function(x){return x.sec==='EE';}).length+' · CE '+labs.filter(function(x){return x.sec==='CE';}).length;
+  }
+
+  // ── the entry form is built from the field list ──
+  function buildForm(l){
+    var h='';
+    cfg.forEach(function(f){
+      var id='fmLbF_'+f.k, v=l?(l[f.k]||''):'', lab=esc(f.label)+(f.k==='lab'?' <span style="color:var(--red)">*</span>':'');
+      h+='<label for="'+id+'">'+lab+'</label>';
+      if(f.k==='sec') h+='<select id="'+id+'" style="width:100%;font:500 .95rem \'Source Sans 3\',sans-serif;color:var(--ink);border:1px solid var(--rule);border-radius:4px;padding:.55rem .7rem;background:#fff"><option value="EE">EE</option><option value="CE">CE</option></select>';
+      else if(f.type==='long') h+='<textarea id="'+id+'" rows="3"></textarea>';
+      else h+='<input id="'+id+'" type="text" autocomplete="off"'+(f.type==='person'?' list="fmLabNames" placeholder="Pick a faculty member or type a name"':'')+'>';
+    });
+    $('fmLbFields').innerHTML=h;
+    cfg.forEach(function(f){
+      var el=$('fmLbF_'+f.k); if(!el) return;
+      el.value=(f.k==='sec')?(l?l.sec:(filter==='CE'?'CE':'EE')):(l?(l[f.k]||''):'');
+    });
+  }
+  function openLab(l){
+    labAdding=!l; labEditId=l?l.id:null;
+    $('fmLbHead').textContent=l?'Update lab: '+l.lab:'Add lab details';
+    buildForm(l);
+    $('fmLbErr').textContent='';
+    $('fmLabOverlay').classList.add('open');
+    setTimeout(function(){ var e=$('fmLbF_lab'); if(e) e.focus(); },30);
+  }
+  window.fmLabAdd=function(){ openLab(null); };
+  function closeLab(){ $('fmLabOverlay').classList.remove('open'); labEditId=null; labAdding=false; }
+  function saveLab(){
+    var nm=($('fmLbF_lab')||{value:''}).value.trim();
+    if(!nm){ $('fmLbErr').textContent='Please enter the '+(cfg.filter(function(f){return f.k==='lab';})[0].label.toLowerCase())+'.'; $('fmLbF_lab').focus(); return; }
+    var patch={};
+    cfg.forEach(function(f){ var e=$('fmLbF_'+f.k); patch[f.k]=e?e.value.trim():''; });
+    patch.sec=(patch.sec==='CE'?'CE':'EE');
+    var id=labEditId, now=Date.now(), m;
+    if(labAdding){ id=uidL(); m={id:id,upd:0}; cfg.forEach(function(f){m[f.k]='';}); }
+    else m=labs.filter(function(x){return x.id===id;})[0];
+    if(!m){ $('fmLbErr').textContent='This lab no longer exists.'; return; }
+    function apply(t){ for(var k in patch) t[k]=patch[k]; t.upd=now; }
+    apply(m); if(labAdding) labs.push(m);
+    try{localStorage.setItem(LKEY,JSON.stringify(labs));}catch(e){}
+    if(typeof fbDb!=='undefined' && fbDb){
+      // merge only this lab so simultaneous entries by other lab staff are not overwritten
+      fbDb.ref(LKEY).transaction(function(cur){
+        var arr=normLabs(cur)||[];
+        var t=arr.filter(function(x){return x.id===id;})[0];
+        if(t) apply(t); else arr.push(clone(m));
+        return arr;
+      },function(err,committed){
+        if(err||!committed){ console.warn('Lab details update error:',err); flash('⚠ Saved on this device only'); }
+        else flash('✓ Lab details saved');
+      },false);
+    } else flash('✓ Saved on this device');
+    closeLab(); renderLabs();
+  }
+  $('fmLbSave').addEventListener('click',saveLab);
+  Array.prototype.forEach.call($('fmLabOverlay').querySelectorAll('[data-lbcancel]'),function(b){b.addEventListener('click',closeLab);});
+  $('fmLabOverlay').addEventListener('click',function(e){ if(e.target===this) closeLab(); });
+  $('fmLabOverlay').addEventListener('keydown',function(e){
+    if(e.key==='Escape'){ e.stopPropagation(); closeLab(); }
+    else if(e.key==='Enter' && e.target.tagName==='INPUT'){ e.preventDefault(); saveLab(); }
+  });
+
+  // ── admin: form designer (rename / retype / reorder / add / delete fields) ──
+  function lfRow(f){
+    var core=isCore(f.k), opts=TYPES.map(function(t){return '<option value="'+t[0]+'"'+(f.type===t[0]?' selected':'')+'>'+t[1]+'</option>';}).join('');
+    var typeCtl=(f.k==='sec')
+      ? '<select disabled><option>Department (EE / CE)</option></select>'
+      : '<select class="lf-t">'+opts+'</select>';
+    return '<div class="lf-row" data-k="'+esc(f.k)+'"><input type="text" class="lf-l" value="'+esc(f.label)+'" aria-label="Field name">'+typeCtl
+      +'<span class="lf-b"><button type="button" class="lf-up" title="Move up">↑</button><button type="button" class="lf-dn" title="Move down">↓</button><button type="button" class="lf-x" title="'+(core?'Core field: cannot be deleted':'Delete this field')+'"'+(core?' disabled':'')+'>🗑</button></span></div>';
+  }
+  function lfFill(arr){ $('fmLfRows').innerHTML=arr.map(lfRow).join(''); }
+  window.fmLabDesign=function(fromForm){
+    if(!isAdmin()) return;
+    lfFromForm=!!fromForm;
+    if(fromForm) closeLab();
+    lfFill(cfg); $('fmLfErr').textContent='';
+    $('fmLfOverlay').classList.add('open');
+  };
+  function closeLf(){
+    $('fmLfOverlay').classList.remove('open');
+    if(lfFromForm){ lfFromForm=false; openLab(null); }
+  }
+  function lfCollect(){
+    return Array.prototype.map.call($('fmLfRows').querySelectorAll('.lf-row'),function(r){
+      var k=r.getAttribute('data-k'), t=r.querySelector('.lf-t');
+      return {k:k,label:r.querySelector('.lf-l').value.trim(),type:(k==='sec'?'dept':(t?t.value:'text'))};
+    });
+  }
+  $('fmLfRows').addEventListener('click',function(e){
+    var row=e.target.closest('.lf-row'); if(!row) return;
+    if(e.target.closest('.lf-up') && row.previousElementSibling) row.parentNode.insertBefore(row,row.previousElementSibling);
+    else if(e.target.closest('.lf-dn') && row.nextElementSibling) row.parentNode.insertBefore(row.nextElementSibling,row);
+    else if(e.target.closest('.lf-x') && !isCore(row.getAttribute('data-k'))){
+      var nm=row.querySelector('.lf-l').value.trim()||'this field';
+      if(confirm('Delete the field “'+nm+'”? Everything entered in it will be removed.')) row.parentNode.removeChild(row);
+    }
+  });
+  $('fmLfAdd').addEventListener('click',function(){
+    var d=document.createElement('div'); d.innerHTML=lfRow({k:newKey(),label:'',type:'text'});
+    var r=d.firstChild; $('fmLfRows').appendChild(r); r.querySelector('.lf-l').focus();
+  });
+  $('fmLfReset').addEventListener('click',function(){
+    if(confirm('Restore the original fields? Custom fields you added (and their data) will be removed.')) lfFill(DEFCFG);
+  });
+  $('fmLfSave').addEventListener('click',function(){
+    var draft=lfCollect(), i;
+    for(i=0;i<draft.length;i++) if(!draft[i].label){ $('fmLfErr').textContent='Every field needs a name.'; return; }
+    var keep={}; draft.forEach(function(f){keep[f.k]=1;});
+    var removed=cfg.filter(function(f){return !keep[f.k];}).map(function(f){return f.k;});
+    // custom fields that were added and later deleted never existed in cfg; also drop stray data of deleted fields
+    cfg=draft;
+    if(removed.length){ labs.forEach(function(l){ removed.forEach(function(k){ delete l[k]; }); }); }
+    labs.forEach(function(l){ cfg.forEach(function(f){ if(l[f.k]==null) l[f.k]=''; }); });
+    saveCfg(); if(removed.length) saveLabs();
+    $('fmLfOverlay').classList.remove('open'); lfFromForm=lfFromForm; closeLf(); renderLabs();
+  });
+  Array.prototype.forEach.call($('fmLfOverlay').querySelectorAll('[data-lfcancel]'),function(b){b.addEventListener('click',closeLf);});
+  $('fmLfOverlay').addEventListener('click',function(e){ if(e.target===this) closeLf(); });
+  $('fmLfOverlay').addEventListener('keydown',function(e){ if(e.key==='Escape'){ e.stopPropagation(); closeLf(); } });
+
+  // admin: edit any lab cell in place
+  function startLabEdit(td){
+    if(!isAdmin() || editing || labEditing) return;
+    var i=+td.getAttribute('data-li'), f=td.getAttribute('data-lf'), l=labs[i]; if(!l) return;
+    var fd=cfg.filter(function(x){return x.k===f;})[0]; if(!fd) return;
+    var long=(fd.type==='long'), ctl;
+    if(f==='sec'){ ctl=document.createElement('select'); ctl.innerHTML='<option value="EE">EE</option><option value="CE">CE</option>'; }
+    else if(long){ ctl=document.createElement('textarea'); }
+    else { ctl=document.createElement('input'); ctl.type='text'; if(fd.type==='person') ctl.setAttribute('list','fmLabNames'); }
+    ctl.value=l[f]||''; labEditing=true;
+    td.className+=' lb-ed'; td.innerHTML=''; td.appendChild(ctl); ctl.focus();
+    if(ctl.select && f!=='sec') ctl.select();
+    var done=false;
+    function finish(commit){
+      if(done) return; done=true; labEditing=false;
+      if(commit){
+        var v=ctl.value.trim();
+        if(f==='lab' && !v){ renderLabs(); return; }
+        if(v!==(l[f]||'')){ l[f]=v; l.upd=Date.now(); saveLabs(); }
+      }
+      renderLabs();
+    }
+    ctl.addEventListener('blur',function(){finish(true);});
+    ctl.addEventListener('change',function(){ if(f==='sec') finish(true); });
+    ctl.addEventListener('keydown',function(e){
+      if(e.key==='Escape'){ e.stopPropagation(); finish(false); }
+      else if(e.key==='Enter' && !(long && e.shiftKey) && f!=='sec'){ e.preventDefault(); finish(true); }
+    });
+  }
+  $('fmLabBody').addEventListener('click',function(e){
+    var u=e.target.closest('[data-lupd]');
+    if(u){ openLab(labs[+u.getAttribute('data-lupd')]); return; }
+    var d=e.target.closest('[data-ldel]');
+    if(d){
+      if(!isAdmin()) return;
+      var i=+d.getAttribute('data-ldel');
+      if(confirm('Remove "'+labs[i].lab+'" from the lab list?')){ labs.splice(i,1); saveLabs(); renderLabs(); }
+      return;
+    }
+    var td=e.target.closest('td.lb-e'); if(td) startLabEdit(td);
+  });
+  document.addEventListener('keydown',function(e){
+    if(e.key!=='Escape') return;
+    if($('fmLfOverlay').classList.contains('open')) closeLf();
+    else if($('fmLabOverlay').classList.contains('open')) closeLab();
+  });
+  // load: this device first, then live from Firebase
+  try{ var cc=normCfg(JSON.parse(localStorage.getItem(CKEY)||'null')); if(cc) cfg=cc; }catch(e){}
+  try{ var ll=normLabs(JSON.parse(localStorage.getItem(LKEY)||'null')); if(ll) labs=ll; }catch(e){}
+  if(typeof fbDb!=='undefined' && fbDb){
+    fbDb.ref(CKEY).on('value',function(snap){
+      var r=normCfg(snap.val());
+      if(r){ cfg=r; try{localStorage.setItem(CKEY,JSON.stringify(cfg));}catch(e){} if($('fmOverlay').classList.contains('open') && !labEditing) renderLabs(); }
+      else if(!cfgInit && JSON.stringify(cfg)!==JSON.stringify(DEFCFG)){ fbDb.ref(CKEY).transaction(function(cur){ return cur==null ? clone(cfg) : undefined; }); }
+      cfgInit=true;
+    },function(err){console.warn('Lab form load error:',err);});
+    fbDb.ref(LKEY).on('value',function(snap){
+      var r=normLabs(snap.val());
+      if(!r && !labsInit && labs.length){
+        fbDb.ref(LKEY).transaction(function(cur){ return cur==null ? clone(labs) : undefined; });
+      } else if(!labEditing){
+        labs=r||[];
+        try{localStorage.setItem(LKEY,JSON.stringify(labs));}catch(e){}
+        if($('fmOverlay').classList.contains('open')) renderLabs();
+      }
+      labsInit=true;
+    },function(err){console.warn('Lab details load error:',err);});
+  }
+
   // events
   $('fmSearch').addEventListener('input',function(){query=this.value;render();});
   $('fmDesigFilter').addEventListener('change',function(){ dfilter=this.value; render(); });
@@ -29235,6 +29597,8 @@ body.admin-mode .fm-hint{display:block}
   document.addEventListener('keydown',function(e){
     if(e.key!=='Escape') return;
     if($('fmEditOverlay').classList.contains('open')){ closeEdit(); return; }
+    if($('fmLabOverlay').classList.contains('open') || $('fmLfOverlay').classList.contains('open')) return;
+    if(!editing && labEditing) return;
     if(!editing && $('fmOverlay').classList.contains('open')) closeFmModal();
   });
   // re-render when admin mode is switched on/off while the modal is open
@@ -29284,7 +29648,7 @@ body.te-on .te-hover{outline:2px dashed var(--gold-lt,#e0b95a);outline-offset:2p
 (function(){
   var PATH='pco_text_overrides', LSKEY='pco_text_overrides';
   // Text that other editors already manage (tables, notes, admin panels, link-card titles) is skipped here.
-  var EXC='script,style,noscript,textarea,input,select,option,svg,#adminBar,#adminPanelOverlay,#adminLoginOverlay,.ce-overlay,#fmEditOverlay,#fmBody,#fmSeg,#fmMeta,#notesBody,.modal-body,.modal-admin-toolbar,#sessionModalTitle,#sessionModalSub,.close-btn,.te-ui,[contenteditable="true"],[contenteditable="plaintext-only"],[data-card] .parent-card-text h2,[data-card] .parent-card-text p';
+  var EXC='script,style,noscript,textarea,input,select,option,svg,#adminBar,#adminPanelOverlay,#adminLoginOverlay,.ce-overlay,#fmEditOverlay,#fmLabOverlay,#fmLfOverlay,#fmBody,#fmLabBody,#fmSeg,#fmMeta,#notesBody,.modal-body,.modal-admin-toolbar,#sessionModalTitle,#sessionModalSub,.close-btn,.te-ui,[contenteditable="true"],[contenteditable="plaintext-only"],[data-card] .parent-card-text h2,[data-card] .parent-card-text p';
   var PLAIN=(function(){ var d=document.createElement('div'); d.setAttribute('contenteditable','plaintext-only'); return d.contentEditable==='plaintext-only'; })();
   var meta=new WeakMap(), tracked=new Set(), trackedList=[], initial=true, active=null, textMode=false, hoverEl=null, timer=null;
   var baked={}, local={}, remote={};
