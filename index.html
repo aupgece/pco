@@ -28609,7 +28609,7 @@ header p{animation:fxSlide .8s .4s both}
 <!-- ══ REGULAR FACULTY MEMBERS (EE & CE) DATABASE ══ -->
 <style id="fm-css">
 #fmOverlay .modal{max-width:1280px}
-body.admin-bar-shown #fmOverlay,body.admin-bar-shown #fmEditOverlay,body.admin-bar-shown #fmPrOverlay,body.admin-bar-shown #fmLabOverlay,body.admin-bar-shown #fmLfOverlay{top:var(--admbar-h,44px)}
+body.admin-bar-shown #fmOverlay,body.admin-bar-shown #fmEditOverlay,body.admin-bar-shown #fmFfOverlay,body.admin-bar-shown #fmPrOverlay,body.admin-bar-shown #fmLabOverlay,body.admin-bar-shown #fmLfOverlay{top:var(--admbar-h,44px)}
 .fm-tools{display:flex;flex-wrap:wrap;gap:.6rem;align-items:center;margin-bottom:1rem}
 .fm-tools input[type=text]{flex:1 1 240px;min-width:200px;font:500 .95rem 'Source Sans 3',sans-serif;color:var(--ink);background:#fff;border:1px solid var(--rule);border-radius:4px;padding:.55rem .8rem}
 .fm-seg{display:inline-flex;gap:.35rem;flex-wrap:wrap}
@@ -28666,7 +28666,8 @@ body.admin-mode #fmLabTable td.lb-e:hover{background:rgba(201,162,74,.12);outlin
 #fmLabTable td.lb-ed textarea{min-height:5rem;resize:vertical}
 .fm-labs .fm-sec.EE{background:#eaf2fc;border-color:#b9d3f0;color:#1b5fa8}
 .fm-labs .fm-sec.CE{background:#e5f5f1;border-color:#a9dccf;color:#0f7a6a}
-#fmLabOverlay .ce-box,#fmLfOverlay .ce-box{max-width:620px;max-height:92vh;overflow-y:auto}
+#fmLabOverlay .ce-box,#fmLfOverlay .ce-box,#fmFfOverlay .ce-box{max-width:620px;max-height:92vh;overflow-y:auto}
+#fmFfOverlay .ce-box{max-width:680px}
 #fmLfOverlay .ce-box{max-width:680px}
 .lf-row{display:grid;grid-template-columns:1fr 160px auto;gap:.4rem;align-items:center;margin-bottom:.45rem}
 .lf-row input,.lf-row select{width:100%;font:500 .9rem 'Source Sans 3',sans-serif;color:var(--ink);border:1px solid var(--rule);border-radius:4px;padding:.45rem .55rem;background:#fff}
@@ -28739,15 +28740,13 @@ body.admin-mode .fm-hint{display:block}
         <select id="fmDesigFilter" aria-label="Filter by designation" style="font:600 .85rem 'Source Sans 3',sans-serif;color:var(--ink);border:1px solid var(--rule);border-radius:4px;padding:.5rem .7rem;background:#fff"><option value="ALL">All designations</option><option value="Lecturer">Lecturers</option><option value="Lab Engineer">Lab Engineers</option><option value="Lab Staff">Lab Staff</option><option value="Assistant Professor">Assistant Professors</option><option value="Associate Professor">Associate Professors</option><option value="Professor">Professors</option></select>
         <button class="fm-btn" type="button" onclick="fmAdd()">＋ Add FMs/LEs</button>
         <button class="fm-btn" type="button" onclick="fmLabAdd()">＋ Add Lab details</button>
+        <button class="fm-btn fm-adm-block" type="button" onclick="fmFormDesign(false)" title="Admin: rename, add, remove or reorder the fields of the FM/LE form">⚙ Customize FM/LE form</button>
       </div>
       <div class="fm-cards" id="fmCards"></div>
       <p class="fm-meta" id="fmMeta"></p>
       <div class="tbl-wrap">
         <table id="fmTable">
-          <thead><tr>
-            <th>#</th><th class="fm-name">Name</th><th>Department</th><th>Designation</th><th>Ext.</th>
-            <th>Cell</th><th>Experience</th><th>Qualifications</th><th>Expertise / Area of Interest</th><th class="fm-adm"></th>
-          </tr></thead>
+          <thead id="fmHead"></thead>
           <tbody id="fmBody"></tbody>
         </table>
       </div>
@@ -28776,20 +28775,21 @@ body.admin-mode .fm-hint{display:block}
   <div class="ce-box" role="dialog" aria-modal="true" aria-labelledby="fmEdHead">
     <h3 id="fmEdHead">Update record</h3>
     <div id="fmEdForm">
-      <div id="fmEdSecWrap" style="display:none"><label for="fmEdSec">Department</label><select id="fmEdSec" style="width:100%;font:500 .95rem 'Source Sans 3',sans-serif;color:var(--ink);border:1px solid var(--rule);border-radius:4px;padding:.55rem .7rem;background:#fff"><option value="EE">EE</option><option value="CE">CE</option></select></div>
-      <label for="fmEdName">Name</label><input id="fmEdName" type="text" autocomplete="off">
-      <label for="fmEdDesig">Designation</label><select id="fmEdDesig" style="width:100%;font:500 .95rem 'Source Sans 3',sans-serif;color:var(--ink);border:1px solid var(--rule);border-radius:4px;padding:.55rem .7rem;background:#fff"><option value="">— Select designation —</option><option value="Lecturer">Lecturer</option><option value="Lab Engineer">Lab Engineer</option><option value="Lab Staff">Lab Staff</option><option value="Assistant Professor">Assistant Professor</option><option value="Associate Professor">Associate Professor</option><option value="Professor">Professor</option></select>
-      <label for="fmEdExt">Extension</label><input id="fmEdExt" type="text" autocomplete="off">
-      <label for="fmEdCell">Cell no.</label><input id="fmEdCell" type="text" autocomplete="off" placeholder="03xx-xxxxxxx">
-      <label>Teaching experience (as of today)</label>
-      <div style="display:flex;gap:.6rem;align-items:center"><input id="fmEdExpY" type="number" min="0" max="60" step="1" placeholder="Years" style="max-width:120px"><input id="fmEdExpM" type="number" min="0" max="11" step="1" placeholder="Months" style="max-width:120px"></div>
-      <p class="fm-note" style="margin-top:.4rem">Enter it once. It then updates automatically every month, so you do not need to re-enter it.</p>
-      <label for="fmEdExp">Other experience / notes</label><textarea id="fmEdExp" rows="3" placeholder="e.g. 3 years industry (Huawei)"></textarea>
-      <label for="fmEdQual">Qualifications</label><textarea id="fmEdQual" rows="3" placeholder="e.g. PhD (EE), NUST 2019; MS (EE), NUST 2014"></textarea>
-      <label for="fmEdArea">Expertise / Area of Interest</label><textarea id="fmEdArea" rows="3" placeholder="e.g. Wireless communications, signal processing"></textarea>
+      <div id="fmEdFields"></div>
       <p class="ce-err" id="fmEdErr" role="alert"></p>
-      <div class="ce-btns"><button type="button" class="ce-save" id="fmEdSave">Save my record</button><button type="button" data-fmcancel>Cancel</button></div>
+      <div class="ce-btns"><button type="button" class="ce-save" id="fmEdSave">Save my record</button><button type="button" data-fmcancel>Cancel</button><button type="button" class="fm-adm-block fm-lfbtn" onclick="fmFormDesign(true)" title="Admin: change the fields of this form">⚙ Customize form</button></div>
     </div>
+  </div>
+</div>
+
+<div class="ce-overlay" id="fmFfOverlay">
+  <div class="ce-box" role="dialog" aria-modal="true" aria-labelledby="fmFfHead">
+    <h3 id="fmFfHead">Customize FM/LE form</h3>
+    <p class="fm-note" style="font:500 .9rem 'Source Sans 3',sans-serif;color:var(--muted);margin:-.4rem 0 .8rem">Rename fields, change their type, reorder them, add new ones or delete them. These fields appear both in the form and as columns of the faculty table, Excel / PDF exports and printed reports. Deleting a field also deletes what was entered in it.</p>
+    <div id="fmFfRows"></div>
+    <p class="lf-core">“Name”, “Department” and “Designation” are core fields: they can be renamed but not deleted. The experience field keeps its special years / months behaviour.</p>
+    <p class="ce-err" id="fmFfErr" role="alert"></p>
+    <div class="ce-btns"><button type="button" class="ce-save" id="fmFfSave">Save form</button><button type="button" id="fmFfAdd">＋ Add field</button><button type="button" id="fmFfReset" title="Restore the original fields">Reset to default</button><button type="button" data-ffcancel>Cancel</button></div>
   </div>
 </div>
 
@@ -28835,6 +28835,7 @@ body.admin-mode .fm-hint{display:block}
   var FIELDS=['name','sec','desig','ext','cell','exp','qual','area','expY','expM','expAt'];
   var LAB_SEED=[];
   var LAB_CFG=null;
+  var FM_CFG=null;
   var EXP_STEP=1; // teaching experience auto-increases in steps of this many months
   var SEC_NAME={EE:'Electrical Engineering (EE)',CE:'Computer Engineering (CE)'};
   SEED.forEach(function(m,k){ if(!m.id) m.id='fm'+(k<9?'0':'')+(k+1); m.upd=+m.upd||0; FIELDS.forEach(function(f){ if(m[f]==null) m[f]=''; }); });
@@ -28887,12 +28888,41 @@ body.admin-mode .fm-hint{display:block}
     return out.length?out.join(' '):'Less than 1 month';
   }
 
+  // ── FM / LE form fields (admin can customise) ──
+  var FCK=KEY+'_fields';
+  var FTYPES=[['text','Short text'],['long','Long text'],['phone','Phone / number']];
+  var FDEF=[
+    {k:'name',label:'Name',type:'name'},{k:'sec',label:'Department',type:'dept'},{k:'desig',label:'Designation',type:'desig'},
+    {k:'ext',label:'Ext.',type:'phone'},{k:'cell',label:'Cell',type:'phone'},{k:'exp',label:'Experience',type:'exp'},
+    {k:'qual',label:'Qualifications',type:'long'},{k:'area',label:'Expertise / Area of Interest',type:'long'}
+  ];
+  var FPH={cell:'03xx-xxxxxxx',qual:'e.g. PhD (EE), NUST 2019; MS (EE), NUST 2014',area:'e.g. Wireless communications, signal processing'};
+  var FIXED={name:'name',sec:'dept',desig:'desig',exp:'exp'};
+  function fIsCore(k){ return k==='name'||k==='sec'||k==='desig'; }
+  function fNorm(v){
+    if(!v) return null;
+    var arr=Array.isArray(v)?v:Object.keys(v).map(function(k){return v[k];});
+    var seen={}, out=[];
+    arr.forEach(function(f){
+      if(!f||typeof f!=='object'||!f.k||seen[f.k]) return;
+      var lab=String(f.label==null?'':f.label).trim(); if(!lab) return;
+      var t=FIXED[f.k]||(['text','long','phone'].indexOf(f.type)>=0?f.type:'text');
+      seen[f.k]=1; out.push({k:String(f.k),label:lab,type:t});
+    });
+    FDEF.forEach(function(d,i){ if(fIsCore(d.k) && !seen[d.k]){ out.splice(Math.min(i,out.length),0,clone(d)); seen[d.k]=1; } });
+    return out.length?out:null;
+  }
+  var fcfg=fNorm(FM_CFG)||clone(FDEF);
+  function fCls(t){ return t==='long'?'fm-long':(t==='phone'?'fm-ph':''); }
+  function fNewKey(){ return 'f'+Date.now().toString(36)+Math.random().toString(36).slice(2,5); }
+
   // accept arrays or Firebase's object-shaped arrays; drop junk
   function normalize(v){
     if(!v) return null;
     var arr=Array.isArray(v)?v:Object.keys(v).map(function(k){return v[k];});
     arr=arr.filter(function(m){return m && typeof m==='object' && m.name;}).map(function(m){
-      var o={}; FIELDS.forEach(function(f){o[f]=(m[f]==null?'':String(m[f]));});
+      var o={}; Object.keys(m).forEach(function(k){ if(m[k]!=null && typeof m[k]!=='object') o[k]=String(m[k]); });
+      FIELDS.forEach(function(f){ if(o[f]==null) o[f]=''; }); fcfg.forEach(function(f){ if(o[f.k]==null) o[f.k]=''; });
       o.sec=(o.sec==='CE'?'CE':'EE');
       o.upd=+m.upd||0; o.id=m.id?String(m.id):'';
       if(!o.id){ var sd=SEED.filter(function(x){return x.name===o.name;})[0]; o.id=sd?sd.id:uid(); }
@@ -28921,8 +28951,8 @@ body.admin-mode .fm-hint{display:block}
       if(filter!=='ALL' && r.m.sec!==filter) return false;
       if(dfilter!=='ALL' && desigCat(r.m.desig)!==dfilter) return false;
       if(!q) return true;
-      return FIELDS.some(function(f){
-        return String(r.m[f]).toLowerCase().indexOf(q)!==-1;
+      return Object.keys(r.m).some(function(f){
+        return f!=='id' && f!=='upd' && f!=='expAt' && String(r.m[f]).toLowerCase().indexOf(q)!==-1;
       }) || (SEC_NAME[r.m.sec].toLowerCase().indexOf(q)!==-1) || (expText(r.m).toLowerCase().indexOf(q)!==-1);
     });
   }
@@ -28938,33 +28968,32 @@ body.admin-mode .fm-hint{display:block}
     if(!body) body='<span class="fm-none">—</span>';
     return '<td class="fm-long fm-e" data-i="'+i+'" data-f="exp">'+body+'</td>';
   }
+  function fCell(m,i,f){
+    if(f.type==='name') return '<td class="fm-name fm-e" data-i="'+i+'" data-f="name">'+esc(m.name)+(m.upd?'<span class="fm-stamp">Updated '+new Date(m.upd).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})+'</span>':'')+'<button type="button" class="fm-upd" data-upd="'+i+'" style="display:block;margin-top:.4rem">✎ Update</button></td>';
+    if(f.type==='dept') return '<td class="fm-e" data-i="'+i+'" data-f="sec"><span class="fm-sec '+m.sec+'">'+m.sec+'</span></td>';
+    if(f.type==='exp') return expCell(i,m);
+    return cell(i,f.k,fCls(f.type),m[f.k]);
+  }
   function render(){
     var c=counts();
     $('fmSeg').innerHTML=[['ALL','All'],['EE','EE'],['CE','CE']].map(function(s){
       return '<button type="button" data-s="'+s[0]+'" class="'+(filter===s[0]?'on':'')+'">'+s[1]+' ('+c[s[0]]+')</button>';
     }).join('');
+    $('fmHead').innerHTML='<tr><th>#</th>'+fcfg.map(function(f){return '<th'+(f.k==='name'?' class="fm-name"':'')+'>'+esc(f.label)+'</th>';}).join('')+'<th class="fm-adm"></th></tr>';
+    var span=fcfg.length+2;
     var rows=visible(), html='', n=0;
     ['EE','CE'].forEach(function(sec){
       var part=rows.filter(function(r){return r.m.sec===sec;});
       if(!part.length) return;
-      html+='<tr class="fm-grp"><td colspan="10"><span class="fm-gname" data-sec="'+sec+'">'+esc(SEC_NAME[sec])+'</span><small>'+part.length+' member'+(part.length===1?'':'s')+'</small></td></tr>';
+      html+='<tr class="fm-grp"><td colspan="'+span+'"><span class="fm-gname" data-sec="'+sec+'">'+esc(SEC_NAME[sec])+'</span><small>'+part.length+' member'+(part.length===1?'':'s')+'</small></td></tr>';
       part.forEach(function(r){
         var m=r.m,i=r.i; n++;
-        html+='<tr>'
-          +'<td class="fm-num">'+n+'</td>'
-          +'<td class="fm-name fm-e" data-i="'+i+'" data-f="name">'+esc(m.name)+(m.upd?'<span class="fm-stamp">Updated '+new Date(m.upd).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})+'</span>':'')+'<button type="button" class="fm-upd" data-upd="'+i+'" style="display:block;margin-top:.4rem">✎ Update</button></td>'
-          +'<td class="fm-e" data-i="'+i+'" data-f="sec"><span class="fm-sec '+m.sec+'">'+m.sec+'</span></td>'
-          +cell(i,'desig','',m.desig)
-          +cell(i,'ext','fm-ph',m.ext)
-          +cell(i,'cell','fm-ph',m.cell)
-          +expCell(i,m)
-          +cell(i,'qual','fm-long',m.qual)
-          +cell(i,'area','fm-long',m.area)
+        html+='<tr><td class="fm-num">'+n+'</td>'+fcfg.map(function(f){ return fCell(m,i,f); }).join('')
           +'<td class="fm-adm"><button type="button" class="fm-del" data-del="'+i+'" title="Remove this member">🗑</button></td>'
           +'</tr>';
       });
     });
-    if(!n) html='<tr><td colspan="10" style="text-align:center;padding:2rem;color:var(--muted)">No faculty members match your search.</td></tr>';
+    if(!n) html='<tr><td colspan="'+span+'" style="text-align:center;padding:2rem;color:var(--muted)">No faculty members match your search.</td></tr>';
     $('fmBody').innerHTML=html;
     $('fmMeta').textContent='Showing '+n+' of '+list.length+' regular faculty members';
     renderCards();
@@ -29043,7 +29072,7 @@ body.admin-mode .fm-hint{display:block}
     if(!isAdmin() || editing) return;
     var i=+td.getAttribute('data-i'), f=td.getAttribute('data-f'), m=list[i]; if(!m) return;
     if(f==='exp'){ openEdit(m); return; }
-    var long=(f==='exp'||f==='qual'||f==='area'), ctl;
+    var fd=fcfg.filter(function(x){return x.k===f;})[0], long=!!fd && fd.type==='long', ctl;
     if(f==='sec'){
       ctl=document.createElement('select');
       ctl.innerHTML='<option value="EE">EE</option><option value="CE">CE</option>';
@@ -29070,14 +29099,37 @@ body.admin-mode .fm-hint{display:block}
     });
   }
 
+  // the entry form is built from the field list
+  function buildFmForm(){
+    var h='', selSt="width:100%;font:500 .95rem 'Source Sans 3',sans-serif;color:var(--ink);border:1px solid var(--rule);border-radius:4px;padding:.55rem .7rem;background:#fff";
+    fcfg.forEach(function(f){
+      var lab=esc(f.label), id='fmEdF_'+f.k;
+      if(f.type==='name') h+='<label for="fmEdName">'+lab+'</label><input id="fmEdName" type="text" autocomplete="off">';
+      else if(f.type==='dept') h+='<div id="fmEdSecWrap" style="display:none"><label for="fmEdSec">'+lab+'</label><select id="fmEdSec" style="'+selSt+'"><option value="EE">EE</option><option value="CE">CE</option></select></div>';
+      else if(f.type==='desig') h+='<label for="fmEdDesig">'+lab+'</label><select id="fmEdDesig" style="'+selSt+'"><option value="">— Select designation —</option>'+DESIGS.map(function(d){return '<option value="'+esc(d)+'">'+esc(d)+'</option>';}).join('')+'</select>';
+      else if(f.type==='exp') h+='<label>'+lab+' — teaching experience (as of today)</label><div style="display:flex;gap:.6rem;align-items:center"><input id="fmEdExpY" type="number" min="0" max="60" step="1" placeholder="Years" style="max-width:120px"><input id="fmEdExpM" type="number" min="0" max="11" step="1" placeholder="Months" style="max-width:120px"></div><p class="fm-note" style="margin-top:.4rem">Enter it once. It then updates automatically every month, so you do not need to re-enter it.</p><label for="fmEdExp">'+lab+' — other notes</label><textarea id="fmEdExp" rows="3" placeholder="e.g. 3 years industry (Huawei)"></textarea>';
+      else if(f.type==='long') h+='<label for="'+id+'">'+lab+'</label><textarea id="'+id+'" rows="3"'+(FPH[f.k]?' placeholder="'+esc(FPH[f.k])+'"':'')+'></textarea>';
+      else h+='<label for="'+id+'">'+lab+'</label><input id="'+id+'" type="text" autocomplete="off"'+(FPH[f.k]?' placeholder="'+esc(FPH[f.k])+'"':'')+'>';
+    });
+    $('fmEdFields').innerHTML=h;
+  }
+  function fillFmForm(m){
+    fcfg.forEach(function(f){
+      if(f.type==='name') $('fmEdName').value=m?m.name:'';
+      else if(f.type==='dept') $('fmEdSec').value=m?m.sec:(filter==='CE'?'CE':'EE');
+      else if(f.type==='desig') setDesig(m?m.desig:'');
+      else if(f.type==='exp'){
+        var tm=m?expMonths(m):null, ey=(tm===null?'':Math.floor(tm/12)), em=(tm===null?'':tm%12);
+        $('fmEdExpY').value=ey; $('fmEdExpM').value=em; $('fmEdExpY').setAttribute('data-orig',ey); $('fmEdExpM').setAttribute('data-orig',em);
+        $('fmEdExp').value=m?(m.exp||''):'';
+      } else $('fmEdF_'+f.k).value=m?(m[f.k]||''):'';
+    });
+  }
   window.fmAdd=function(){
     adding=true; editId=null;
+    buildFmForm(); fillFmForm(null);
     $('fmEdHead').textContent='Add faculty member';
-    $('fmEdSecWrap').style.display='';
-    $('fmEdSec').value=(filter==='CE'?'CE':'EE');
-    ['Name','Ext','Cell','Exp','Qual','Area','ExpY','ExpM'].forEach(function(k){ $('fmEd'+k).value=''; });
-    setDesig('');
-    $('fmEdExpY').setAttribute('data-orig',''); $('fmEdExpM').setAttribute('data-orig','');
+    var w=$('fmEdSecWrap'); if(w) w.style.display='';
     $('fmEdErr').textContent='';
     $('fmEditOverlay').classList.add('open');
     setTimeout(function(){ $('fmEdName').focus(); },30);
@@ -29094,15 +29146,19 @@ body.admin-mode .fm-hint{display:block}
     });
   }
   var SUBTITLE='Regular faculty members database · Dept. of Electrical Engineering and Dept. of Computer & Software Engineering · AU, Islamabad';
-  function exportGroups(){
+  function colW(f){ return ({name:28,dept:12,desig:24,phone:14,exp:30,long:38,text:22})[f.type]||22; }
+  function cellText(m,f){
+    if(f.type==='exp') return [expText(m),m.exp].filter(Boolean).join('\n');
+    return m[f.k]==null?'':String(m[f.k]);
+  }
+  function exportGroups(withSec){
+    var cols=fcfg.filter(function(f){return withSec||f.type!=='dept';});
     var rows=visible(), n=0, out=[];
     ['EE','CE'].forEach(function(sec){
       var part=rows.filter(function(r){return r.m.sec===sec;}); if(!part.length) return;
-      out.push({sec:sec,name:SEC_NAME[sec],items:part.map(function(r){ n++; var m=r.m;
-        return [n,m.name||'',m.sec,m.desig||'',m.ext||'',m.cell||'',expText(m)||'',m.exp||'',m.qual||'',m.area||''];
-      })});
+      out.push({sec:sec,name:SEC_NAME[sec],items:part.map(function(r){ n++; return [n].concat(cols.map(function(f){return cellText(r.m,f);})); })});
     });
-    return {groups:out,total:n};
+    return {groups:out,total:n,cols:cols};
   }
   function exportStamp(){ return new Date().toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}); }
   function saveBlob(blob,name){
@@ -29112,9 +29168,9 @@ body.admin-mode .fm-hint{display:block}
 
   window.fmExportXlsx=function(){
     loadLib('https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js',function(){return window.ExcelJS;}).then(function(){
-      var d=exportGroups(), NAVY='FF0B2545', LIGHT='FFDCE6F2';
-      var heads=['#','Name','Department','Designation','Ext.','Cell','Teaching experience','Other experience / notes','Qualifications','Expertise / Area of Interest'];
-      var widths=[5,28,12,24,9,16,22,34,38,38];
+      var d=exportGroups(true), cols=d.cols, N=cols.length+1, NAVY='FF0B2545', LIGHT='FFDCE6F2';
+      var heads=['#'].concat(cols.map(function(f){return f.label;}));
+      var widths=[5].concat(cols.map(colW));
       var wb=new ExcelJS.Workbook(); wb.creator='AU Islamabad';
       var ws=wb.addWorksheet('Regular FMs',{
         views:[{state:'frozen',ySplit:4}],
@@ -29122,10 +29178,10 @@ body.admin-mode .fm-hint{display:block}
       });
       ws.columns=widths.map(function(w){return {width:w};});
       var thin={style:'thin',color:{argb:'FFB8C4D6'}}, box={top:thin,left:thin,bottom:thin,right:thin};
-      ws.mergeCells(1,1,1,10);
+      ws.mergeCells(1,1,1,N);
       var t=ws.getCell(1,1); t.value=($('fmTitle').textContent||'Regular FMs').trim();
       t.font={name:'Calibri',size:16,bold:true,color:{argb:NAVY}}; t.alignment={vertical:'middle'}; ws.getRow(1).height=26;
-      ws.mergeCells(2,1,2,10);
+      ws.mergeCells(2,1,2,N);
       var st=ws.getCell(2,1); st.value=SUBTITLE+'  ·  '+d.total+' members  ·  Exported '+exportStamp();
       st.font={name:'Calibri',size:10,italic:true,color:{argb:'FF555F6E'}};
       var hr=ws.getRow(4); hr.values=heads; hr.height=24;
@@ -29134,12 +29190,12 @@ body.admin-mode .fm-hint{display:block}
         c.alignment={vertical:'middle',horizontal:'center',wrapText:true}; });
       var r=5;
       d.groups.forEach(function(g){
-        ws.mergeCells(r,1,r,10);
+        ws.mergeCells(r,1,r,N);
         var gc=ws.getCell(r,1); gc.value=g.name+'  ('+g.items.length+')';
         gc.font={name:'Calibri',size:11,bold:true,color:{argb:NAVY}};
         gc.fill={type:'pattern',pattern:'solid',fgColor:{argb:LIGHT}};
         gc.alignment={vertical:'middle'}; ws.getRow(r).height=20;
-        for(var k=1;k<=10;k++) ws.getCell(r,k).border=box;
+        for(var k=1;k<=N;k++) ws.getCell(r,k).border=box;
         r++;
         g.items.forEach(function(it,ix){
           var row=ws.getRow(r); row.values=it;
@@ -29147,9 +29203,10 @@ body.admin-mode .fm-hint{display:block}
           it.forEach(function(v,c){ var w=widths[c]*1.05; var l=String(v).split('\n').reduce(function(a,seg){return a+Math.max(1,Math.ceil(seg.length/w));},0); if(l>lines) lines=l; });
           row.height=Math.max(18,lines*15);
           row.eachCell({includeEmpty:true},function(c,col){
-            c.font={name:'Calibri',size:10.5,bold:col===2};
+            var f=col>1?cols[col-2]:null;
+            c.font={name:'Calibri',size:10.5,bold:!!f && f.type==='name'};
             c.border=box;
-            c.alignment={vertical:'top',wrapText:true,horizontal:(col===1||col===3||col===5)?'center':'left'};
+            c.alignment={vertical:'top',wrapText:true,horizontal:(col===1||(f&&(f.type==='dept'||f.type==='phone')))?'center':'left'};
             if(ix%2) c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFF6F8FB'}};
           });
           r++;
@@ -29167,7 +29224,7 @@ body.admin-mode .fm-hint{display:block}
     loadLib('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',function(){return window.jspdf&&window.jspdf.jsPDF;})
     .then(function(){ return loadLib('https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js',function(){return window.jspdf.jsPDF.API.autoTable;}); })
     .then(function(){
-      var d=exportGroups(), NAVY=[11,37,69], LIGHT=[220,230,242];
+      var d=exportGroups(false), cols=d.cols, N=cols.length+1, NAVY=[11,37,69], LIGHT=[220,230,242];
       var doc=new window.jspdf.jsPDF({orientation:'landscape',unit:'mm',format:'a4'});
       var title=($('fmTitle').textContent||'Regular FMs').trim();
       doc.setFont('helvetica','bold'); doc.setFontSize(15); doc.setTextColor(NAVY[0],NAVY[1],NAVY[2]); doc.text(title,10,14);
@@ -29176,19 +29233,27 @@ body.admin-mode .fm-hint{display:block}
       doc.text(d.total+' members  ·  Exported '+exportStamp(),10,24);
       var body=[];
       d.groups.forEach(function(g){
-        body.push([{content:g.name+'  ('+g.items.length+')',colSpan:9,styles:{fillColor:LIGHT,textColor:NAVY,fontStyle:'bold',fontSize:8.5}}]);
-        g.items.forEach(function(it){ body.push([it[0],it[1],it[3],it[4],it[5],it[6],it[7],it[8],it[9]]); });
+        body.push([{content:g.name+'  ('+g.items.length+')',colSpan:N,styles:{fillColor:LIGHT,textColor:NAVY,fontStyle:'bold',fontSize:8.5}}]);
+        g.items.forEach(function(it){ body.push(it); });
+      });
+      var avail=277-8, tw=0; cols.forEach(function(f){tw+=colW(f);});
+      var styles={0:{cellWidth:8,halign:'center'}};
+      cols.forEach(function(f,i){
+        var st={cellWidth:Math.round(colW(f)/tw*avail*10)/10};
+        if(f.type==='name') st.fontStyle='bold';
+        if(f.type==='phone') st.halign='center';
+        styles[i+1]=st;
       });
       doc.autoTable({
         startY:28,
-        head:[['#','Name','Designation','Ext.','Cell','Teaching experience','Other experience / notes','Qualifications','Expertise / Area of Interest']],
+        head:[['#'].concat(cols.map(function(f){return f.label;}))],
         body:body,
         theme:'grid',
         margin:{left:10,right:10,top:12,bottom:12},
         styles:{font:'helvetica',fontSize:7.5,cellPadding:1.6,lineColor:[184,196,214],lineWidth:.15,valign:'top',overflow:'linebreak',textColor:[30,30,30]},
         headStyles:{fillColor:NAVY,textColor:255,fontStyle:'bold',halign:'center',valign:'middle'},
         alternateRowStyles:{fillColor:[246,248,251]},
-        columnStyles:{0:{cellWidth:8,halign:'center'},1:{cellWidth:36,fontStyle:'bold'},2:{cellWidth:30},3:{cellWidth:12,halign:'center'},4:{cellWidth:24},5:{cellWidth:28},6:{cellWidth:40},7:{cellWidth:50},8:{cellWidth:49}},
+        columnStyles:styles,
         didDrawPage:function(h){
           doc.setFontSize(7.5); doc.setTextColor(120,125,135);
           doc.text(title,10,doc.internal.pageSize.getHeight()-6);
@@ -29212,11 +29277,16 @@ body.admin-mode .fm-hint{display:block}
   };
   // Used by the admin "Save to index.html" button: writes the current records into the page source.
   window.fmBake=function(src){
-    var recs=list.map(function(m){ var o={id:m.id}; FIELDS.forEach(function(f){o[f]=m[f];}); o.upd=m.upd||0; return o; });
+    var recs=list.map(function(m){ var o=clone(m); o.upd=m.upd||0; return o; });
     var json=JSON.stringify(recs).replace(/<\//g,'<\\/');
     var re=/(var SEED=)\[[\s\S]*?\](;\s*\n\s*var FIELDS=)/;
     if(!re.test(src)) throw new Error('The hosted index.html does not have the faculty list yet. Upload this version once, then use Save again.');
     src=src.replace(re,function(_,x,y){ return x+json+y; });
+    var fre=/(var FM_CFG=).*(;)/;
+    if(fre.test(src)){
+      var fjson=JSON.stringify(fcfg).replace(/<\//g,'<\\/');
+      src=src.replace(fre,function(_,x,y){ return x+fjson+y; });
+    }
     var lre=/(var LAB_SEED=)\[.*\](;)/;
     if(lre.test(src)){
       var ljson=JSON.stringify(labs).replace(/<\//g,'<\\/');
@@ -29246,12 +29316,10 @@ body.admin-mode .fm-hint{display:block}
   // ── faculty self-update ──
   function showPane(){ setTimeout(function(){ var t=$('fmEdDesig'); if(t) t.focus(); },30); }
   function openEdit(m){
-    if(!m) return; editId=m.id; adding=false; $('fmEdSecWrap').style.display='none';
+    if(!m) return; editId=m.id; adding=false;
+    buildFmForm(); fillFmForm(m);
+    var w=$('fmEdSecWrap'); if(w) w.style.display='none';
     $('fmEdHead').textContent='Update record: '+m.name;
-    $('fmEdName').value=m.name; setDesig(m.desig); $('fmEdExt').value=m.ext; $('fmEdCell').value=m.cell;
-    var tm=expMonths(m), ey=(tm===null?'':Math.floor(tm/12)), em=(tm===null?'':tm%12);
-    $('fmEdExpY').value=ey; $('fmEdExpM').value=em; $('fmEdExpY').setAttribute('data-orig',ey); $('fmEdExpM').setAttribute('data-orig',em);
-    $('fmEdExp').value=m.exp; $('fmEdQual').value=m.qual; $('fmEdArea').value=m.area;
     $('fmEdErr').textContent='';
     $('fmEditOverlay').classList.add('open'); showPane();
   }
@@ -29259,21 +29327,28 @@ body.admin-mode .fm-hint{display:block}
   function saveRecord(){
     var nm=$('fmEdName').value.trim();
     if(!nm){ $('fmEdErr').textContent='Name cannot be empty.'; $('fmEdName').focus(); return; }
-    var patch={name:nm,desig:$('fmEdDesig').value.trim(),ext:$('fmEdExt').value.trim(),cell:$('fmEdCell').value.trim(),exp:$('fmEdExp').value.trim(),qual:$('fmEdQual').value.trim(),area:$('fmEdArea').value.trim()};
+    var patch={name:nm};
+    fcfg.forEach(function(f){
+      if(f.type==='desig') patch.desig=$('fmEdDesig').value.trim();
+      else if(f.type==='exp') patch.exp=$('fmEdExp').value.trim();
+      else if(f.type!=='name' && f.type!=='dept') patch[f.k]=$('fmEdF_'+f.k).value.trim();
+    });
     var id=editId, now=Date.now(), m;
     if(adding){
       id=uid(); patch.sec=($('fmEdSec').value==='CE'?'CE':'EE');
-      m={id:id,upd:0,name:'',sec:patch.sec,desig:'',ext:'',cell:'',exp:'',qual:'',area:'',expY:'',expM:'',expAt:''};
+      m={id:id,upd:0}; FIELDS.forEach(function(f){m[f]='';}); fcfg.forEach(function(f){m[f.k]='';}); m.sec=patch.sec;
     } else m=list.filter(function(x){return x.id===id;})[0];
     if(!m){ $('fmEdErr').textContent='This record no longer exists.'; return; }
     // teaching experience: only restart the monthly counter when the person actually changed the figure
-    var yEl=$('fmEdExpY'), mEl=$('fmEdExpM'), yv=yEl.value.trim(), mv=mEl.value.trim();
-    if((yv!==''&&!(+yv>=0))||(mv!==''&&!(+mv>=0))){ $('fmEdErr').textContent='Experience must be a positive number of years / months.'; return; }
-    if(yv!==''||mv!==''){ var yy=parseInt(yv,10)||0, mm=parseInt(mv,10)||0; yy+=Math.floor(mm/12); mm=mm%12; yv=String(yy); mv=String(mm); }
-    patch.expY=yv; patch.expM=mv;
-    if(yv===''&&mv==='') patch.expAt='';
-    else if(yEl.getAttribute('data-orig')!==yEl.value.trim() || mEl.getAttribute('data-orig')!==mEl.value.trim() || !m.expAt) patch.expAt=todayStr();
-    else patch.expAt=m.expAt;
+    if(fcfg.some(function(f){return f.type==='exp';})){
+      var yEl=$('fmEdExpY'), mEl=$('fmEdExpM'), yv=yEl.value.trim(), mv=mEl.value.trim();
+      if((yv!==''&&!(+yv>=0))||(mv!==''&&!(+mv>=0))){ $('fmEdErr').textContent='Experience must be a positive number of years / months.'; return; }
+      if(yv!==''||mv!==''){ var yy=parseInt(yv,10)||0, mm=parseInt(mv,10)||0; yy+=Math.floor(mm/12); mm=mm%12; yv=String(yy); mv=String(mm); }
+      patch.expY=yv; patch.expM=mv;
+      if(yv===''&&mv==='') patch.expAt='';
+      else if(yEl.getAttribute('data-orig')!==yEl.value.trim() || mEl.getAttribute('data-orig')!==mEl.value.trim() || !m.expAt) patch.expAt=todayStr();
+      else patch.expAt=m.expAt;
+    }
     function apply(t){ for(var k in patch) t[k]=patch[k]; t.upd=now; }
     apply(m);
     if(adding) list.push(m);
@@ -29602,17 +29677,19 @@ body.admin-mode .fm-hint{display:block}
     if(!rows.length && !withLabs){ $('fmPrErr').textContent='No faculty members match this department and designation.'; return; }
     var title=($('fmTitle').textContent||'Regular FMs').trim();
     var what=(sec==='ALL'?'All departments':SEC_NAME[sec])+' · '+(des==='ALL'?'All designations':des);
-    var n=0, body='';
+    var n=0, body='', pcols=fcfg.filter(function(f){return f.type!=='dept';});
     ['EE','CE'].forEach(function(k){
       var part=rows.filter(function(m){return m.sec===k;}); if(!part.length) return;
-      body+='<tr class="g"><td colspan="8">'+esc(SEC_NAME[k])+' — '+part.length+' member'+(part.length===1?'':'s')+'</td></tr>';
+      body+='<tr class="g"><td colspan="'+(pcols.length+1)+'">'+esc(SEC_NAME[k])+' — '+part.length+' member'+(part.length===1?'':'s')+'</td></tr>';
       part.forEach(function(m){ n++;
-        var ex=[expText(m),m.exp].filter(Boolean).join('\n');
-        body+='<tr><td class="c">'+n+'</td><td><b>'+esc(m.name)+'</b></td><td>'+esc(m.desig)+'</td><td class="c">'+esc(m.ext)+'</td><td>'+esc(m.cell)+'</td><td class="w">'+esc(ex)+'</td><td class="w">'+esc(m.qual)+'</td><td class="w">'+esc(m.area)+'</td></tr>';
+        body+='<tr><td class="c">'+n+'</td>'+pcols.map(function(f){
+          var v=cellText(m,f);
+          return f.type==='name'?'<td><b>'+esc(v)+'</b></td>':'<td class="'+(f.type==='phone'?'c':'w')+'">'+esc(v)+'</td>';
+        }).join('')+'</tr>';
       });
     });
     var html='';
-    if(rows.length) html+='<table><thead><tr><th>#</th><th>Name</th><th>Designation</th><th>Ext.</th><th>Cell</th><th>Experience</th><th>Qualifications</th><th>Expertise / Area of Interest</th></tr></thead><tbody>'+body+'</tbody></table>';
+    if(rows.length) html+='<table><thead><tr><th>#</th>'+pcols.map(function(f){return '<th>'+esc(f.label)+'</th>';}).join('')+'</tr></thead><tbody>'+body+'</tbody></table>';
     if(withLabs){
       var lrows='', ln=0;
       ['EE','CE'].forEach(function(k){
@@ -29642,6 +29719,86 @@ body.admin-mode .fm-hint{display:block}
   Array.prototype.forEach.call($('fmPrOverlay').querySelectorAll('[data-prcancel]'),function(b){b.addEventListener('click',closePr);});
   $('fmPrOverlay').addEventListener('click',function(e){ if(e.target===this) closePr(); });
   document.addEventListener('keydown',function(e){ if(e.key==='Escape' && $('fmPrOverlay').classList.contains('open')) closePr(); });
+
+
+  // ── admin: FM/LE form designer ──
+  var ffFromForm=false, fcfgInit=false;
+  function saveFcfg(){
+    try{localStorage.setItem(FCK,JSON.stringify(fcfg));}catch(e){}
+    if(typeof fbDb!=='undefined' && fbDb){
+      fbDb.ref(FCK).set(fcfg)
+        .then(function(){flash('✓ Form saved to Firebase');})
+        .catch(function(err){console.warn('FM form save error:',err);flash('⚠ Saved on this device only');});
+    } else flash('✓ Saved on this device');
+  }
+  var FLABEL={name:'Name',dept:'Department (EE / CE)',desig:'Designation (dropdown)',exp:'Experience (years / months + notes)'};
+  function ffRow(f){
+    var core=fIsCore(f.k), fixed=!!FIXED[f.k];
+    var typeCtl=fixed?'<select disabled><option>'+esc(FLABEL[FIXED[f.k]])+'</option></select>'
+      :'<select class="lf-t">'+FTYPES.map(function(t){return '<option value="'+t[0]+'"'+(f.type===t[0]?' selected':'')+'>'+t[1]+'</option>';}).join('')+'</select>';
+    return '<div class="lf-row" data-k="'+esc(f.k)+'"><input type="text" class="lf-l" value="'+esc(f.label)+'" aria-label="Field name">'+typeCtl
+      +'<span class="lf-b"><button type="button" class="lf-up" title="Move up">↑</button><button type="button" class="lf-dn" title="Move down">↓</button><button type="button" class="lf-x" title="'+(core?'Core field: cannot be deleted':'Delete this field')+'"'+(core?' disabled':'')+'>🗑</button></span></div>';
+  }
+  function ffFill(arr){ $('fmFfRows').innerHTML=arr.map(ffRow).join(''); }
+  window.fmFormDesign=function(fromForm){
+    if(!isAdmin()) return;
+    ffFromForm=!!fromForm;
+    if(fromForm) closeEdit();
+    ffFill(fcfg); $('fmFfErr').textContent='';
+    $('fmFfOverlay').classList.add('open');
+  };
+  function closeFf(){
+    $('fmFfOverlay').classList.remove('open');
+    if(ffFromForm){ ffFromForm=false; fmAdd(); }
+  }
+  function ffCollect(){
+    return Array.prototype.map.call($('fmFfRows').querySelectorAll('.lf-row'),function(r){
+      var k=r.getAttribute('data-k'), t=r.querySelector('.lf-t');
+      return {k:k,label:r.querySelector('.lf-l').value.trim(),type:(FIXED[k]||(t?t.value:'text'))};
+    });
+  }
+  $('fmFfRows').addEventListener('click',function(e){
+    var row=e.target.closest('.lf-row'); if(!row) return;
+    if(e.target.closest('.lf-up') && row.previousElementSibling) row.parentNode.insertBefore(row,row.previousElementSibling);
+    else if(e.target.closest('.lf-dn') && row.nextElementSibling) row.parentNode.insertBefore(row.nextElementSibling,row);
+    else if(e.target.closest('.lf-x') && !fIsCore(row.getAttribute('data-k'))){
+      var nm=row.querySelector('.lf-l').value.trim()||'this field';
+      if(confirm('Delete the field “'+nm+'”? Everything entered in it will be removed.')) row.parentNode.removeChild(row);
+    }
+  });
+  $('fmFfAdd').addEventListener('click',function(){
+    var d=document.createElement('div'); d.innerHTML=ffRow({k:fNewKey(),label:'',type:'text'});
+    var r=d.firstChild; $('fmFfRows').appendChild(r); r.querySelector('.lf-l').focus();
+  });
+  $('fmFfReset').addEventListener('click',function(){
+    if(confirm('Restore the original fields? Custom fields you added (and their data) will be removed.')) ffFill(FDEF);
+  });
+  $('fmFfSave').addEventListener('click',function(){
+    var draft=ffCollect(), i;
+    for(i=0;i<draft.length;i++) if(!draft[i].label){ $('fmFfErr').textContent='Every field needs a name.'; return; }
+    var keep={}; draft.forEach(function(f){keep[f.k]=1;});
+    var removed=fcfg.filter(function(f){return !keep[f.k];}).map(function(f){return f.k;});
+    fcfg=draft;
+    if(removed.length){
+      list.forEach(function(m){ removed.forEach(function(k){ m[k]=''; if(k==='exp'){ m.expY=''; m.expM=''; m.expAt=''; } }); });
+    }
+    list.forEach(function(m){ fcfg.forEach(function(f){ if(m[f.k]==null) m[f.k]=''; }); });
+    saveFcfg(); if(removed.length) save();
+    $('fmFfOverlay').classList.remove('open'); closeFf(); render();
+  });
+  Array.prototype.forEach.call($('fmFfOverlay').querySelectorAll('[data-ffcancel]'),function(b){b.addEventListener('click',closeFf);});
+  $('fmFfOverlay').addEventListener('click',function(e){ if(e.target===this) closeFf(); });
+  $('fmFfOverlay').addEventListener('keydown',function(e){ if(e.key==='Escape'){ e.stopPropagation(); closeFf(); } });
+  document.addEventListener('keydown',function(e){ if(e.key==='Escape' && $('fmFfOverlay').classList.contains('open')) closeFf(); });
+  try{ var fc=fNorm(JSON.parse(localStorage.getItem(FCK)||'null')); if(fc) fcfg=fc; }catch(e){}
+  if(typeof fbDb!=='undefined' && fbDb){
+    fbDb.ref(FCK).on('value',function(snap){
+      var r=fNorm(snap.val());
+      if(r){ fcfg=r; try{localStorage.setItem(FCK,JSON.stringify(fcfg));}catch(e){} if($('fmOverlay').classList.contains('open') && !editing) render(); }
+      else if(!fcfgInit && JSON.stringify(fcfg)!==JSON.stringify(FDEF)){ fbDb.ref(FCK).transaction(function(cur){ return cur==null ? clone(fcfg) : undefined; }); }
+      fcfgInit=true;
+    },function(err){console.warn('FM form load error:',err);});
+  }
 
   // events
   $('fmSearch').addEventListener('input',function(){query=this.value;render();});
@@ -29674,7 +29831,7 @@ body.admin-mode .fm-hint{display:block}
   document.addEventListener('keydown',function(e){
     if(e.key!=='Escape') return;
     if($('fmEditOverlay').classList.contains('open')){ closeEdit(); return; }
-    if($('fmLabOverlay').classList.contains('open') || $('fmLfOverlay').classList.contains('open') || $('fmPrOverlay').classList.contains('open')) return;
+    if($('fmLabOverlay').classList.contains('open') || $('fmLfOverlay').classList.contains('open') || $('fmPrOverlay').classList.contains('open') || $('fmFfOverlay').classList.contains('open')) return;
     if(!editing && labEditing) return;
     if(!editing && $('fmOverlay').classList.contains('open')) closeFmModal();
   });
@@ -29725,7 +29882,7 @@ body.te-on .te-hover{outline:2px dashed var(--gold-lt,#e0b95a);outline-offset:2p
 (function(){
   var PATH='pco_text_overrides', LSKEY='pco_text_overrides';
   // Text that other editors already manage (tables, notes, admin panels, link-card titles) is skipped here.
-  var EXC='script,style,noscript,textarea,input,select,option,svg,#adminBar,#adminPanelOverlay,#adminLoginOverlay,.ce-overlay,#fmEditOverlay,#fmLabOverlay,#fmLfOverlay,#fmBody,#fmLabBody,#fmSeg,#fmMeta,#notesBody,.modal-body,.modal-admin-toolbar,#sessionModalTitle,#sessionModalSub,.close-btn,.te-ui,[contenteditable="true"],[contenteditable="plaintext-only"],[data-card] .parent-card-text h2,[data-card] .parent-card-text p';
+  var EXC='script,style,noscript,textarea,input,select,option,svg,#adminBar,#adminPanelOverlay,#adminLoginOverlay,.ce-overlay,#fmEditOverlay,#fmLabOverlay,#fmLfOverlay,#fmFfOverlay,#fmBody,#fmLabBody,#fmSeg,#fmMeta,#notesBody,.modal-body,.modal-admin-toolbar,#sessionModalTitle,#sessionModalSub,.close-btn,.te-ui,[contenteditable="true"],[contenteditable="plaintext-only"],[data-card] .parent-card-text h2,[data-card] .parent-card-text p';
   var PLAIN=(function(){ var d=document.createElement('div'); d.setAttribute('contenteditable','plaintext-only'); return d.contentEditable==='plaintext-only'; })();
   var meta=new WeakMap(), tracked=new Set(), trackedList=[], initial=true, active=null, textMode=false, hoverEl=null, timer=null;
   var baked={}, local={}, remote={};
