@@ -190,6 +190,83 @@
   .icon-btn.danger:hover{border-color:var(--danger);color:var(--danger);}
   .icon-btn.edit{background:var(--teal);border-color:var(--teal);color:#fff;font-weight:600;}
   .icon-btn.edit:hover{background:#245a52;border-color:#245a52;color:#fff;}
+  .btn-outline{
+    background:var(--surface);
+    color:var(--ink);
+    padding:11px 18px;
+    font-size:14px;
+    font-weight:600;
+    border-radius:2px;
+    border:1.5px solid var(--ink) !important;
+  }
+  .btn-outline:hover{background:var(--ink);color:var(--paper);}
+  .prefill-hint{
+    display:none;
+    background:var(--gold-tint);
+    color:#7A5A1C;
+    font-size:12.5px;
+    padding:9px 12px;
+    border-radius:2px;
+    margin:0 0 16px;
+    line-height:1.45;
+  }
+  .carry-search{
+    width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:2px;
+    font-size:14px;font-family:'Inter',sans-serif;margin-bottom:10px;background:#fff;color:var(--ink);
+  }
+  .carry-search:focus{outline:none;border-color:var(--ink);}
+  .carry-tools{display:flex;justify-content:space-between;align-items:center;font-size:12.5px;color:var(--ink-soft);margin-bottom:8px;}
+  .carry-tools button{background:none;color:var(--teal);font-weight:600;font-size:12.5px;padding:0;}
+  .carry-list{border:1px solid var(--line);border-radius:2px;max-height:380px;overflow-y:auto;background:#fff;}
+  .carry-item{display:flex;align-items:center;gap:12px;padding:11px 14px;border-bottom:1px solid var(--line);}
+  .carry-item:last-child{border-bottom:none;}
+  .carry-item:hover{background:#F7F8F4;}
+  .carry-item input[type=checkbox]{width:17px;height:17px;flex:none;accent-color:var(--teal);cursor:pointer;}
+  .carry-info{flex:1;min-width:0;}
+  .carry-name{font-weight:600;font-size:14px;}
+  .carry-meta{font-size:12px;color:var(--ink-soft);margin-top:2px;}
+  .carry-empty{padding:32px 16px;text-align:center;color:var(--ink-soft);font-size:13.5px;}
+  .sem-bar{display:flex;align-items:center;gap:14px;margin-bottom:22px;}
+  .sem-label{
+    font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.12em;
+    text-transform:uppercase;color:var(--ink-soft);white-space:nowrap;
+  }
+  .sem-tabs{display:flex;gap:8px;overflow-x:auto;padding:2px 0 6px;flex:1;}
+  .sem-tab{
+    flex:none;padding:10px 16px;border:1px solid var(--line);background:var(--surface);
+    border-radius:3px;font-size:13.5px;font-weight:600;color:var(--ink-soft);
+    display:flex;align-items:center;gap:8px;transition:all .15s ease;
+  }
+  .sem-tab:hover{border-color:var(--ink);color:var(--ink);}
+  .sem-tab .n{
+    font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:500;
+    background:var(--paper);color:var(--ink-soft);padding:2px 7px;border-radius:10px;
+  }
+  .sem-tab.empty{opacity:.65;}
+  .sem-tab.active{background:var(--ink);color:var(--paper);border-color:var(--ink);opacity:1;}
+  .sem-tab.active .n{background:rgba(255,255,255,.18);color:var(--paper);}
+  .current-sem{
+    font-family:'Fraunces',serif;font-size:22px;font-weight:600;margin:0 0 14px;
+  }
+  #sessionSelect{display:none;}
+  body.on-home #semView{display:none;}
+  body:not(.on-home) #homeView{display:none;}
+  body.on-home .top-actions{display:none;}
+  .home-intro{font-size:15px;color:var(--ink-soft);margin:0 0 22px;}
+  .sem-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:16px;}
+  .sem-card{
+    text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:3px;
+    padding:22px 22px 18px;transition:all .15s ease;color:var(--ink);
+    border-top:4px solid var(--teal);
+  }
+  .sem-card.spring{border-top-color:var(--gold);}
+  .sem-card:hover{border-color:var(--ink);transform:translateY(-2px);box-shadow:0 6px 16px rgba(28,43,36,.08);}
+  .sem-card .term{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-soft);}
+  .sem-card .yr{font-family:'Fraunces',serif;font-size:30px;font-weight:600;margin:4px 0 14px;}
+  .sem-card .cnt{font-size:13px;color:var(--ink-soft);}
+  .sem-card .cnt b{color:var(--ink);font-size:15px;}
+  .sem-card.none .cnt{opacity:.7;}
+  .sem-card .open{display:block;margin-top:14px;font-size:12.5px;font-weight:600;color:var(--teal);}
   .admin-only{display:none;}
   body.is-admin .admin-only{display:inline-block;}
 
@@ -296,7 +373,7 @@
   }
 </style>
 </head>
-<body>
+<body class="on-home">
 
 <div class="wrap">
   <header class="top">
@@ -309,13 +386,27 @@
       <button class="btn-primary" id="exportBtn" style="background:var(--teal);">Export to Excel</button>
       <button class="btn-primary admin-only" id="importBtn" style="background:var(--gold);">Import from Timetable</button>
       <button class="btn-primary admin-only" id="cleanupBtn" style="background:var(--danger);">Clean Up Duplicates</button>
+      <button class="btn-outline" id="carryBtn">Add from earlier semesters</button>
       <button class="btn-primary" id="addBtn">+ Add Faculty Member</button>
     </div>
   </header>
 
+  <div id="homeView">
+    <p class="home-intro">Select a semester to view its visiting faculty members or to add new entries.</p>
+    <div class="sem-grid" id="semGrid"></div>
+    <div style="margin-top:20px;">
+      <button type="button" class="icon-btn admin-only" id="addSessionBtn">+ Add Semester</button>
+    </div>
+  </div>
+
+  <div id="semView">
+  <div class="sem-bar">
+    <button type="button" class="btn-outline" id="backBtn">← All semesters</button>
+    <h2 class="current-sem" id="currentSemTitle" style="margin:0;"></h2>
+  </div>
+
   <div class="controls">
     <select class="filter" id="sessionSelect" title="Session"></select>
-    <button type="button" class="icon-btn admin-only" id="addSessionBtn">+ Add Session</button>
     <div class="search-box">
       <input type="text" id="searchInput" placeholder="Search by name, email, course, or section…">
     </div>
@@ -352,8 +443,8 @@
     <div class="empty-state" id="emptyState" style="display:none;">
       <h3>No records yet</h3>
       <p>Add your first visiting faculty member to start the register.</p>
-      <button class="btn-primary" id="emptyAddBtn">+ Add Faculty Member</button>
     </div>
+  </div>
   </div>
 </div>
 
@@ -361,12 +452,14 @@
   <div class="modal">
     <h2 id="modalTitle">Add Faculty Member</h2>
     <p class="sub">Enter the details for this record. Fields marked required must be filled.</p>
+    <div class="prefill-hint" id="prefillHint"></div>
     <form id="fmForm">
       <input type="hidden" id="fmId">
       <div class="field-grid">
         <div class="field full">
           <label>Name of FM *</label>
-          <input type="text" id="f_name" required>
+          <input type="text" id="f_name" list="fmNames" autocomplete="off" required placeholder="Type a name, or pick one from an earlier semester">
+          <datalist id="fmNames"></datalist>
           <div class="field-error" id="err_name">Name is required.</div>
         </div>
         <div class="field">
@@ -415,6 +508,23 @@
         <button type="submit" class="btn-primary" id="saveBtn">Save Record</button>
       </div>
     </form>
+  </div>
+</div>
+
+<div class="overlay" id="carryOverlay">
+  <div class="modal" style="max-width:640px;">
+    <h2 id="carryTitle">Add from earlier semesters</h2>
+    <p class="sub" id="carrySub"></p>
+    <input type="text" class="carry-search" id="carrySearch" placeholder="Search by name or department…">
+    <div class="carry-tools">
+      <span id="carryCount">0 selected</span>
+      <button type="button" id="carrySelectAll">Select all shown</button>
+    </div>
+    <div class="carry-list" id="carryList"></div>
+    <div class="modal-actions">
+      <button type="button" class="btn-ghost" id="carryCancel">Close</button>
+      <button type="button" class="btn-primary" id="carryAddSelected">Add selected</button>
+    </div>
   </div>
 </div>
 
@@ -484,10 +594,57 @@ const sessionSelect = document.getElementById('sessionSelect');
 
 function recSession(r){ return (r && r.session) || DEFAULT_SESSION; }
 function allSessions(){
-  return [...BASE_SESSIONS, ...customSessions.filter(s => !BASE_SESSIONS.includes(s))];
+  const base = [...BASE_SESSIONS, ...customSessions.filter(s => !BASE_SESSIONS.includes(s))];
+  const stray = [...new Set(allRecords.map(recSession))].filter(s => !base.includes(s));
+  return [...base, ...stray];
 }
+let preferredSession = null;
+
+function rememberSession(){
+  preferredSession = currentSession;
+  try{ localStorage.setItem('fm_current_session', currentSession); }catch(e){}
+}
+function renderHome(){
+  const c = {};
+  allRecords.forEach(r => {
+    const k = recSession(r);
+    c[k] = c[k] || {t:0, v:0};
+    c[k].t++; if(r.status === 'Visiting FM') c[k].v++;
+  });
+  document.getElementById('semGrid').innerHTML = allSessions().map(sn => {
+    const m = /^(\w+)[-\s]*(\d{4})?/.exec(sn) || [];
+    const term = m[2] ? m[1] : 'Semester', yr = m[2] || sn;
+    const x = c[sn] || {t:0, v:0};
+    return `<button type="button" class="sem-card ${/spring/i.test(sn)?'spring':''} ${x.t?'':'none'}" data-session="${escapeHtml(sn)}">
+      <div class="term">${escapeHtml(term)}</div>
+      <div class="yr">${escapeHtml(yr)}</div>
+      <div class="cnt">${x.t ? `<b>${x.t}</b> faculty member${x.t===1?'':'s'} · ${x.v} visiting` : 'No entries yet'}</div>
+      <span class="open">${x.t ? 'Open →' : 'Open &amp; add entries →'}</span>
+    </button>`;
+  }).join('');
+  document.getElementById('currentSemTitle').textContent = currentSession;
+}
+function openSemester(sn){
+  currentSession = sn;
+  document.body.classList.remove('on-home');
+  sessionSelect.value = sn;
+  searchTerm = ''; document.getElementById('searchInput').value = '';
+  applySession();
+  window.scrollTo(0,0);
+}
+function showHome(){
+  document.body.classList.add('on-home');
+  renderHome();
+  window.scrollTo(0,0);
+}
+document.getElementById('semGrid').addEventListener('click', (e)=>{
+  const card = e.target.closest('.sem-card');
+  if(card) openSemester(card.dataset.session);
+});
+document.getElementById('backBtn').addEventListener('click', showHome);
 function renderSessionSelect(){
   const list = allSessions();
+  if(preferredSession && list.includes(preferredSession)) currentSession = preferredSession;
   if(!list.includes(currentSession)) currentSession = DEFAULT_SESSION;
   sessionSelect.innerHTML = list.map(s => `<option value="${s}">${s}</option>`).join('');
   sessionSelect.value = currentSession;
@@ -499,6 +656,7 @@ function fillFormSession(val){
 }
 function applySession(){
   records = allRecords.filter(r => recSession(r) === currentSession);
+  renderHome();
   render();
 }
 function loadSessions(){
@@ -1031,13 +1189,25 @@ function getFiltered(){
   });
 }
 
+function updateSessionLabels(){
+  const n = previousFMs().length;
+  document.getElementById('addBtn').textContent = `+ Add to ${currentSession}`;
+  document.getElementById('carryBtn').textContent = n ? `Add from earlier semesters (${n})` : 'Add from earlier semesters';
+}
+
 function render(){
   populateSectionFilter();
+  updateSessionLabels();
   const filtered = getFiltered();
   countPill.textContent = `${filtered.length} of ${records.length} record${records.length===1?'':'s'}`;
 
   if(records.length === 0){
     tableBody.innerHTML = '';
+    const n = previousFMs().length;
+    emptyState.innerHTML = `<h3>No records yet for ${escapeHtml(currentSession)}</h3>
+      <p>${n ? `${n} faculty member${n===1?' is':'s are'} on record from other semesters — add them here without retyping their details.` : 'Add your first visiting faculty member to start the register.'}</p>
+      ${n ? `<button class="btn-primary" style="margin-right:8px;" onclick="openCarry()">Add from earlier semesters</button>` : ''}
+      <button class="${n ? 'btn-outline' : 'btn-primary'}" onclick="openAdd()">+ Add new Faculty Member</button>`;
     emptyState.style.display = 'block';
     document.querySelector('.table-card table').style.display = 'none';
     return;
@@ -1075,17 +1245,165 @@ function render(){
   `).join('');
 }
 
-function openAdd(){
+function openAdd(prefill){
   editingId = null;
-  document.getElementById('modalTitle').textContent = 'Add Faculty Member';
+  document.getElementById('modalTitle').textContent = `Add Faculty Member — ${currentSession}`;
   document.getElementById('fmForm').reset();
   document.getElementById('fmId').value = '';
   setStatusToggle('');
   fillFormSession(currentSession);
   clearErrors();
+  hidePrefillHint();
+
+  // name suggestions from every other semester
+  document.getElementById('fmNames').innerHTML =
+    previousFMs().map(c => `<option value="${escapeHtml(c.name)}">${escapeHtml(c.lastSession)}</option>`).join('');
+
+  if(prefill && prefill.name) applyPrefill(prefill, true);
   overlay.classList.add('open');
-  document.getElementById('f_name').focus();
+  document.getElementById(prefill && prefill.name ? 'f_section' : 'f_name').focus();
 }
+
+// ── Carry-over helpers ──────────────────────────────────────────────────────
+// People who are on record in any other semester but NOT yet in the selected one.
+function previousFMs(){
+  const order = allSessions();
+  const rank = r => order.indexOf(recSession(r));
+  const others = allRecords.filter(r => recSession(r) !== currentSession)
+                           .sort((a,b) => rank(b) - rank(a));      // newest semester first
+  const groups = [];
+  others.forEach(r => {
+    const g = groups.find(g => isSameFM(g.latest.name, r.name));
+    if(g) g.all.push(r); else groups.push({ latest: r, all: [r] });
+  });
+  return groups
+    .filter(g => !records.some(x => isSameFM(x.name, g.latest.name)))
+    .map(g => {
+      const pick = k => ((g.all.find(r => (r[k]||'').trim()) || {})[k] || '').trim();
+      return {
+        name: g.latest.name,
+        cell: pick('cell'), email: pick('email'),
+        department: pick('department'), qualification: pick('qualification'),
+        status: g.latest.status || 'Shared FM',
+        lastSession: recSession(g.latest)
+      };
+    })
+    .sort((a,b) => a.name.localeCompare(b.name));
+}
+
+function showPrefillHint(session){
+  const h = document.getElementById('prefillHint');
+  h.textContent = `Details copied from ${session}. Please add this semester's section(s) and course(s), and check the rest is still correct.`;
+  h.style.display = 'block';
+}
+function hidePrefillHint(){ document.getElementById('prefillHint').style.display = 'none'; }
+
+function applyPrefill(c, overwrite){
+  const set = (id, val) => {
+    const el = document.getElementById(id);
+    if(overwrite || !el.value.trim()) el.value = val || '';
+  };
+  set('f_name', c.name);
+  set('f_cell', c.cell);
+  set('f_email', c.email);
+  set('f_department', c.department);
+  set('f_qualification', c.qualification);
+  if(overwrite || !document.getElementById('f_status').value) setStatusToggle(c.status || '');
+  showPrefillHint(c.lastSession);
+}
+
+// Typing/choosing an exact known name in the Add form fills in the saved details.
+function tryPrefillFromName(){
+  if(editingId) return;
+  const typed = document.getElementById('f_name').value.trim().toLowerCase();
+  if(!typed) return;
+  const hit = previousFMs().find(c => c.name.trim().toLowerCase() === typed);
+  if(hit) applyPrefill(hit, false);
+}
+
+// ── "Add from earlier semesters" picker ─────────────────────────────────────
+let carryCandidates = [];
+let carrySelected = new Set();
+
+function openCarry(){
+  carryCandidates = previousFMs();
+  carrySelected = new Set();
+  document.getElementById('carryTitle').textContent = `Add to ${currentSession}`;
+  document.getElementById('carrySub').textContent =
+    'Faculty members who are on record in other semesters but not yet in ' + currentSession +
+    '. Tick the ones teaching this semester and add them in one go, or use "Fill details" to enter their sections and courses right away.';
+  document.getElementById('carrySearch').value = '';
+  renderCarryList();
+  document.getElementById('carryOverlay').classList.add('open');
+}
+function closeCarry(){ document.getElementById('carryOverlay').classList.remove('open'); }
+
+function carryVisible(){
+  const q = document.getElementById('carrySearch').value.trim().toLowerCase();
+  return carryCandidates.map((c,i) => ({c,i})).filter(({c}) =>
+    !q || (c.name + ' ' + c.department + ' ' + c.lastSession).toLowerCase().includes(q));
+}
+function renderCarryList(){
+  const list = document.getElementById('carryList');
+  const vis = carryVisible();
+  if(carryCandidates.length === 0){
+    list.innerHTML = `<div class="carry-empty">Everyone on record from other semesters is already in ${escapeHtml(currentSession)}.<br>Use “+ Add to ${escapeHtml(currentSession)}” for a brand-new faculty member.</div>`;
+  } else if(vis.length === 0){
+    list.innerHTML = `<div class="carry-empty">No matches.</div>`;
+  } else {
+    list.innerHTML = vis.map(({c,i}) => `
+      <div class="carry-item">
+        <input type="checkbox" data-i="${i}" ${carrySelected.has(i) ? 'checked' : ''}>
+        <div class="carry-info">
+          <div class="carry-name">${escapeHtml(c.name)}</div>
+          <div class="carry-meta">${escapeHtml(c.department || 'No department')} · ${escapeHtml(c.status)} · last in ${escapeHtml(c.lastSession)}</div>
+        </div>
+        <button type="button" class="icon-btn edit" data-fill="${i}">Fill details</button>
+      </div>`).join('');
+  }
+  document.getElementById('carryCount').textContent = `${carrySelected.size} selected`;
+  document.getElementById('carryAddSelected').disabled = carrySelected.size === 0;
+}
+
+document.getElementById('carryList').addEventListener('change', (e)=>{
+  const cb = e.target.closest('input[type=checkbox]');
+  if(!cb) return;
+  const i = Number(cb.dataset.i);
+  if(cb.checked) carrySelected.add(i); else carrySelected.delete(i);
+  document.getElementById('carryCount').textContent = `${carrySelected.size} selected`;
+  document.getElementById('carryAddSelected').disabled = carrySelected.size === 0;
+});
+document.getElementById('carryList').addEventListener('click', (e)=>{
+  const btn = e.target.closest('[data-fill]');
+  if(!btn) return;
+  const c = carryCandidates[Number(btn.dataset.fill)];
+  closeCarry();
+  openAdd(c);
+});
+document.getElementById('carrySearch').addEventListener('input', renderCarryList);
+document.getElementById('carrySelectAll').addEventListener('click', ()=>{
+  carryVisible().forEach(({i}) => carrySelected.add(i));
+  renderCarryList();
+});
+document.getElementById('carryCancel').addEventListener('click', closeCarry);
+document.getElementById('carryOverlay').addEventListener('click', (e)=>{ if(e.target.id === 'carryOverlay') closeCarry(); });
+document.getElementById('carryAddSelected').addEventListener('click', async ()=>{
+  const chosen = [...carrySelected].map(i => carryCandidates[i]);
+  if(!chosen.length) return;
+  const btn = document.getElementById('carryAddSelected');
+  btn.disabled = true; btn.textContent = 'Adding…';
+  let ok = 0, fail = 0;
+  for(const c of chosen){
+    const rec = { id: uid(), name: c.name, cell: c.cell, email: c.email, department: c.department,
+                  section: '', courses: '', qualification: c.qualification, status: c.status, session: currentSession };
+    if(await saveRecord(rec)) ok++; else fail++;
+  }
+  btn.textContent = 'Add selected';
+  closeCarry();
+  showToast(fail === 0
+    ? `Added ${ok} faculty member${ok===1?'':'s'} to ${currentSession}. Use Edit to fill in their sections and courses.`
+    : `Added ${ok}, ${fail} failed — try again.`);
+});
 
 function openEdit(id){
   const r = records.find(x => x.id === id);
@@ -1160,6 +1478,11 @@ document.getElementById('fmForm').addEventListener('submit', async (e)=>{
   if(!emailOk){ document.getElementById('err_email').style.display='block'; valid=false; }
   if(!valid) return;
 
+  if(!editingId){
+    const dup = allRecords.find(r => recSession(r) === session && isSameFM(r.name, name));
+    if(dup && !confirm(`"${dup.name}" is already in ${session}. Add another record anyway?`)) return;
+  }
+
   const saveBtn = document.getElementById('saveBtn');
   saveBtn.disabled = true;
   saveBtn.textContent = 'Saving…';
@@ -1175,8 +1498,10 @@ document.getElementById('fmForm').addEventListener('submit', async (e)=>{
   showToast(ok ? (editingId ? 'Record updated.' : 'Record added.') : 'Save failed — please try again.');
 });
 
-document.getElementById('addBtn').addEventListener('click', openAdd);
-document.getElementById('emptyAddBtn').addEventListener('click', openAdd);
+document.getElementById('addBtn').addEventListener('click', ()=>openAdd());
+document.getElementById('carryBtn').addEventListener('click', openCarry);
+document.getElementById('f_name').addEventListener('change', tryPrefillFromName);
+document.getElementById('f_name').addEventListener('input', tryPrefillFromName);
 document.getElementById('exportBtn').addEventListener('click', exportToExcel);
 document.getElementById('importBtn').addEventListener('click', importFromTimetable);
 document.getElementById('cleanupBtn').addEventListener('click', cleanUpDuplicates);
@@ -1190,7 +1515,7 @@ document.addEventListener('keydown', (e)=>{
 });
 document.getElementById('addSessionBtn').addEventListener('click', addSession);
 sessionSelect.addEventListener('change', (e)=>{
-  currentSession = e.target.value;
+  currentSession = e.target.value; rememberSession();
   applySession();
 });
 document.getElementById('cancelBtn').addEventListener('click', closeModal);
