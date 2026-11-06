@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Visiting Faculty Members — Department of Electrical Engineering</title>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+<link rel="preconnect" href="https://www.gstatic.com" crossorigin>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="preload" as="script" href="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js">
+<link rel="preload" as="script" href="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js">
+<link rel="stylesheet" media="print" onload="this.media='all'" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400&display=swap">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400&display=swap"></noscript>
 <style>
   :root{
     --paper: #EEF0EA;
@@ -29,7 +29,7 @@
     margin:0;
     background:var(--paper);
     color:var(--ink);
-    font-family:'Inter',sans-serif;
+    font-family:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
     min-height:100vh;
   }
   .wrap{max-width:1560px;margin:0 auto;padding:36px 24px 80px;}
@@ -53,7 +53,7 @@
     margin:0 0 6px;
   }
   h1{
-    font-family:'Fraunces',serif;
+    font-family:'Fraunces',Georgia,'Times New Roman',serif;
     font-weight:600;
     font-size:38px;
     margin:0;
@@ -66,7 +66,7 @@
     color:var(--ink-soft);
     padding-right:6px;
   }
-  button{font-family:'Inter',sans-serif;cursor:pointer;border:none;}
+  button{font-family:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;cursor:pointer;border:none;}
   .btn-primary{
     background:var(--ink);
     color:var(--paper);
@@ -97,7 +97,7 @@
     background:var(--surface);
     font-size:14px;
     border-radius:2px;
-    font-family:'Inter',sans-serif;
+    font-family:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
     color:var(--ink);
   }
   .search-box input:focus{outline:none;border-color:var(--ink);}
@@ -108,7 +108,7 @@
     font-size:13px;
     border-radius:2px;
     color:var(--ink);
-    font-family:'Inter',sans-serif;
+    font-family:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
   }
   .status-chips{display:flex;gap:8px;}
   .chip{
@@ -212,7 +212,7 @@
   }
   .carry-search{
     width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:2px;
-    font-size:14px;font-family:'Inter',sans-serif;margin-bottom:10px;background:#fff;color:var(--ink);
+    font-size:14px;font-family:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;margin-bottom:10px;background:#fff;color:var(--ink);
   }
   .carry-search:focus{outline:none;border-color:var(--ink);}
   .carry-tools{display:flex;justify-content:space-between;align-items:center;font-size:12.5px;color:var(--ink-soft);margin-bottom:8px;}
@@ -246,9 +246,35 @@
   .sem-tab.active{background:var(--ink);color:var(--paper);border-color:var(--ink);opacity:1;}
   .sem-tab.active .n{background:rgba(255,255,255,.18);color:var(--paper);}
   .current-sem{
-    font-family:'Fraunces',serif;font-size:22px;font-weight:600;margin:0 0 14px;
+    font-family:'Fraunces',Georgia,'Times New Roman',serif;font-size:22px;font-weight:600;margin:0 0 14px;
   }
   #sessionSelect{display:none;}
+  .lock-banner{
+    display:none;background:#FBEFEA;color:#8A2E1A;border:1px solid #E9C3B6;border-left:4px solid var(--danger);
+    padding:11px 14px;font-size:13.5px;border-radius:2px;margin:0 0 16px;line-height:1.45;
+  }
+  .lock-tag{
+    float:right;background:#FBEFEA;color:#8A2E1A;font-size:10.5px;font-weight:600;
+    letter-spacing:.05em;text-transform:uppercase;padding:3px 8px;border-radius:10px;margin-left:6px;
+  }
+  .sem-card.locked{background:#FAF7F5;}
+  .skel{display:inline-block;width:110px;height:12px;border-radius:6px;
+    background:linear-gradient(90deg,#E4E7DF 25%,#F1F2EC 50%,#E4E7DF 75%);background-size:200% 100%;
+    animation:sk 1.2s infinite linear;vertical-align:middle;}
+  @keyframes sk{to{background-position:-200% 0;}}
+  td.mono a{color:inherit;text-decoration:none;}
+  td.mono a:hover{text-decoration:underline;color:var(--teal);}
+  button:focus-visible,select:focus-visible,a:focus-visible{outline:2px solid var(--teal);outline-offset:2px;}
+  @media (prefers-reduced-motion:reduce){*{animation:none !important;transition:none !important;}}
+  @media (max-width:640px){
+    .wrap{padding:22px 14px 60px;}
+    h1{font-size:28px;}
+    .top-actions{flex-wrap:wrap;}
+    .top-actions .btn-primary,.top-actions .btn-outline{padding:10px 14px;font-size:13px;}
+    .sem-grid{grid-template-columns:1fr 1fr;gap:10px;}
+    .sem-card{padding:16px 14px;}
+    .sem-card .yr{font-size:24px;}
+  }
   body.on-home #semView{display:none;}
   body:not(.on-home) #homeView{display:none;}
   body.on-home .top-actions{display:none;}
@@ -262,7 +288,7 @@
   .sem-card.spring{border-top-color:var(--gold);}
   .sem-card:hover{border-color:var(--ink);transform:translateY(-2px);box-shadow:0 6px 16px rgba(28,43,36,.08);}
   .sem-card .term{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-soft);}
-  .sem-card .yr{font-family:'Fraunces',serif;font-size:30px;font-weight:600;margin:4px 0 14px;}
+  .sem-card .yr{font-family:'Fraunces',Georgia,'Times New Roman',serif;font-size:30px;font-weight:600;margin:4px 0 14px;}
   .sem-card .cnt{font-size:13px;color:var(--ink-soft);}
   .sem-card .cnt b{color:var(--ink);font-size:15px;}
   .sem-card.none .cnt{opacity:.7;}
@@ -275,7 +301,7 @@
     text-align:center;
     color:var(--ink-soft);
   }
-  .empty-state h3{font-family:'Fraunces',serif;font-size:22px;color:var(--ink);margin:0 0 8px;font-weight:600;}
+  .empty-state h3{font-family:'Fraunces',Georgia,'Times New Roman',serif;font-size:22px;color:var(--ink);margin:0 0 8px;font-weight:600;}
   .empty-state p{font-size:14px;margin:0 0 20px;}
 
   /* Modal */
@@ -299,7 +325,7 @@
     padding:30px 30px 26px;
   }
   .modal h2{
-    font-family:'Fraunces',serif;
+    font-family:'Fraunces',Georgia,'Times New Roman',serif;
     font-size:24px;
     font-weight:600;
     margin:0 0 4px;
@@ -323,11 +349,11 @@
     border:1px solid var(--line);
     border-radius:2px;
     font-size:14px;
-    font-family:'Inter',sans-serif;
+    font-family:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
     color:var(--ink);
     background:#fff;
   }
-  .field textarea{resize:vertical;min-height:56px;font-family:'Inter',sans-serif;}
+  .field textarea{resize:vertical;min-height:56px;font-family:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;}
   .field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--ink);}
   .status-toggle{display:flex;gap:8px;}
   .status-opt{
@@ -403,7 +429,9 @@
   <div class="sem-bar">
     <button type="button" class="btn-outline" id="backBtn">← All semesters</button>
     <h2 class="current-sem" id="currentSemTitle" style="margin:0;"></h2>
+    <button type="button" class="btn-outline admin-only" id="lockBtn" style="margin-left:auto;">🔒 Lock semester</button>
   </div>
+  <div class="lock-banner" id="lockBanner"></div>
 
   <div class="controls">
     <select class="filter" id="sessionSelect" title="Session"></select>
@@ -484,7 +512,7 @@
         </div>
         <div class="field">
           <label>Session</label>
-          <select id="f_session" style="width:100%;padding:11px 12px;border:1px solid var(--line);background:var(--surface);font-size:14px;border-radius:2px;color:var(--ink);font-family:'Inter',sans-serif;"></select>
+          <select id="f_session" style="width:100%;padding:11px 12px;border:1px solid var(--line);background:var(--surface);font-size:14px;border-radius:2px;color:var(--ink);font-family:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;"></select>
         </div>
         <div class="field">
           <label>Qualification</label>
@@ -545,12 +573,47 @@ var firebaseConfig = {
 
 var fbDb = null;
 var COLLECTION = 'fm_visiting_faculty';
-try{
+
+// Scripts are loaded in the background so the page paints immediately.
+const FB_BASE = 'https://www.gstatic.com/firebasejs/10.12.0/';
+const EXCEL_URL = 'https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js';
+const scriptCache = {};
+function loadScript(src){
+  if(scriptCache[src]) return scriptCache[src];
+  return scriptCache[src] = new Promise((resolve, reject)=>{
+    const el = document.createElement('script');
+    el.src = src;
+    el.async = false;            // download in parallel, run in order
+    el.onload = resolve;
+    el.onerror = ()=>{ delete scriptCache[src]; reject(new Error('Could not load ' + src)); };
+    document.head.appendChild(el);
+  });
+}
+const fbReady = Promise.all([
+  loadScript(FB_BASE + 'firebase-app-compat.js'),
+  loadScript(FB_BASE + 'firebase-firestore-compat.js')
+]).then(()=>{
   firebase.initializeApp(firebaseConfig);
   fbDb = firebase.firestore();
-  console.log('Firebase initialized OK');
-}catch(e){
-  console.error('Firebase init failed:', e);
+  try{ fbDb.enablePersistence({ synchronizeTabs: true }).catch(()=>{}); }catch(e){}
+});
+
+// Last known data is cached in the browser, so repeat visits show instantly.
+const CACHE_KEY = 'fm_register_cache_v1';
+let dataLoaded = false;
+function saveCache(){
+  try{ localStorage.setItem(CACHE_KEY, JSON.stringify({ records: allRecords, sessions: customSessions, locked: lockedSessions })); }catch(e){}
+}
+function loadCache(){
+  try{
+    const c = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null');
+    if(c && Array.isArray(c.records)){
+      allRecords = c.records;
+      customSessions = Array.isArray(c.sessions) ? c.sessions : [];
+      lockedSessions = Array.isArray(c.locked) ? c.locked : [];
+      dataLoaded = true;
+    }
+  }catch(e){}
 }
 
 let records = [];      // records of the currently selected session
@@ -565,6 +628,7 @@ const ADMIN_PASSWORD = 'fm2026';
 function setAdminMode(val){
   isAdmin = val;
   document.body.classList.toggle('is-admin', isAdmin);
+  if(typeof applySession === 'function') applySession();
 }
 
 function toggleAdmin(){
@@ -588,6 +652,47 @@ function toggleAdmin(){
 const DEFAULT_SESSION = 'Fall-2026';
 const BASE_SESSIONS = ['Fall-2026','Spring-2027','Fall-2027','Spring-2028','Fall-2028','Spring-2029','Fall-2029','Spring-2030','Fall-2030'];
 const SESSIONS_DOC = ['fm_settings','sessions'];
+const LOCK_DOC = ['fm_settings','locked_sessions'];
+let lockedSessions = [];
+function isLocked(sn){ return lockedSessions.includes(sn); }
+// Non-admins cannot add/change entries in a locked semester.
+function canEnter(sn){ return isAdmin || !isLocked(sn); }
+function warnLocked(sn){ showToast(`${sn} is locked by the admin — entries can't be added or changed.`); }
+function updateLockUI(){
+  const locked = isLocked(currentSession), blocked = locked && !isAdmin;
+  document.getElementById('addBtn').style.display = blocked ? 'none' : '';
+  document.getElementById('carryBtn').style.display = blocked ? 'none' : '';
+  const b = document.getElementById('lockBanner');
+  b.style.display = locked ? 'block' : 'none';
+  b.textContent = blocked
+    ? `🔒 ${currentSession} is locked by the admin. You can view the entries but cannot add or change them.`
+    : `🔒 ${currentSession} is locked — only admins can add or change entries. (You are in admin mode.)`;
+  document.getElementById('lockBtn').textContent = locked ? '🔓 Unlock semester' : '🔒 Lock semester';
+}
+function loadLocks(){
+  if(!fbDb) return;
+  fbDb.collection(LOCK_DOC[0]).doc(LOCK_DOC[1]).onSnapshot((doc)=>{
+    const d = doc.exists ? doc.data() : null;
+    lockedSessions = (d && Array.isArray(d.list)) ? d.list : [];
+    saveCache();
+    applySession();
+  }, (err)=>{ console.error('Could not load locks:', err); });
+}
+async function toggleLock(){
+  if(!isAdmin){ showToast('Admin access required.'); return; }
+  const sn = currentSession;
+  const next = isLocked(sn) ? lockedSessions.filter(x => x !== sn) : [...lockedSessions, sn];
+  if(!isLocked(sn) && !confirm(`Lock ${sn}? Only admins will be able to add or edit entries in it.`)) return;
+  if(!fbDb){ showToast('Still connecting — please try again in a moment.'); return; }
+  try{
+    await fbDb.collection(LOCK_DOC[0]).doc(LOCK_DOC[1]).set({ list: next });
+    lockedSessions = next; saveCache(); applySession();
+    showToast(next.includes(sn) ? `${sn} locked.` : `${sn} unlocked.`);
+  }catch(e){
+    console.error('Lock failed:', e);
+    showToast('Could not change lock — check Firestore rules.');
+  }
+}
 let customSessions = [];
 let currentSession = DEFAULT_SESSION;
 const sessionSelect = document.getElementById('sessionSelect');
@@ -615,11 +720,12 @@ function renderHome(){
     const m = /^(\w+)[-\s]*(\d{4})?/.exec(sn) || [];
     const term = m[2] ? m[1] : 'Semester', yr = m[2] || sn;
     const x = c[sn] || {t:0, v:0};
-    return `<button type="button" class="sem-card ${/spring/i.test(sn)?'spring':''} ${x.t?'':'none'}" data-session="${escapeHtml(sn)}">
+    return `<button type="button" class="sem-card ${/spring/i.test(sn)?'spring':''} ${x.t?'':'none'} ${isLocked(sn)?'locked':''}" data-session="${escapeHtml(sn)}">
+      ${isLocked(sn) ? '<span class="lock-tag">🔒 Locked</span>' : ''}
       <div class="term">${escapeHtml(term)}</div>
       <div class="yr">${escapeHtml(yr)}</div>
-      <div class="cnt">${x.t ? `<b>${x.t}</b> faculty member${x.t===1?'':'s'} · ${x.v} visiting` : 'No entries yet'}</div>
-      <span class="open">${x.t ? 'Open →' : 'Open &amp; add entries →'}</span>
+      <div class="cnt">${!dataLoaded ? '<span class="skel"></span>' : x.t ? `<b>${x.t}</b> faculty member${x.t===1?'':'s'} · ${x.v} visiting` : 'No entries yet'}</div>
+      <span class="open">${(x.t || !dataLoaded || (isLocked(sn) && !isAdmin)) ? (isLocked(sn) && !isAdmin ? 'View →' : 'Open →') : 'Open &amp; add entries →'}</span>
     </button>`;
   }).join('');
   document.getElementById('currentSemTitle').textContent = currentSession;
@@ -651,7 +757,10 @@ function renderSessionSelect(){
 }
 function fillFormSession(val){
   const f = document.getElementById('f_session');
-  f.innerHTML = allSessions().map(s => `<option value="${s}">${s}</option>`).join('');
+  f.innerHTML = allSessions().map(s => {
+    const lk = isLocked(s);
+    return `<option value="${escapeHtml(s)}" ${lk && !isAdmin ? 'disabled' : ''}>${lk ? '🔒 ' : ''}${escapeHtml(s)}</option>`;
+  }).join('');
   f.value = val;
 }
 function applySession(){
@@ -664,6 +773,7 @@ function loadSessions(){
   fbDb.collection(SESSIONS_DOC[0]).doc(SESSIONS_DOC[1]).onSnapshot((doc)=>{
     const d = doc.exists ? doc.data() : null;
     customSessions = (d && Array.isArray(d.list)) ? d.list : [];
+    saveCache();
     renderSessionSelect();
     applySession();
   }, (err)=>{ console.error('Could not load sessions:', err); });
@@ -710,14 +820,18 @@ function loadRecords(){
   if(!fbDb){ showToast('Firebase not available — check your connection.'); render(); return; }
   fbDb.collection(COLLECTION).onSnapshot((snap)=>{
     allRecords = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    dataLoaded = true;
+    saveCache();
     applySession();
   }, (err)=>{
     console.error('Firestore listen failed:', err);
+    dataLoaded = true; applySession();
     showToast('Could not load records from Firebase.');
   });
 }
 
 async function saveRecord(record){
+  if(!fbDb){ showToast('Still connecting — please try again in a moment.'); return false; }
   try{
     await fbDb.collection(COLLECTION).doc(record.id).set(record);
     return true;
@@ -771,7 +885,8 @@ function cleanTeacherDisplayName(teacherStr){
 }
 
 async function fetchTimetableFMsLive(){
-  if(typeof firebase === 'undefined') throw new Error('Firebase SDK not loaded.');
+  await fbReady;
+  await loadScript(FB_BASE + 'firebase-database-compat.js');
   if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);
   const rtdb = firebase.database();
   const snap = await rtdb.ref(TT_DATA_PATH).once('value');
@@ -1018,6 +1133,8 @@ async function importFromTimetable(){
 async function exportToExcel(){
   if(!records.length){ showToast('No records to export.'); return; }
   try{
+    showToast('Preparing Excel file…');
+    await loadScript(EXCEL_URL);
     const wb = new ExcelJS.Workbook();
     wb.creator = 'Department of Electrical Engineering';
     wb.created = new Date();
@@ -1094,10 +1211,9 @@ async function exportToExcel(){
   }
 }
 
+const ESC_MAP = {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'};
 function escapeHtml(str){
-  const d = document.createElement('div');
-  d.textContent = str || '';
-  return d.innerHTML;
+  return String(str == null ? '' : str).replace(/[&<>"']/g, c => ESC_MAP[c]);
 }
 
 function splitSections(sectionStr){
@@ -1198,6 +1314,14 @@ function updateSessionLabels(){
 function render(){
   populateSectionFilter();
   updateSessionLabels();
+  updateLockUI();
+  if(!dataLoaded){
+    document.querySelector('.table-card table').style.display = 'table';
+    emptyState.style.display = 'none';
+    tableBody.innerHTML = '<tr class="loading-row"><td colspan="9">Loading…</td></tr>';
+    countPill.textContent = 'Loading…';
+    return;
+  }
   const filtered = getFiltered();
   countPill.textContent = `${filtered.length} of ${records.length} record${records.length===1?'':'s'}`;
 
@@ -1205,9 +1329,9 @@ function render(){
     tableBody.innerHTML = '';
     const n = previousFMs().length;
     emptyState.innerHTML = `<h3>No records yet for ${escapeHtml(currentSession)}</h3>
-      <p>${n ? `${n} faculty member${n===1?' is':'s are'} on record from other semesters — add them here without retyping their details.` : 'Add your first visiting faculty member to start the register.'}</p>
-      ${n ? `<button class="btn-primary" style="margin-right:8px;" onclick="openCarry()">Add from earlier semesters</button>` : ''}
-      <button class="${n ? 'btn-outline' : 'btn-primary'}" onclick="openAdd()">+ Add new Faculty Member</button>`;
+      <p>${!canEnter(currentSession) ? 'This semester is locked by the admin.' : n ? `${n} faculty member${n===1?' is':'s are'} on record from other semesters — add them here without retyping their details.` : 'Add your first visiting faculty member to start the register.'}</p>
+      ${!canEnter(currentSession) ? '' : `${n ? `<button class="btn-primary" style="margin-right:8px;" onclick="openCarry()">Add from earlier semesters</button>` : ''}
+      <button class="${n ? 'btn-outline' : 'btn-primary'}" onclick="openAdd()">+ Add new Faculty Member</button>`}`;
     emptyState.style.display = 'block';
     document.querySelector('.table-card table').style.display = 'none';
     return;
@@ -1227,12 +1351,12 @@ function render(){
       <td class="name-cell">
         ${escapeHtml(r.name)}
         <div class="row-actions" style="margin-top:8px;">
-          <button class="icon-btn edit" onclick="openEdit('${r.id}')">Edit</button>
+          ${canEnter(currentSession) ? `<button class="icon-btn edit" onclick="openEdit('${r.id}')">Edit</button>` : '<span style="font-size:12px;color:var(--ink-soft);">🔒 Locked</span>'}
           <button class="icon-btn danger admin-only" onclick="deleteRecord('${r.id}')">Delete</button>
         </div>
       </td>
-      <td class="mono">${escapeHtml(r.cell)}</td>
-      <td class="mono">${escapeHtml(r.email)}</td>
+      <td class="mono">${r.cell ? `<a href="tel:${escapeHtml(String(r.cell).replace(/[^\d+]/g,''))}">${escapeHtml(r.cell)}</a>` : ''}</td>
+      <td class="mono">${r.email ? `<a href="mailto:${escapeHtml(r.email)}">${escapeHtml(r.email)}</a>` : ''}</td>
       <td>${escapeHtml(r.department)}</td>
       <td>${escapeHtml(r.section)}</td>
       <td class="courses">${escapeHtml(r.courses)}</td>
@@ -1246,6 +1370,7 @@ function render(){
 }
 
 function openAdd(prefill){
+  if(!canEnter(currentSession)){ warnLocked(currentSession); return; }
   editingId = null;
   document.getElementById('modalTitle').textContent = `Add Faculty Member — ${currentSession}`;
   document.getElementById('fmForm').reset();
@@ -1326,6 +1451,7 @@ let carryCandidates = [];
 let carrySelected = new Set();
 
 function openCarry(){
+  if(!canEnter(currentSession)){ warnLocked(currentSession); return; }
   carryCandidates = previousFMs();
   carrySelected = new Set();
   document.getElementById('carryTitle').textContent = `Add to ${currentSession}`;
@@ -1388,6 +1514,7 @@ document.getElementById('carrySelectAll').addEventListener('click', ()=>{
 document.getElementById('carryCancel').addEventListener('click', closeCarry);
 document.getElementById('carryOverlay').addEventListener('click', (e)=>{ if(e.target.id === 'carryOverlay') closeCarry(); });
 document.getElementById('carryAddSelected').addEventListener('click', async ()=>{
+  if(!canEnter(currentSession)){ closeCarry(); warnLocked(currentSession); return; }
   const chosen = [...carrySelected].map(i => carryCandidates[i]);
   if(!chosen.length) return;
   const btn = document.getElementById('carryAddSelected');
@@ -1408,6 +1535,7 @@ document.getElementById('carryAddSelected').addEventListener('click', async ()=>
 function openEdit(id){
   const r = records.find(x => x.id === id);
   if(!r) return;
+  if(!canEnter(recSession(r))){ warnLocked(recSession(r)); return; }
   editingId = id;
   document.getElementById('modalTitle').textContent = 'Edit Faculty Member';
   document.getElementById('fmId').value = r.id;
@@ -1478,6 +1606,14 @@ document.getElementById('fmForm').addEventListener('submit', async (e)=>{
   if(!emailOk){ document.getElementById('err_email').style.display='block'; valid=false; }
   if(!valid) return;
 
+  // Re-check at save time: the admin may have locked the semester while this form was open.
+  const original = editingId ? allRecords.find(r => r.id === editingId) : null;
+  if(!canEnter(session) || (original && !canEnter(recSession(original)))){
+    closeModal();
+    warnLocked(!canEnter(session) ? session : recSession(original));
+    return;
+  }
+
   if(!editingId){
     const dup = allRecords.find(r => recSession(r) === session && isSameFM(r.name, name));
     if(dup && !confirm(`"${dup.name}" is already in ${session}. Add another record anyway?`)) return;
@@ -1500,6 +1636,7 @@ document.getElementById('fmForm').addEventListener('submit', async (e)=>{
 
 document.getElementById('addBtn').addEventListener('click', ()=>openAdd());
 document.getElementById('carryBtn').addEventListener('click', openCarry);
+document.getElementById('lockBtn').addEventListener('click', toggleLock);
 document.getElementById('f_name').addEventListener('change', tryPrefillFromName);
 document.getElementById('f_name').addEventListener('input', tryPrefillFromName);
 document.getElementById('exportBtn').addEventListener('click', exportToExcel);
@@ -1521,9 +1658,14 @@ sessionSelect.addEventListener('change', (e)=>{
 document.getElementById('cancelBtn').addEventListener('click', closeModal);
 overlay.addEventListener('click', (e)=>{ if(e.target === overlay) closeModal(); });
 
+let searchTimer = null;
 document.getElementById('searchInput').addEventListener('input', (e)=>{
   searchTerm = e.target.value;
-  render();
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(render, 120);
+});
+document.addEventListener('keydown', (e)=>{
+  if(e.key === 'Escape'){ closeModal(); closeCarry(); }
 });
 sectionFilter.addEventListener('change', (e)=>{
   sectionFilterVal = e.target.value;
@@ -1538,10 +1680,19 @@ document.querySelectorAll('.chip').forEach(chip=>{
   });
 });
 
+loadCache();
 renderSessionSelect();
-loadRecords();
-loadSessions();
-loadFilterLabels();
+applySession();      // paint the semester cards straight away
+fbReady.then(()=>{
+  loadRecords();
+  loadSessions();
+  loadLocks();
+  loadFilterLabels();
+}).catch((e)=>{
+  console.error(e);
+  dataLoaded = true; applySession();
+  showToast('Could not connect — check your internet connection.');
+});
 </script>
 </body>
 </html>
