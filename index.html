@@ -28666,6 +28666,12 @@ body.admin-mode #fmLabTable td.lb-e:hover{background:rgba(201,162,74,.12);outlin
 #fmLabTable td.lb-ed textarea{min-height:5rem;resize:vertical}
 .fm-labs .fm-sec.EE{background:#eaf2fc;border-color:#b9d3f0;color:#1b5fa8}
 .fm-labs .fm-sec.CE{background:#e5f5f1;border-color:#a9dccf;color:#0f7a6a}
+.fm-views{margin:0 0 .9rem}
+.fm-views button{display:inline-flex;align-items:center;gap:.4rem;font-size:.95rem;padding:.5rem 1.15rem}
+.fm-views button small{font:700 .75rem 'Source Sans 3',sans-serif;background:rgba(0,0,0,.08);border-radius:999px;padding:.05rem .5rem}
+.fm-views button.on small{background:rgba(255,255,255,.25)}
+#fmModal.view-labs .fm-v-fm{display:none!important}
+#fmModal:not(.view-labs) .fm-v-labs{display:none!important}
 #fmLabOverlay .ce-box,#fmLfOverlay .ce-box,#fmFfOverlay .ce-box{max-width:620px;max-height:92vh;overflow-y:auto}
 #fmFfOverlay .ce-box{max-width:680px}
 #fmLfOverlay .ce-box{max-width:680px}
@@ -28734,23 +28740,27 @@ body.admin-mode .fm-hint{display:block}
       </div>
     </div>
     <div class="modal-body">
+      <div class="fm-seg fm-views" id="fmViews" role="tablist" aria-label="Section">
+        <button type="button" role="tab" class="on" data-view="fm" aria-selected="true">👥 FMs / LEs <small id="fmTabFm">0</small></button>
+        <button type="button" role="tab" data-view="labs" aria-selected="false">🔬 Labs info &amp; Staff <small id="fmTabLabs">0</small></button>
+      </div>
       <div class="fm-tools">
         <input type="text" id="fmSearch" placeholder="🔍 Search name, designation, experience, qualifications, expertise…" autocomplete="off">
         <div class="fm-seg" id="fmSeg" role="group" aria-label="Department filter"></div>
-        <select id="fmDesigFilter" aria-label="Filter by designation" style="font:600 .85rem 'Source Sans 3',sans-serif;color:var(--ink);border:1px solid var(--rule);border-radius:4px;padding:.5rem .7rem;background:#fff"><option value="ALL">All designations</option><option value="Lecturer">Lecturers</option><option value="Lab Engineer">Lab Engineers</option><option value="Lab Staff">Lab Staff</option><option value="Assistant Professor">Assistant Professors</option><option value="Associate Professor">Associate Professors</option><option value="Professor">Professors</option></select>
-        <button class="fm-btn" type="button" onclick="fmAdd()">＋ Add FMs/LEs</button>
+        <select class="fm-v-fm" id="fmDesigFilter" aria-label="Filter by designation" style="font:600 .85rem 'Source Sans 3',sans-serif;color:var(--ink);border:1px solid var(--rule);border-radius:4px;padding:.5rem .7rem;background:#fff"><option value="ALL">All designations</option><option value="Lecturer">Lecturers</option><option value="Lab Engineer">Lab Engineers</option><option value="Lab Staff">Lab Staff</option><option value="Assistant Professor">Assistant Professors</option><option value="Associate Professor">Associate Professors</option><option value="Professor">Professors</option></select>
+        <button class="fm-btn fm-v-fm" type="button" onclick="fmAdd()">＋ Add FMs/LEs</button>
         <button class="fm-btn" type="button" onclick="fmLabAdd()">＋ Add Lab details</button>
-        <button class="fm-btn fm-adm-block" type="button" onclick="fmFormDesign(false)" title="Admin: rename, add, remove or reorder the fields of the FM/LE form">⚙ Customize FM/LE form</button>
+        <button class="fm-btn fm-adm-block fm-v-fm" type="button" onclick="fmFormDesign(false)" title="Admin: rename, add, remove or reorder the fields of the FM/LE form">⚙ Customize FM/LE form</button>
       </div>
-      <div class="fm-cards" id="fmCards"></div>
-      <p class="fm-meta" id="fmMeta"></p>
-      <div class="tbl-wrap">
+      <div class="fm-cards fm-v-fm" id="fmCards"></div>
+      <p class="fm-meta fm-v-fm" id="fmMeta"></p>
+      <div class="tbl-wrap fm-v-fm">
         <table id="fmTable">
           <thead id="fmHead"></thead>
           <tbody id="fmBody"></tbody>
         </table>
       </div>
-      <section class="fm-labs" id="fmLabs" aria-labelledby="fmLabsTitle">
+      <section class="fm-labs fm-v-labs" id="fmLabs" aria-labelledby="fmLabsTitle">
         <div class="fm-labs-head">
           <h3 id="fmLabsTitle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 3h6M10 3v6.2L4.6 18.4A2 2 0 0 0 6.3 21.5h11.4a2 2 0 0 0 1.7-3.1L14 9.2V3"/><path d="M7.5 15h9"/></svg>Laboratories &amp; Lab Staff</h3>
           <span style="display:inline-flex;gap:.5rem;flex-wrap:wrap"><button class="fm-btn fm-adm-block" type="button" onclick="fmLabDesign(false)" title="Admin: rename, add, remove or reorder the fields of the lab form">⚙ Customize lab form</button><button class="fm-btn" type="button" onclick="fmLabAdd()">＋ Add lab details</button></span>
@@ -28765,7 +28775,7 @@ body.admin-mode .fm-hint{display:block}
         </div>
         <datalist id="fmLabNames"></datalist>
       </section>
-      <p class="fm-note-pub" style="font:500 .88rem 'Source Sans 3',sans-serif;color:var(--muted);margin-top:.7rem">Faculty members: click <b>✎ Update</b> under your name to edit your own name, designation, extension, cell number, experience, qualifications and expertise. Teaching experience updates automatically every month.</p>
+      <p class="fm-note-pub fm-v-fm" style="font:500 .88rem 'Source Sans 3',sans-serif;color:var(--muted);margin-top:.7rem">Faculty members: click <b>✎ Update</b> under your name to edit your own name, designation, extension, cell number, experience, qualifications and expertise. Teaching experience updates automatically every month.</p>
       <p class="fm-hint">Admin: click any cell or department heading to edit it (Enter saves, Esc cancels; Shift+Enter adds a new line in the long columns). Changes sync through Firebase.</p>
     </div>
   </div>
@@ -29439,10 +29449,11 @@ body.admin-mode .fm-hint{display:block}
     var dl=$('fmLabNames');
     if(dl) dl.innerHTML=list.map(function(m){return '<option value="'+esc(m.name)+'">';}).join('');
     $('fmLabHead').innerHTML='<tr><th>#</th>'+cfg.map(function(f){return '<th>'+esc(f.label)+'</th>';}).join('')+'<th class="fm-adm"></th></tr>';
-    var span=cfg.length+2, html='', n=0;
+    var span=cfg.length+2, html='', n=0, q=String(query||'').trim().toLowerCase();
+    var tl=$('fmTabLabs'), tf=$('fmTabFm'); if(tl) tl.textContent=labs.length; if(tf) tf.textContent=list.length;
     ['EE','CE'].forEach(function(sec){
       if(filter!=='ALL' && filter!==sec) return;
-      var part=[]; labs.forEach(function(l,i){ if(l.sec===sec) part.push({l:l,i:i}); });
+      var part=[]; labs.forEach(function(l,i){ if(l.sec===sec && (!q || cfg.some(function(f){return String(l[f.k]||'').toLowerCase().indexOf(q)!==-1;}))) part.push({l:l,i:i}); });
       if(!part.length) return;
       html+='<tr class="fm-grp"><td colspan="'+span+'">'+esc(SEC_NAME[sec])+'<small>'+part.length+' lab'+(part.length===1?'':'s')+'</small></td></tr>';
       part.forEach(function(r){
@@ -29461,10 +29472,10 @@ body.admin-mode .fm-hint{display:block}
         html+='<td class="fm-adm"><button type="button" class="fm-del" data-ldel="'+i+'" title="Remove this lab">🗑</button></td></tr>';
       });
     });
-    if(!n) html='<tr><td colspan="'+span+'" style="text-align:center;padding:1.6rem;color:var(--muted)">No lab details entered yet. Lab staff can add theirs with “＋ Add lab details”.</td></tr>';
+    if(!n) html='<tr><td colspan="'+span+'" style="text-align:center;padding:1.6rem;color:var(--muted)">'+(labs.length?'No labs match your search or filter.':'No lab details entered yet. Lab staff can add theirs with “＋ Add lab details”.')+'</td></tr>';
     body.innerHTML=html;
     var tot=labs.length;
-    $('fmLabMeta').textContent=tot+' lab'+(tot===1?'':'s')+' listed · EE '+labs.filter(function(x){return x.sec==='EE';}).length+' · CE '+labs.filter(function(x){return x.sec==='CE';}).length;
+    $('fmLabMeta').textContent=(n!==tot?'Showing '+n+' of '+tot+' labs · ':tot+' lab'+(tot===1?'':'s')+' listed · ')+'EE '+labs.filter(function(x){return x.sec==='EE';}).length+' · CE '+labs.filter(function(x){return x.sec==='CE';}).length;
   }
 
   // ── the entry form is built from the field list ──
@@ -29799,6 +29810,22 @@ body.admin-mode .fm-hint{display:block}
       fcfgInit=true;
     },function(err){console.warn('FM form load error:',err);});
   }
+
+
+  // ── FMs/LEs  |  Labs info & Staff  view switch ──
+  var view='fm';
+  function setView(v){
+    view=(v==='labs'?'labs':'fm');
+    $('fmModal').classList.toggle('view-labs',view==='labs');
+    Array.prototype.forEach.call($('fmViews').querySelectorAll('button'),function(b){
+      var on=b.getAttribute('data-view')===view; b.classList.toggle('on',on); b.setAttribute('aria-selected',on?'true':'false');
+    });
+    $('fmSearch').placeholder=view==='labs'?'🔍 Search lab, in-charge, staff, location, equipment…':'🔍 Search name, designation, experience, qualifications, expertise…';
+    render();
+    var mb=$('fmModal').querySelector('.modal-body'); if(mb) mb.scrollTop=0;
+  }
+  window.fmSetView=setView;
+  $('fmViews').addEventListener('click',function(e){ var b=e.target.closest('button[data-view]'); if(b) setView(b.getAttribute('data-view')); });
 
   // events
   $('fmSearch').addEventListener('input',function(){query=this.value;render();});
