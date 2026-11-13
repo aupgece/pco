@@ -28693,6 +28693,12 @@ body.admin-mode .fm-hint{display:block}
 .fm-cdept h4{margin:0 0 .55rem;font:600 1.05rem 'EB Garamond',serif;color:var(--ink);display:flex;justify-content:space-between;align-items:baseline;gap:.6rem}
 .fm-cdept h4 small{font:600 .82rem 'Source Sans 3',sans-serif;color:var(--muted)}
 .fm-crow{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:.5rem}
+#fmLabCards{display:flex;flex-wrap:wrap;gap:.9rem}
+#fmLabCards .fm-cdept{flex:1 1 260px}
+.fm-crow-sm{display:flex;flex-wrap:wrap;gap:.5rem}
+.fm-crow-sm .fm-card{flex:0 0 auto;min-width:0;width:110px;padding:.4rem .55rem}
+.fm-crow-sm .fm-card b{font-size:1.15rem}
+.fm-crow-sm .fm-card span{font-size:.72rem}
 .fm-card{text-align:left;font-family:'Source Sans 3',sans-serif;background:var(--parchment);border:1px solid var(--rule);border-radius:6px;padding:.5rem .7rem;cursor:pointer;color:var(--ink)}
 .fm-card b{display:block;font:700 1.5rem/1.1 'EB Garamond',serif;color:var(--accent)}
 .fm-card span{display:block;font:600 .8rem 'Source Sans 3',sans-serif;color:var(--muted);margin-top:.15rem}
@@ -29449,7 +29455,7 @@ body.admin-mode .fm-hint{display:block}
     var html='';
     ['EE','CE'].forEach(function(sec){
       var part=labs.filter(function(l){return l.sec===sec;});
-      html+='<div class="fm-cdept '+sec+'"><h4><span class="fm-dh"><span class="fm-dico">'+ICO[sec]+'</span>'+esc(SEC_NAME[sec])+'</span><small>'+part.length+' lab'+(part.length===1?'':'s')+'</small></h4><div class="fm-crow">';
+      html+='<div class="fm-cdept '+sec+'"><h4><span class="fm-dh"><span class="fm-dico">'+ICO[sec]+'</span>'+esc(SEC_NAME[sec])+'</span><small>'+part.length+' lab'+(part.length===1?'':'s')+'</small></h4><div class="fm-crow fm-crow-sm">';
       html+='<div class="fm-card'+(part.length?'':' zero')+'"><span class="fm-cico">'+ICO[sec]+'</span><b>'+part.length+'</b><span>Labs</span></div>';
       html+='</div></div>';
     });
