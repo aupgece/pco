@@ -28766,6 +28766,7 @@ body.admin-mode .fm-hint{display:block}
           <span style="display:inline-flex;gap:.5rem;flex-wrap:wrap"><button class="fm-btn fm-adm-block" type="button" onclick="fmLabDesign(false)" title="Admin: rename, add, remove or reorder the fields of the lab form">⚙ Customize lab form</button><button class="fm-btn" type="button" onclick="fmLabAdd()">＋ Add lab details</button></span>
         </div>
         <p class="fm-labs-sub">Lab in-charges and lab staff: use <b>＋ Add lab details</b> to enter your lab, its in-charge and its location, or <b>✎ Update</b> on a lab to correct it. Only the admin can edit cells directly, remove a lab, or change the form’s fields.</p>
+        <div class="fm-cards" id="fmLabCards"></div>
         <p class="fm-meta" id="fmLabMeta"></p>
         <div class="tbl-wrap">
           <table id="fmLabTable">
@@ -29443,8 +29444,21 @@ body.admin-mode .fm-hint{display:block}
   }
   function clsOf(t){ return t==='long'?'lb-long':(t==='phone'?'lb-ph':''); }
 
+  function renderLabCards(){
+    var el=$('fmLabCards'); if(!el) return;
+    var html='';
+    ['EE','CE'].forEach(function(sec){
+      var part=labs.filter(function(l){return l.sec===sec;});
+      html+='<div class="fm-cdept '+sec+'"><h4><span class="fm-dh"><span class="fm-dico">'+ICO[sec]+'</span>'+esc(SEC_NAME[sec])+'</span><small>'+part.length+' lab'+(part.length===1?'':'s')+'</small></h4><div class="fm-crow">';
+      html+='<div class="fm-card'+(part.length?'':' zero')+'"><span class="fm-cico">'+ICO[sec]+'</span><b>'+part.length+'</b><span>Labs</span></div>';
+      html+='</div></div>';
+    });
+    el.innerHTML=html;
+  }
+
   function renderLabs(){
     var body=$('fmLabBody'); if(!body) return;
+    renderLabCards();
     var dl=$('fmLabNames');
     if(dl) dl.innerHTML=list.map(function(m){return '<option value="'+esc(m.name)+'">';}).join('');
     $('fmLabHead').innerHTML='<tr><th>#</th>'+cfg.map(function(f){return '<th>'+esc(f.label)+'</th>';}).join('')+'<th class="fm-adm"></th></tr>';
