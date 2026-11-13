@@ -28747,7 +28747,7 @@ body.admin-mode .fm-hint{display:block}
       <div class="fm-tools">
         <input type="text" id="fmSearch" placeholder="🔍 Search name, designation, experience, qualifications, expertise…" autocomplete="off">
         <div class="fm-seg" id="fmSeg" role="group" aria-label="Department filter"></div>
-        <select class="fm-v-fm" id="fmDesigFilter" aria-label="Filter by designation" style="font:600 .85rem 'Source Sans 3',sans-serif;color:var(--ink);border:1px solid var(--rule);border-radius:4px;padding:.5rem .7rem;background:#fff"><option value="ALL">All designations</option><option value="Lecturer">Lecturers</option><option value="Lab Engineer">Lab Engineers</option><option value="Lab Staff">Lab Staff</option><option value="Assistant Professor">Assistant Professors</option><option value="Associate Professor">Associate Professors</option><option value="Professor">Professors</option></select>
+        <select class="fm-v-fm" id="fmDesigFilter" aria-label="Filter by designation" style="font:600 .85rem 'Source Sans 3',sans-serif;color:var(--ink);border:1px solid var(--rule);border-radius:4px;padding:.5rem .7rem;background:#fff"><option value="ALL">All designations</option><option value="Lecturer">Lecturers</option><option value="Lab Engineer">Lab Engineers</option><option value="Assistant Professor">Assistant Professors</option><option value="Associate Professor">Associate Professors</option><option value="Professor">Professors</option></select>
         <button class="fm-btn fm-v-fm" type="button" onclick="fmAdd()">＋ Add FMs/LEs</button>
         <button class="fm-btn" type="button" onclick="fmLabAdd()">＋ Add Lab details</button>
         <button class="fm-btn fm-adm-block fm-v-fm" type="button" onclick="fmFormDesign(false)" title="Admin: rename, add, remove or reorder the fields of the FM/LE form">⚙ Customize FM/LE form</button>
@@ -28810,7 +28810,7 @@ body.admin-mode .fm-hint{display:block}
     <select id="fmPrSec" style="width:100%;font:500 .95rem 'Source Sans 3',sans-serif;color:var(--ink);border:1px solid var(--rule);border-radius:4px;padding:.55rem .7rem;background:#fff"><option value="ALL">All departments</option><option value="EE">Electrical Engineering (EE)</option><option value="CE">Computer Engineering (CE)</option></select>
     <label for="fmPrDes">Designation</label>
     <select id="fmPrDes" style="width:100%;font:500 .95rem 'Source Sans 3',sans-serif;color:var(--ink);border:1px solid var(--rule);border-radius:4px;padding:.55rem .7rem;background:#fff"></select>
-    <label style="display:flex;align-items:center;gap:.5rem;margin-top:.9rem;font-weight:600"><input type="checkbox" id="fmPrLabs" style="width:auto"> Also include the laboratories &amp; lab staff table</label>
+    <label style="display:flex;align-items:center;gap:.5rem;margin-top:.9rem;font-weight:600"><input type="checkbox" id="fmPrLabs" style="width:auto"> 🔬 Also include Labs &amp; Staff info</label>
     <p class="ce-err" id="fmPrErr" role="alert"></p>
     <div class="ce-btns"><button type="button" class="ce-save" id="fmPrGo">Print</button><button type="button" data-prcancel>Cancel</button></div>
   </div>
@@ -28850,11 +28850,10 @@ body.admin-mode .fm-hint{display:block}
   var SEC_NAME={EE:'Electrical Engineering (EE)',CE:'Computer Engineering (CE)'};
   SEED.forEach(function(m,k){ if(!m.id) m.id='fm'+(k<9?'0':'')+(k+1); m.upd=+m.upd||0; FIELDS.forEach(function(f){ if(m[f]==null) m[f]=''; }); });
   var list=clone(SEED), filter='ALL', dfilter='ALL', query='', editing=false, editId=null, adding=false;
-  var DESIGS=['Lecturer','Lab Engineer','Lab Staff','Assistant Professor','Associate Professor','Professor'];
+  var DESIGS=['Lecturer','Lab Engineer','Assistant Professor','Associate Professor','Professor'];
   function desigCat(d){
     d=String(d||'').toLowerCase();
     if(/lab\s*eng/.test(d)) return 'Lab Engineer';
-    if(/lab\s*(staff|assist|tech)/.test(d)) return 'Lab Staff';
     if(/assistant\s*prof/.test(d)) return 'Assistant Professor';
     if(/associate\s*prof/.test(d)) return 'Associate Professor';
     if(/prof/.test(d)) return 'Professor';
@@ -29018,7 +29017,7 @@ body.admin-mode .fm-hint{display:block}
   };
   function renderCards(){
     var el=$('fmCards'); if(!el) return;
-    var PL={'Lecturer':'Lecturers','Lab Engineer':'Lab Engineers','Lab Staff':'Lab Staff','Assistant Professor':'Assistant Professors','Associate Professor':'Associate Professors','Professor':'Professors'};
+    var PL={'Lecturer':'Lecturers','Lab Engineer':'Lab Engineers','Assistant Professor':'Assistant Professors','Associate Professor':'Associate Professors','Professor':'Professors'};
     var html='';
     ['EE','CE'].forEach(function(sec){
       var mem=list.filter(function(m){return m.sec===sec;}), cnt={}, order=DESIGS.slice();
@@ -29711,7 +29710,7 @@ body.admin-mode .fm-hint{display:block}
           lrows+='<tr><td class="c">'+ln+'</td>'+cfg.map(function(f){ return f.k==='sec'?'<td class="c">'+esc(l.sec)+'</td>':'<td class="w">'+esc(l[f.k]||'')+'</td>'; }).join('')+'</tr>';
         });
       });
-      html+='<h2>Laboratories &amp; Lab Staff</h2>'+(ln?'<table><thead><tr><th>#</th>'+cfg.map(function(f){return '<th>'+esc(f.label)+'</th>';}).join('')+'</tr></thead><tbody>'+lrows+'</tbody></table>':'<p class="m">No lab details entered for this selection.</p>');
+      html+='<h2>Labs &amp; Staff Info</h2>'+(ln?'<table><thead><tr><th>#</th>'+cfg.map(function(f){return '<th>'+esc(f.label)+'</th>';}).join('')+'</tr></thead><tbody>'+lrows+'</tbody></table>':'<p class="m">No lab details entered for this selection.</p>');
     }
     var css='@page{size:A4 landscape;margin:12mm}body{font:11px/1.4 Arial,Helvetica,sans-serif;color:#1a1a1a;margin:0}h1{font:700 18px Georgia,serif;color:#0b2545;margin:0 0 2px}h2{font:700 14px Georgia,serif;color:#0b2545;margin:18px 0 6px}.s{color:#555;margin:0 0 2px}.m{color:#666}table{width:100%;border-collapse:collapse;margin-top:8px}th{background:#0b2545;color:#fff;text-align:left;padding:5px 6px;border:1px solid #0b2545;-webkit-print-color-adjust:exact;print-color-adjust:exact}td{border:1px solid #b8c4d6;padding:4px 6px;vertical-align:top}tr.g td{background:#dce6f2;font-weight:700;color:#0b2545;-webkit-print-color-adjust:exact;print-color-adjust:exact}td.c{text-align:center}td.w{white-space:pre-wrap}thead{display:table-header-group}tr{page-break-inside:avoid}';
     var doc='<!doctype html><html><head><meta charset="utf-8"><title>'+esc(title)+'</title><style>'+css+'</style></head><body>'
