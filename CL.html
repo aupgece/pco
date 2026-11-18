@@ -1440,6 +1440,16 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
         <div style="margin-top:8px; display:flex; gap:8px; align-items:center;">
           <button class="btn primary" id="addCourseBtn">+ Add Course</button>
         </div>
+        <input type="file" id="odDemandGlobalInput" accept=".xlsx,.xls,.csv" style="display:none;">
+        <div id="odDemandUploadPanel" class="bulk-section" style="display:none; border:1px dashed #2A6F62; border-radius:8px; padding:10px 12px; margin-top:10px; background:rgba(42,111,98,.06);">
+          <div style="font-weight:600; font-size:13px; margin-bottom:4px;">📥 Upload Excel — FMs Demand by Other Depts</div>
+          <div class="bulk-hint">Standard sheet: <strong>sheet name = demanding department</strong> (e.g. NCSA), row 1 = title, then rows of <strong>S.No | Code | Course Name | Credit (2-0-2) | Class name</strong> (e.g. <em>BSCYS-F-26-A</em>), one class per row. Rows with the same code are merged into one course with all its classes. A sheet with a header row (Code, Course Name, Department, Cr Hrs, Sections, Class names) also works. Every sheet in the workbook is imported.</div>
+          <div class="bulk-actions">
+            <input type="file" id="odDemandExcelInput" accept=".xlsx,.xls,.csv" style="max-width:280px;">
+            <button type="button" class="btn" id="odDemandTemplateBtn" style="padding:4px 10px;font-size:12px;">⬇ Download template</button>
+            <span class="bulk-result" id="odDemandExcelResult"></span>
+          </div>
+        </div>
         <details class="bulk-section" id="bulkCourseDetails">
           <summary>⬇ Bulk paste courses</summary>
           <div class="bulk-hint">One course per line: &nbsp;<strong>CODE &nbsp; Name &nbsp; CrHrs &nbsp; Sections</strong> &nbsp;(tab or comma separated; CrHrs/Sections optional)<br>Example: &nbsp;EE235&nbsp;&nbsp;&nbsp;Signal &amp; Systems&nbsp;&nbsp;&nbsp;3&nbsp;&nbsp;&nbsp;2</div>
@@ -2677,6 +2687,10 @@ function renderCourseComboList(rowId, queryOverride){
   } else if(query || subtab!=='all'){
     html += `<div class="cc-opt-empty">No matching courses</div>`;
   }
+  if(subtab==='otherDeptDemand'){
+    html += `<div class="cc-opt cc-add" data-od-upload="1" title="Upload the standard Excel sheet of classes demanded by other departments">📥 Upload Excel (template)…</div>
+      <div class="cc-opt cc-add" data-od-template="1" style="font-weight:500;margin-top:0;border-top:none;">⬇ Download template</div>`;
+  }
   html += `<div class="cc-opt cc-add" data-add="1">+ Add custom course…</div></div>`;
   list.innerHTML = html;
 }
@@ -2801,7 +2815,12 @@ document.addEventListener('mousedown', e=>{
     e.preventDefault();
     const list = opt.closest('.cc-list');
     const rowId = Number(list.id.replace('cc-list-',''));
-    if(opt.hasAttribute('data-add')){
+    if(opt.hasAttribute('data-od-upload')){
+      odDemandPickerRowId = rowId;
+      document.getElementById('odDemandGlobalInput').click();
+    } else if(opt.hasAttribute('data-od-template')){
+      odDemandDownloadTemplate();
+    } else if(opt.hasAttribute('data-add')){
       promptAddCustomCourseForRow(rowId);
     } else {
       applyCourseSelection(rowId, opt.getAttribute('data-code'), opt.getAttribute('data-name'));
@@ -3838,6 +3857,8 @@ function deptOptionsHtml(selected){
   DEPT_OPTIONS.forEach(d=>{
     html += `<option value="${escAttr(d)}"${sel===d?' selected':''}>${escHtml(d)}</option>`;
   });
+  // Keep a custom value (e.g. a dept name brought in by Excel upload) selectable.
+  if(sel && !DEPT_OPTIONS.includes(sel)) html += `<option value="${escAttr(sel)}" selected>${escHtml(sel)}</option>`;
   return html;
 }
 // Known code-prefix → department mapping, used as a fallback when a course
@@ -5258,6 +5279,8 @@ function updateCourseSubtabCounts(){
 }
 
 function applyCourseSubtabFilter(){
+  const _odPanel = document.getElementById('odDemandUploadPanel');
+  if(_odPanel) _odPanel.style.display = (courseSubtab === 'otherDeptDemand') ? '' : 'none';
   document.querySelectorAll('#coursesList .list-item[data-prog]').forEach(item=>{
     item.dataset.progHidden = (courseSubtab!=='all' && item.dataset.prog!==courseSubtab) ? '1' : '0';
   });
@@ -5973,6 +5996,182 @@ document.getElementById('bulkCourseExcelInput').addEventListener('change', (e)=>
   };
   reader.readAsArrayBuffer(file);
 });
+
+// ─── Excel upload for "FMs Demand by Other Depts" ─────────────────────────
+// Reads a sheet with columns Code / Course Name / Department / Cr Hrs /
+// Sections / Class names (header-matched, any order; falls back to that
+// positional order if no header is found) and files every course into the
+// otherDeptDemand tab.
+function odDemandMapHeader(cells){
+  const map = {};
+  cells.forEach((h,i)=>{
+    const t = String(h).toLowerCase().replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
+    if(!t) return;
+    if(map.code===undefined && /^(course )?code$|^course no|^course id/.test(t)) map.code=i;
+    else if(map.name===undefined && /^(course )?(name|title)$|^courses?$|^subject/.test(t)) map.name=i;
+    else if(map.dept===undefined && /dept|department/.test(t)) map.dept=i;
+    else if(map.cr===undefined && /^cr\b|credit/.test(t)) map.cr=i;
+    else if(map.names===undefined && /(class|section).*(name|code)|^classes$|^class$|^section names?$|^sections? list/.test(t)) map.names=i;
+    else if(map.sections===undefined && /^(no of |number of |total )?sections?( count)?$|^sec$|^# ?sections?/.test(t)) map.sections=i;
+  });
+  return map;
+}
+
+// Strips zero-width chars / non-breaking spaces that Excel sheets often carry.
+function odDemandClean(v){
+  return String(v===undefined||v===null?'':v).replace(/[\u200B-\u200D\uFEFF]/g,'').replace(/\u00A0/g,' ').replace(/\s+/g,' ').trim();
+}
+// "2-0-2" / "2 – 0 – 2" (Theory-Lab-Credit) → 2 (the credit); plain "3" → 3.
+function odDemandCredit(v){
+  const t = odDemandClean(v);
+  if(t==='') return '';
+  const nums = t.match(/\d+(\.\d+)?/g);
+  return nums ? Number(nums[nums.length-1]) : '';
+}
+
+// defaultDept: used when the sheet has no Department column — the sheet
+// (tab) name, e.g. "NCSA", is taken as the department placing the demand.
+function odDemandImportRows(rows, defaultDept){
+  rows = rows.map(r=>r.map(odDemandClean)).filter(r => r.some(c => c !== ''));
+  // Drop a leading title row (a single filled cell, e.g. "Electrical Engineering-Department").
+  while(rows.length && rows[0].filter(c=>c!=='').length === 1) rows = rows.slice(1);
+  if(!rows.length) return {added:0, updated:0, skipped:0};
+  let map = odDemandMapHeader(rows[0]);
+  if(map.code !== undefined || (map.name !== undefined && map.dept !== undefined)){
+    rows = rows.slice(1);
+  } else if(/^\d+$/.test(rows[0][0]) && rows[0].length >= 5){
+    // Headerless template: S.No | Code | Course Name | Credit (T-L-Cr) | Class name
+    map = {code:1, name:2, cr:3, names:4};
+  } else {
+    map = {code:0, name:1, dept:2, cr:3, sections:4, names:5};
+  }
+  const get = (r,k)=> map[k]===undefined ? '' : String(r[map[k]]===undefined?'':r[map[k]]).trim();
+  // Group rows by course code so "one row per class" layouts merge.
+  const grouped = new Map();
+  rows.forEach(r=>{
+    const code = get(r,'code');
+    if(!code) return;
+    const g = grouped.get(code) || {code, name:'', dept:'', cr:'', sections:undefined, names:[]};
+    if(!g.name) g.name = get(r,'name');
+    if(!g.dept) g.dept = get(r,'dept') || defaultDept || '';
+    if(g.cr==='') g.cr = odDemandCredit(get(r,'cr'));
+    const sc = get(r,'sections');
+    if(g.sections===undefined && sc!=='' && !isNaN(sc)) g.sections = Number(sc);
+    get(r,'names').split(/[,;\n]+/).map(x=>x.trim()).filter(Boolean).forEach(n=>{ if(!g.names.includes(n)) g.names.push(n); });
+    grouped.set(code, g);
+  });
+  let added=0, updated=0, skipped=0;
+  grouped.forEach(g=>{
+    const existing = lists.courses.find(c=>c.code===g.code && courseCodeProgram(c.code)==='otherDeptDemand')
+                  || lists.courses.find(c=>c.code===g.code);
+    if(existing){
+      // Only fill in what's missing / merge class names; never overwrite.
+      let changed = false;
+      if(courseCodeProgram(existing.code) !== 'otherDeptDemand'){ skipped++; return; }
+      if(!existing.name && g.name){ existing.name=g.name; changed=true; }
+      if(!existing.dept && g.dept){ existing.dept=g.dept; changed=true; }
+      if((existing.cr===undefined||existing.cr==='') && g.cr!==''){ existing.cr=g.cr; changed=true; }
+      if(g.names.length){
+        const merged = Array.from(new Set([...(existing.sectionNames||[]), ...g.names]));
+        if(merged.length !== (existing.sectionNames||[]).length){
+          existing.sectionNames = merged; existing.totalSections = merged.length;
+          setCourseSections(existing.code, merged); changed=true;
+        }
+      } else if(g.sections!==undefined && !existing.totalSections){
+        existing.totalSections = g.sections; changed=true;
+      }
+      if(changed) updated++; else skipped++;
+      return;
+    }
+    const nc = {code:g.code, name:g.name, dept:g.dept, cr:g.cr, category:'otherDeptDemand'};
+    if(g.names.length){
+      nc.sectionNames = g.names;
+      nc.totalSections = g.names.length;
+      setCourseSections(g.code, g.names);
+    } else if(g.sections!==undefined){
+      nc.totalSections = g.sections;
+    }
+    lists.courses.push(nc);
+    added++;
+  });
+  if(added || updated){
+    lists.courses.sort((a,b)=>a.code.localeCompare(b.code));
+    scheduleSave(true); renderModal(); renderDetail(); renderStatCards();
+  }
+  return {added, updated, skipped};
+}
+
+let odDemandPickerRowId = null;
+
+// Reads a workbook File and imports every sheet; returns a summary string.
+function odDemandReadFile(file, onDone){
+  if(typeof XLSX === 'undefined'){ onDone('Could not load Excel reader — check your connection and try again.', true); return; }
+  const reader = new FileReader();
+  reader.onload = (evt)=>{
+    try{
+      const wb = XLSX.read(new Uint8Array(evt.target.result), {type:'array'});
+      const total = {added:0, updated:0, skipped:0};
+      wb.SheetNames.forEach(n=>{
+        const rows = XLSX.utils.sheet_to_json(wb.Sheets[n], {header:1, raw:false, defval:''});
+        const r = odDemandImportRows(rows, n.trim());
+        total.added += r.added; total.updated += r.updated; total.skipped += r.skipped;
+      });
+      const msg = `+${total.added} added` + (total.updated ? `, ${total.updated} updated` : '') + (total.skipped ? `, ${total.skipped} skipped` : '');
+      onDone(msg, (total.added+total.updated)===0);
+    }catch(err){
+      onDone('Could not read that file — please upload a valid .xlsx/.xls/.csv.', true);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+// Upload from the Manage Lists → Courses → FMs Demand tab panel.
+document.getElementById('odDemandExcelInput')?.addEventListener('change', (e)=>{
+  const file = e.target.files && e.target.files[0];
+  const resEl = document.getElementById('odDemandExcelResult');
+  if(!file) return;
+  odDemandReadFile(file, (msg, isErr)=>{
+    resEl.textContent = msg;
+    resEl.className = 'bulk-result' + (isErr ? ' err' : '');
+  });
+  e.target.value = '';
+});
+
+// Upload from the course picker (the dropdown opened from a Course cell).
+document.getElementById('odDemandGlobalInput')?.addEventListener('change', (e)=>{
+  const file = e.target.files && e.target.files[0];
+  if(!file) return;
+  const rowId = odDemandPickerRowId;
+  odDemandReadFile(file, (msg, isErr)=>{
+    alert('FMs Demand by Other Depts upload: ' + msg);
+    // Refresh the open picker so the new courses show up straight away.
+    const list = rowId!==null ? document.getElementById('cc-list-'+rowId) : null;
+    if(list && list.classList.contains('open')){
+      const sInput = list.querySelector('.cc-search-input');
+      renderCourseComboList(rowId, sInput ? sInput.value : undefined);
+    }
+  });
+  e.target.value = '';
+});
+
+function odDemandDownloadTemplate(){
+  if(typeof XLSX === 'undefined'){ alert('Excel library could not be loaded.'); return; }
+  // Same layout as the standard sheet: sheet name = department placing the
+  // demand, row 1 = title, then S.No | Code | Course Name | Credit | Class.
+  const ws = XLSX.utils.aoa_to_sheet([
+    ['Electrical Engineering-Department'],
+    [1,'EE223','Digital Logic Design','2-0-2','BSCYS-F-26-A'],
+    [2,'EE223','Digital Logic Design','2-0-2','BSCYS-F-26-B'],
+    [3,'EE223L','Digital Logic Design Lab','0-1-1','BSCYS-F-26-A'],
+    [4,'EE223L','Digital Logic Design Lab','0-1-1','BSCYS-F-26-B']
+  ]);
+  ws['!merges'] = [{s:{r:0,c:0}, e:{r:0,c:4}}];
+  ws['!cols'] = [{wch:6},{wch:10},{wch:32},{wch:10},{wch:18}];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'NCSA');
+  XLSX.writeFile(wb, 'FM_Demand_by_Other_Depts_template.xlsx');
+}
+document.getElementById('odDemandTemplateBtn')?.addEventListener('click', odDemandDownloadTemplate);
 
 // ─── Smart Sheet Import ───────────────────────────────────────────────────
 // Parses a multi-block "semester course-offering" sheet like:
