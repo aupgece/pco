@@ -1003,6 +1003,7 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
       <button class="tab-btn active" data-tab="detail">Course Load</button>
       <button class="tab-btn" data-tab="summary">Faculty Summary</button>
       <button class="tab-btn" data-tab="otherdept">Cross-Dept Load</button>
+      <button class="tab-btn" data-tab="fmdemand">FMs Demand (Other Depts)</button>
     </div>
   </div>
 </div>
@@ -1390,6 +1391,44 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
             </tr>
           </thead>
           <tbody id="odfBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- FMs DEMAND BY OTHER DEPTS PANEL -->
+  <div class="panel" id="panel-fmdemand">
+    <div class="card" style="padding:18px 20px; margin-bottom:16px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
+      <div>
+        <div style="font-size:32px; font-weight:700; color:var(--teal-deep);" id="fmdTotalCourses">–</div>
+        <div style="font-size:12.5px; color:var(--muted);">courses demanded from our FMs by other departments</div>
+        <div style="font-size:12.5px; color:var(--muted); margin-top:4px;" id="fmdSectionsLine"></div>
+      </div>
+      <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+        <input type="text" id="fmdSearch" placeholder="Search code, course, dept, class…" style="min-width:210px;">
+        <button class="btn primary" id="fmdUploadBtn" type="button" title="Upload the standard Excel sheet">📥 Upload Excel</button>
+        <button class="btn" id="fmdTemplateBtn" type="button">⬇ Template</button>
+      </div>
+      <div style="font-size:12px; color:var(--muted); flex-basis:100%;">
+        <span class="odf-pill open">open</span> = no FM assigned yet &nbsp;
+        <span class="odf-pill taken">confirmed</span> = FM recorded in Course Loading
+      </div>
+    </div>
+    <div class="compact-grid" id="fmdDeptGrid" style="margin-bottom:16px;"></div>
+    <div class="card">
+      <div class="table-scroll">
+        <table class="sum-table" id="fmdTable">
+          <thead>
+            <tr>
+              <th style="text-align:left;">Code</th>
+              <th style="text-align:left;">Course Name</th>
+              <th style="text-align:left;">Demanded By</th>
+              <th style="text-align:left;">Cr</th>
+              <th style="text-align:center;">No. of Sections</th>
+              <th style="text-align:left;">Classes / Sections</th>
+            </tr>
+          </thead>
+          <tbody id="fmdBody"></tbody>
         </table>
       </div>
     </div>
@@ -4558,8 +4597,62 @@ function withScrollPreserved(fn){
   window.scrollTo(sx, sy);
   requestAnimationFrame(()=> window.scrollTo(sx, sy));
 }
+// ── "FMs Demand (Other Depts)" tab ─────────────────────────────────────────
+// Lists every course filed under the FMs Demand by Other Depts category with
+// the demanding department, credit hours and each class (confirmed / open).
+function renderFmDemand(){
+  const body = document.getElementById('fmdBody');
+  if(!body) return;
+  const q = (document.getElementById('fmdSearch')?.value || '').trim().toLowerCase();
+  const all = lists.courses.filter(c => courseCodeProgram(c.code) === 'otherDeptDemand');
+  const rowsAll = all.map(c => ({c, sec: resolveOtherDeptSections(c)}));
+  document.getElementById('fmdTotalCourses').textContent = all.length;
+  let totSec=0, totTaken=0;
+  rowsAll.forEach(({sec})=>{ totSec+=sec.count; totTaken+=sec.takenCount; });
+  document.getElementById('fmdSectionsLine').textContent =
+    totSec>0 ? `${totTaken} of ${totSec} classes have an FM assigned in Course Loading` : '';
+
+  const byDept = {};
+  all.forEach(c=>{ const d=(c.dept||'').trim()||'Unspecified'; byDept[d]=(byDept[d]||0)+1; });
+  document.getElementById('fmdDeptGrid').innerHTML = Object.keys(byDept)
+    .sort((a,b)=>byDept[b]-byDept[a])
+    .map(d=>`<div class="odf-dept-card"><div class="odf-dept-name">${escHtml(d)}</div><div class="odf-dept-count">${byDept[d]}</div></div>`).join('');
+
+  const rows = rowsAll.filter(({c,sec})=>{
+    if(!q) return true;
+    const hay = [c.code,c.name,c.dept,...sec.items.map(i=>i.name+' '+(i.fm||''))].join(' ').toLowerCase();
+    return hay.includes(q);
+  }).sort((a,b)=>(a.c.code||'').localeCompare(b.c.code||''));
+
+  if(!rows.length){
+    body.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:20px;">${all.length ? 'No courses match your search' : 'No courses yet — use “Upload Excel” to add the demand sheet.'}</td></tr>`;
+    return;
+  }
+  body.innerHTML = rows.map(({c,sec})=>{
+    const secHtml = sec.items.length
+      ? sec.items.map(i=> i.taken
+          ? `<span class="odf-pill taken">${escHtml(i.name)}${i.fm ? ' — '+escHtml(i.fm) : ''}</span>`
+          : `<span class="odf-pill open">${escHtml(i.name)}</span>`).join('')
+      : '—';
+    return `<tr>
+      <td>${escHtml(c.code||'—')}</td>
+      <td>${escHtml(c.name||'—')}</td>
+      <td>${escHtml((c.dept||'').trim()||'Unspecified')}</td>
+      <td>${c.cr!==undefined && c.cr!=='' ? escHtml(String(c.cr)) : '—'}</td>
+      <td style="text-align:center;font-weight:600;">${sec.count || '—'}${sec.count ? `<div style="font-size:11px;font-weight:400;color:var(--muted);">${sec.takenCount} assigned</div>` : ''}</td>
+      <td>${secHtml}</td>
+    </tr>`;
+  }).join('');
+}
+document.getElementById('fmdSearch')?.addEventListener('input', renderFmDemand);
+document.getElementById('fmdUploadBtn')?.addEventListener('click', ()=>{
+  odDemandPickerRowId = null;
+  document.getElementById('odDemandGlobalInput').click();
+});
+document.getElementById('fmdTemplateBtn')?.addEventListener('click', ()=> odDemandDownloadTemplate());
+
 function renderAll(){
-  withScrollPreserved(()=>{ renderDetail(); renderSummary(); renderSection(); renderStatCards(); renderSummaryToolbarLabels(); renderOtherDeptFms(); });
+  withScrollPreserved(()=>{ renderDetail(); renderSummary(); renderSection(); renderStatCards(); renderSummaryToolbarLabels(); renderOtherDeptFms(); renderFmDemand(); });
 }
 
 // ── "FMs From Other Depts" tab ────────────────────────────────────────────
@@ -6096,7 +6189,7 @@ function odDemandImportRows(rows, defaultDept){
   });
   if(added || updated){
     lists.courses.sort((a,b)=>a.code.localeCompare(b.code));
-    scheduleSave(true); renderModal(); renderDetail(); renderStatCards();
+    scheduleSave(true); renderModal(); renderDetail(); renderStatCards(); renderFmDemand();
   }
   return {added, updated, skipped};
 }
