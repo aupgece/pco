@@ -1483,7 +1483,7 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
         <input type="file" id="odDemandGlobalInput" accept=".xlsx,.xls,.csv" style="display:none;">
         <div id="odDemandUploadPanel" class="bulk-section" style="display:none; border:1px dashed #2A6F62; border-radius:8px; padding:10px 12px; margin-top:10px; background:rgba(42,111,98,.06);">
           <div style="font-weight:600; font-size:13px; margin-bottom:4px;">📥 Upload Excel — FMs Demand by Other Depts</div>
-          <div class="bulk-hint">Standard sheet: <strong>sheet name = demanding department</strong> (e.g. NCSA), row 1 = title, then rows of <strong>S.No | Code | Course Name | Credit (2-0-2) | Class name</strong> (e.g. <em>BSCYS-F-26-A</em>), one class per row. Rows with the same code are merged into one course with all its classes. A sheet with a header row (Code, Course Name, Department, Cr Hrs, Sections, Class names) also works. Every sheet in the workbook is imported.</div>
+          <div class="bulk-hint">Use the template (same columns as the FMs Demand table): <strong>Code | Course Name | Demanded By | Cr | No. of Sections | Classes / Sections</strong>. Class names are comma-separated (e.g. <em>BSCYS-F-26-A, BSCYS-F-26-B</em>); only Code is required. A theory + lab pair can share one row (<em>XX101 + XX101L</em>, Cr <em>2 + 1</em>). Your older layout (S.No | Code | Course Name | Credit | Class name, one class per row, sheet name = department) still works. Every sheet in the workbook is imported.</div>
           <div class="bulk-actions">
             <input type="file" id="odDemandExcelInput" accept=".xlsx,.xls,.csv" style="max-width:280px;">
             <button type="button" class="btn" id="odDemandTemplateBtn" style="padding:4px 10px;font-size:12px;">⬇ Download template</button>
@@ -1884,6 +1884,9 @@ let SEM_PICK = false;
 const SEM = (function(){
   let id = null;
   try{ id = new URLSearchParams(location.search).get('sem'); }catch(e){}
+  // Opened as a local file (file:// or Android content://) a ?sem= query can't be
+  // added to the address, so the chosen semester is kept for the tab instead.
+  if(!id && !/^https?:$/.test(location.protocol)){ try{ id = sessionStorage.getItem('cl_sem_local'); }catch(e){} }
   if(id) id = id.toUpperCase().replace(/^(SPRING|S)[-_ ]?/, 'S-').replace(/^(FALL|F)[-_ ]?/, 'F-');
   if(!id || SEM_LIST.indexOf(id)<0){ SEM_PICK = true; id = SEM_LIST[0]; }   // placeholder only; never loaded in picker mode
   return {id, label: semLabel(id), docId: semDocId(id)};
@@ -1894,6 +1897,12 @@ let READ_ONLY = false;
 
 document.title = SEM_PICK ? document.title : ('EE Faculty Workload — ' + SEM.label);
 function gotoSemester(id){
+  if(!/^https?:$/.test(location.protocol)){
+    // Local file: adding ?sem= would point at a file that doesn't exist (ERR_FILE_NOT_FOUND).
+    try{ sessionStorage.setItem('cl_sem_local', id); }catch(e){}
+    location.reload();
+    return;
+  }
   const u = new URL(location.href); u.searchParams.set('sem', id); location.href = u.toString();
 }
 // Academic years run Fall → Spring (e.g. Fall 2026 + Spring 2027 = 2026–27).
@@ -6163,9 +6172,9 @@ function odDemandMapHeader(cells){
     if(!t) return;
     if(map.code===undefined && /^(course )?code$|^course no|^course id/.test(t)) map.code=i;
     else if(map.name===undefined && /^(course )?(name|title)$|^courses?$|^subject/.test(t)) map.name=i;
-    else if(map.dept===undefined && /dept|department/.test(t)) map.dept=i;
+    else if(map.dept===undefined && /dept|department|demanded/.test(t)) map.dept=i;
     else if(map.cr===undefined && /^cr\b|credit/.test(t)) map.cr=i;
-    else if(map.names===undefined && /(class|section).*(name|code)|^classes$|^class$|^section names?$|^sections? list/.test(t)) map.names=i;
+    else if(map.names===undefined && /(class|section).*(name|code)|^classes?( sections?)?$|^class sections?$|^section names?$|^sections? list/.test(t)) map.names=i;
     else if(map.sections===undefined && /^(no of |number of |total )?sections?( count)?$|^sec$|^# ?sections?/.test(t)) map.sections=i;
   });
   return map;
@@ -6201,18 +6210,35 @@ function odDemandImportRows(rows, defaultDept){
   }
   const get = (r,k)=> map[k]===undefined ? '' : String(r[map[k]]===undefined?'':r[map[k]]).trim();
   // Group rows by course code so "one row per class" layouts merge.
+  // A row may also list a theory + lab pair exactly as the FMs Demand table
+  // shows it ("EE223 + EE223L", Cr "2 + 1 (3)", Classes "Theory: … Lab: …"):
+  // it is split back into the two course records.
   const grouped = new Map();
   rows.forEach(r=>{
-    const code = get(r,'code');
-    if(!code) return;
-    const g = grouped.get(code) || {code, name:'', dept:'', cr:'', sections:undefined, names:[]};
-    if(!g.name) g.name = get(r,'name');
-    if(!g.dept) g.dept = get(r,'dept') || defaultDept || '';
-    if(g.cr==='') g.cr = odDemandCredit(get(r,'cr'));
-    const sc = get(r,'sections');
-    if(g.sections===undefined && sc!=='' && !isNaN(sc)) g.sections = Number(sc);
-    get(r,'names').split(/[,;\n]+/).map(x=>x.trim()).filter(Boolean).forEach(n=>{ if(!g.names.includes(n)) g.names.push(n); });
-    grouped.set(code, g);
+    const codeCell = get(r,'code');
+    if(!codeCell) return;
+    const codes = codeCell.split(/\s*\+\s*/).map(x=>x.trim()).filter(Boolean);
+    const crCell = get(r,'cr');
+    const crNums = (crCell.replace(/\([^)]*\)/g,' ').match(/\d+(\.\d+)?/g) || []).map(Number);
+    let namesCells = [get(r,'names')];
+    if(codes.length > 1){
+      const m = namesCells[0].match(/^\s*Theory\s*:?\s*(.*?)\s*(?:Lab\s*:?\s*(.*))?$/i);
+      namesCells = m ? [m[1]||'', m[2]||''] : [namesCells[0], namesCells[0]];
+    } else {
+      namesCells = [namesCells[0].replace(/^\s*(Theory|Lab)\s*:\s*/i,'')];
+    }
+    codes.forEach((code, idx)=>{
+      const g = grouped.get(code) || {code, name:'', dept:'', cr:'', sections:undefined, names:[]};
+      if(!g.name) g.name = get(r,'name');
+      if(!g.dept) g.dept = get(r,'dept') || (map.dept===undefined ? (defaultDept||'') : '');
+      if(g.cr===''){
+        g.cr = (codes.length > 1 && crNums.length >= codes.length) ? crNums[idx] : odDemandCredit(crCell);
+      }
+      const sc = get(r,'sections');
+      if(g.sections===undefined && sc!=='' && !isNaN(sc)) g.sections = Number(sc);
+      (namesCells[idx] !== undefined ? namesCells[idx] : namesCells[0]).split(/[,;\n]+/).map(x=>x.trim()).filter(Boolean).forEach(n=>{ if(!g.names.includes(n)) g.names.push(n); });
+      grouped.set(code, g);
+    });
   });
   let added=0, updated=0, skipped=0;
   grouped.forEach(g=>{
@@ -6310,19 +6336,15 @@ document.getElementById('odDemandGlobalInput')?.addEventListener('change', (e)=>
 
 function odDemandDownloadTemplate(){
   if(typeof XLSX === 'undefined'){ alert('Excel library could not be loaded.'); return; }
-  // Same layout as the standard sheet: sheet name = department placing the
-  // demand, row 1 = title, then S.No | Code | Course Name | Credit | Class.
+  // Same columns as the table in the "FMs Demand (Other Depts)" tab. Blank —
+  // one row per course (a theory + lab pair can share a row: "XX101 + XX101L",
+  // Cr "2 + 1", classes "Theory: A, B  Lab: A, B"), or one row per class.
   const ws = XLSX.utils.aoa_to_sheet([
-    ['Electrical Engineering-Department'],
-    [1,'EE223','Digital Logic Design','2-0-2','BSCYS-F-26-A'],
-    [2,'EE223','Digital Logic Design','2-0-2','BSCYS-F-26-B'],
-    [3,'EE223L','Digital Logic Design Lab','0-1-1','BSCYS-F-26-A'],
-    [4,'EE223L','Digital Logic Design Lab','0-1-1','BSCYS-F-26-B']
+    ['Code','Course Name','Demanded By','Cr','No. of Sections','Classes / Sections']
   ]);
-  ws['!merges'] = [{s:{r:0,c:0}, e:{r:0,c:4}}];
-  ws['!cols'] = [{wch:6},{wch:10},{wch:32},{wch:10},{wch:18}];
+  ws['!cols'] = [{wch:16},{wch:34},{wch:22},{wch:10},{wch:16},{wch:44}];
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'NCSA');
+  XLSX.utils.book_append_sheet(wb, ws, 'FMs Demand');
   XLSX.writeFile(wb, 'FM_Demand_by_Other_Depts_template.xlsx');
 }
 document.getElementById('odDemandTemplateBtn')?.addEventListener('click', odDemandDownloadTemplate);
