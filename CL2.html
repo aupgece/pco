@@ -1416,7 +1416,7 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
     <div class="card" style="padding:18px 20px; margin-bottom:16px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
       <div>
         <div style="font-size:32px; font-weight:700; color:var(--teal-deep);" id="fmdTotalCourses">–</div>
-        <div style="font-size:12.5px; color:var(--muted);">courses demanded from our FMs by other departments</div>
+        <div style="font-size:12.5px; color:var(--muted);">courses demanded from our FMs by other departments (theory and lab listed separately)</div>
         <div style="font-size:12.5px; color:var(--muted); margin-top:4px;" id="fmdSectionsLine"></div>
       </div>
       <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
@@ -1430,6 +1430,19 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
       </div>
     </div>
     <datalist id="fmdDeptList"></datalist>
+    <div class="card" id="fmdAddBar" style="display:none; padding:14px 16px; margin-bottom:16px;">
+      <div style="font-weight:600; font-size:13px; margin-bottom:8px;">➕ Add a course demanded by another department</div>
+      <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+        <input type="text" id="fmdAddCode" placeholder="Code (e.g. XX101 or XX101L)" style="width:190px;">
+        <input type="text" id="fmdAddName" placeholder="Course name" style="width:200px;">
+        <input type="text" id="fmdAddDept" list="fmdDeptList" placeholder="Demanded by" style="width:150px;">
+        <input type="text" id="fmdAddCr" placeholder="Cr (e.g. 3)" style="width:100px;">
+        <input type="text" id="fmdAddClasses" placeholder="Classes, comma-separated" style="width:230px;">
+        <button class="btn primary" id="fmdAddBtn" type="button">Add</button>
+        <span class="bulk-result" id="fmdAddResult"></span>
+      </div>
+      <div style="font-size:11.5px;color:var(--muted);margin-top:6px;">Admin: you can also edit every field in the table below (changes save when you click away) and remove a course with ✕.</div>
+    </div>
     <div class="compact-grid" id="fmdDeptGrid" style="margin-bottom:16px;"></div>
     <div class="card">
       <div class="table-scroll">
@@ -1442,6 +1455,7 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
               <th style="text-align:left;">Cr</th>
               <th style="text-align:center;">No. of Sections</th>
               <th style="text-align:left;">Classes / Sections</th>
+              <th id="fmdActionsTh" style="display:none;"></th>
             </tr>
           </thead>
           <tbody id="fmdBody"></tbody>
@@ -1498,7 +1512,7 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
         <input type="file" id="odDemandGlobalInput" accept=".xlsx,.xls,.csv" style="display:none;">
         <div id="odDemandUploadPanel" class="bulk-section" style="display:none; border:1px dashed #2A6F62; border-radius:8px; padding:10px 12px; margin-top:10px; background:rgba(42,111,98,.06);">
           <div style="font-weight:600; font-size:13px; margin-bottom:4px;">📥 Upload Excel — FMs Demand by Other Depts</div>
-          <div class="bulk-hint">Use the template (same columns as the FMs Demand table): <strong>Code | Course Name | Demanded By | Cr | No. of Sections | Classes / Sections</strong>. Class names are comma-separated (e.g. <em>BSCYS-F-26-A, BSCYS-F-26-B</em>); only Code is required. A theory + lab pair can share one row (<em>XX101 + XX101L</em>, Cr <em>2 + 1</em>). Your older layout (S.No | Code | Course Name | Credit | Class name, one class per row, sheet name = department) still works. Every sheet in the workbook is imported.</div>
+          <div class="bulk-hint">Use the template (same columns as the FMs Demand table): <strong>Code | Course Name | Demanded By | Cr | No. of Sections | Classes / Sections</strong>. One row per course — a theory course and its lab are separate rows (e.g. <em>XX101</em> and <em>XX101L</em>). Class names are comma-separated (e.g. <em>BSCYS-F-26-A, BSCYS-F-26-B</em>); only Code is required. Your older layout (S.No | Code | Course Name | Credit | Class name, one class per row, sheet name = department) still works. Every row is saved as its own entry — even if the same course code or name appears again (for example for another department). Every sheet in the workbook is imported.</div>
           <div class="bulk-actions">
             <input type="file" id="odDemandExcelInput" accept=".xlsx,.xls,.csv" style="max-width:280px;">
             <button type="button" class="btn" id="odDemandTemplateBtn" style="padding:4px 10px;font-size:12px;">⬇ Download template</button>
@@ -4629,54 +4643,83 @@ function withScrollPreserved(fn){
   requestAnimationFrame(()=> window.scrollTo(sx, sy));
 }
 // ── "FMs Demand (Other Depts)" tab ─────────────────────────────────────────
-// Lists the courses filed under FMs Demand by Other Depts with the demanding
-// department, credit hours and each class (confirmed / open). A theory course
-// and its lab (theory + lab) are shown — and counted — as ONE course;
-// the two records stay separate underneath so FMs can be assigned to each.
-function fmdBaseCode(code){
-  const t = (code||'').trim();
-  const m = t.match(/^(.*\d)L$/i);
-  return m ? m[1] : t;
+// Every uploaded / added row is its OWN entry in lists.fmDemand — the same
+// course code or name may appear any number of times (e.g. demanded by
+// several departments) and is never merged or skipped. Each entry:
+//   {id, code, name, dept (demanded by), cr, classes:[…], sectionCount?}
+// A course record is also kept in lists.courses (category otherDeptDemand)
+// so the code is available in the course picker for FM assignment.
+function fmdNewId(){ return 'd' + Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+
+// Creates the store and, once, brings in demand courses saved by earlier versions.
+function fmdEnsureStore(){
+  if(!Array.isArray(lists.fmDemand)) lists.fmDemand = [];
+  if(!lists.fmDemandMigrated){
+    lists.fmDemandMigrated = true;
+    lists.courses.filter(c => c.category === 'otherDeptDemand').forEach(c=>{
+      const names = (getCourseSections(c.code) || c.sectionNames || []).slice();
+      lists.fmDemand.push({
+        id: fmdNewId(), code: c.code, name: c.name || '', dept: (c.dept||'').trim(),
+        cr: (c.cr===undefined || c.cr===null) ? '' : c.cr,
+        classes: names,
+        sectionCount: (!names.length && c.totalSections) ? c.totalSections : undefined
+      });
+    });
+  }
 }
-function fmdGroups(){
-  const map = new Map();
-  lists.courses.filter(c => courseCodeProgram(c.code) === 'otherDeptDemand').forEach(c=>{
-    const key = fmdBaseCode(c.code);
-    const g = map.get(key) || {key, theory:null, lab:null};
-    if((c.code||'').trim() === key) g.theory = c; else g.lab = c;
-    map.set(key, g);
-  });
-  return Array.from(map.values()).map(g=>{
-    const main = g.theory || g.lab;
-    const secMain = resolveOtherDeptSections(main);
-    const secLab = (g.theory && g.lab) ? resolveOtherDeptSections(g.lab) : null;
-    const labName = (n)=> (n||'').replace(/\s*[-–(]?\s*(laboratory|lab)\s*\)?\s*$/i,'').trim();
-    return {
-      key: g.key,
-      codes: [g.theory, g.lab].filter(Boolean).map(c=>c.code),
-      codeLabel: [g.theory, g.lab].filter(Boolean).map(c=>c.code).join(' + '),
-      name: (g.theory && g.theory.name) ? g.theory.name : labName(main.name),
-      hasLab: !!g.lab,
-      dept: ((g.theory && g.theory.dept) || (g.lab && g.lab.dept) || '').trim(),
-      crTheory: g.theory ? g.theory.cr : undefined,
-      crLab: g.lab ? g.lab.cr : undefined,
-      sec: secMain, secLab
-    };
-  });
+function fmdFind(id){ return (lists.fmDemand||[]).find(x => x.id === id); }
+
+// Keeps the picker's course record + its section list in step with the entries.
+function fmdSyncCourse(code){
+  code = (code||'').trim(); if(!code) return;
+  const c = lists.courses.find(x => x.code === code);
+  if(!c || c.category !== 'otherDeptDemand') return;
+  const names = [];
+  lists.fmDemand.filter(e => (e.code||'').trim() === code).forEach(e => (e.classes||[]).forEach(n=>{ if(!names.includes(n)) names.push(n); }));
+  if(names.length){ setCourseSections(code, names); c.sectionNames = names; c.totalSections = names.length; }
 }
+function fmdEnsureCourse(e){
+  const code = (e.code||'').trim(); if(!code) return;
+  if(lists.removedCourses) lists.removedCourses = lists.removedCourses.filter(x => x !== code);
+  if(!lists.courses.find(c => c.code === code)){
+    lists.courses.push({code, name: e.name||'', cr: e.cr, dept: e.dept||'', category: 'otherDeptDemand'});
+    lists.courses.sort((a,b)=>a.code.localeCompare(b.code));
+  }
+  fmdSyncCourse(code);
+}
+
+function fmdSecInfo(e){
+  const code = (e.code||'').trim();
+  const taken = code ? getTakenSectionsForCourse(code) : new Set();
+  const secToFm = {};
+  if(code) data.forEach(r=>{
+    if((r.code||'').trim() !== code) return;
+    const fm = (r.name||'').trim();
+    ['s1','s2','s3'].forEach(f=>{ const v = (r[f]||'').trim(); if(v && fm) secToFm[v] = fm; });
+  });
+  const items = (e.classes||[]).map(n => ({name:n, taken: taken.has(n), fm: secToFm[n] || ''}));
+  return {items, count: items.length || Number(e.sectionCount) || 0, takenCount: items.filter(i=>i.taken).length};
+}
+
 function renderFmDemand(){
   const body = document.getElementById('fmdBody');
   if(!body) return;
+  fmdEnsureStore();
   const q = (document.getElementById('fmdSearch')?.value || '').trim().toLowerCase();
-  const all = fmdGroups();
+  // Admin-only controls: upload, add form, actions column.
+  const _up = document.getElementById('fmdUploadBtn'); if(_up) _up.style.display = isAdmin ? '' : 'none';
+  const _ab = document.getElementById('fmdAddBar'); if(_ab) _ab.style.display = isAdmin ? '' : 'none';
+  const _at = document.getElementById('fmdActionsTh'); if(_at) _at.style.display = isAdmin ? '' : 'none';
+
+  const all = lists.fmDemand.map(e => ({e, sec: fmdSecInfo(e), dept: (e.dept||'').trim()}));
   document.getElementById('fmdTotalCourses').textContent = all.length;
   let totSec=0, totTaken=0;
-  all.forEach(g=>{ totSec+=g.sec.count; totTaken+=g.sec.takenCount; });
+  all.forEach(g=>{ totSec += g.sec.count; totTaken += g.sec.takenCount; });
   document.getElementById('fmdSectionsLine').textContent =
-    totSec>0 ? `${totTaken} of ${totSec} classes have an FM assigned in Course Loading (lab counted with its theory course)` : '';
+    totSec>0 ? `${totTaken} of ${totSec} classes have an FM assigned in Course Loading` : '';
 
   const byDept = {};
-  all.forEach(g=>{ const d=g.dept||'Unspecified'; byDept[d]=(byDept[d]||0)+1; });
+  all.forEach(g=>{ const d = g.dept || 'Unspecified'; byDept[d] = (byDept[d]||0) + 1; });
   const _dl = document.getElementById('fmdDeptList');
   if(_dl) _dl.innerHTML = Array.from(new Set([...DEPT_OPTIONS, ...Object.keys(byDept).filter(d=>d!=='Unspecified')]))
     .map(d=>`<option value="${escAttr(d)}"></option>`).join('');
@@ -4686,12 +4729,17 @@ function renderFmDemand(){
 
   const rows = all.filter(g=>{
     if(!q) return true;
-    const hay = [g.codeLabel,g.name,g.dept,...g.sec.items.map(i=>i.name+' '+(i.fm||'')),...(g.secLab?g.secLab.items.map(i=>i.name+' '+(i.fm||'')):[])].join(' ').toLowerCase();
+    const hay = [g.e.code, g.e.name, g.dept, ...g.sec.items.map(i=>i.name+' '+(i.fm||''))].join(' ').toLowerCase();
     return hay.includes(q);
-  }).sort((a,b)=>a.key.localeCompare(b.key));
+  }).sort((a,b)=>{
+    // Grouped by Demanded By (Unspecified last); inside a group, in the order added.
+    const da = a.dept || '\uFFFF', db = b.dept || '\uFFFF';
+    if(da !== db) return da.localeCompare(db);
+    return lists.fmDemand.indexOf(a.e) - lists.fmDemand.indexOf(b.e);
+  });
 
   if(!rows.length){
-    body.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:20px;">${all.length ? 'No courses match your search' : 'No courses yet — use “Upload Excel” to add the demand sheet.'}</td></tr>`;
+    body.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:20px;">${all.length ? 'No courses match your search' : 'No courses yet — use “Upload Excel” to add the demand sheet.'}</td></tr>`;
     return;
   }
   const pills = (sec)=> sec.items.length
@@ -4700,42 +4748,110 @@ function renderFmDemand(){
         : `<span class="odf-pill open">${escHtml(i.name)}</span>`).join('')
     : '—';
   const hasCr = v => v!==undefined && v!=='' && v!==null;
+  const deptCount = {};
+  rows.forEach(g=>{ const d = g.dept || 'Unspecified'; deptCount[d] = (deptCount[d]||0) + 1; });
+  let lastDept = null;
   body.innerHTML = rows.map(g=>{
-    const crParts = [g.crTheory, g.crLab].filter(hasCr);
-    const crHtml = crParts.length ? escHtml(crParts.join(' + ')) + (crParts.length>1 ? ` <span style="color:var(--muted);font-size:11px;">(${crParts.reduce((a,b)=>a+Number(b),0)})</span>` : '') : '—';
-    const classesHtml = g.secLab
-      ? `<div><span style="font-size:11px;color:var(--muted);">Theory:</span> ${pills(g.sec)}</div><div style="margin-top:4px;"><span style="font-size:11px;color:var(--muted);">Lab:</span> ${pills(g.secLab)}</div>`
-      : pills(g.sec);
-    return `<tr>
-      <td>${escHtml(g.codeLabel||'—')}</td>
-      <td>${escHtml(g.name||'—')}${g.hasLab && g.codes.length>1 ? ' <span class="odf-pill suggested" style="font-size:10px;">+ Lab</span>' : ''}</td>
-      <td>${isAdmin
-        ? `<input type="text" class="fmd-dept-input" list="fmdDeptList" data-codes="${escAttr(g.codes.join('|'))}" value="${escAttr(g.dept)}" placeholder="Unspecified" title="Edit who demands this course — press Enter or click away to save" style="width:100%;min-width:130px;">`
-        : escHtml(g.dept||'Unspecified')}</td>
+    const e = g.e, id = escAttr(e.id);
+    const dName = g.dept || 'Unspecified';
+    let groupHeader = '';
+    if(dName !== lastDept){
+      lastDept = dName;
+      groupHeader = `<tr class="fmd-group-row"><td colspan="${isAdmin ? 7 : 6}" style="background:rgba(42,111,98,.12);font-weight:700;color:var(--teal-deep);padding:9px 12px;">Demanded by: ${escHtml(dName)} <span style="font-weight:500;color:var(--muted);font-size:12px;">— ${deptCount[dName]} course${deptCount[dName]===1?'':'s'}</span></td></tr>`;
+    }
+    let codeHtml, nameHtml, deptHtml, crHtml, classesHtml, actionsHtml = '';
+    if(isAdmin){
+      const inp = (field, val, extra)=> `<input type="text" class="fmd-edit" data-field="${field}" data-id="${id}" value="${escAttr(val)}" ${extra||''}>`;
+      codeHtml  = inp('code', e.code||'', 'style="width:100%;min-width:90px;" placeholder="Code"');
+      nameHtml  = inp('name', e.name||'', 'style="width:100%;min-width:170px;" placeholder="Course name"');
+      deptHtml  = `<input type="text" class="fmd-edit" data-field="dept" data-id="${id}" list="fmdDeptList" value="${escAttr(g.dept)}" placeholder="Unspecified" style="width:100%;min-width:130px;">`;
+      crHtml    = `<input type="number" step="0.5" min="0" class="fmd-edit" data-field="cr" data-id="${id}" value="${hasCr(e.cr)?escAttr(String(e.cr)):''}" style="width:62px;">`;
+      classesHtml = inp('names', (e.classes||[]).join(', '), 'placeholder="Comma-separated class names" style="width:100%;min-width:200px;"');
+      actionsHtml = `<td><button type="button" class="list-item-del fmd-del" data-id="${id}" title="Remove this entry">✕</button></td>`;
+    } else {
+      codeHtml = escHtml(e.code||'—'); nameHtml = escHtml(e.name||'—'); deptHtml = escHtml(dName);
+      crHtml = hasCr(e.cr) ? escHtml(String(e.cr)) : '—';
+      classesHtml = pills(g.sec);
+    }
+    return groupHeader + `<tr>
+      <td>${codeHtml}</td>
+      <td>${nameHtml}</td>
+      <td>${deptHtml}</td>
       <td>${crHtml}</td>
       <td style="text-align:center;font-weight:600;">${g.sec.count || '—'}${g.sec.count ? `<div style="font-size:11px;font-weight:400;color:var(--muted);">${g.sec.takenCount} assigned</div>` : ''}</td>
       <td>${classesHtml}</td>
+      ${actionsHtml}
     </tr>`;
   }).join('');
 }
 
-document.getElementById('fmdSearch')?.addEventListener('input', renderFmDemand);
-// Inline edit of "Demanded By" (admin only). Saves on change (Enter / blur);
-// applies to both the theory and lab records of a grouped course.
-document.getElementById('fmdBody')?.addEventListener('change', (e)=>{
-  const inp = e.target.closest('.fmd-dept-input');
-  if(!inp || !isAdmin) return;
-  const codes = (inp.getAttribute('data-codes')||'').split('|').filter(Boolean);
-  const val = inp.value.replace(/\s+/g,' ').trim();
-  let changed = false;
-  codes.forEach(code=>{
-    const course = lists.courses.find(c => c.code === code);
-    if(course && (course.dept||'').trim() !== val){ course.dept = val; changed = true; }
-  });
-  if(!changed) return;
+// ── Admin: add / edit / remove entries ──────────────────────────────────────
+function fmdAfterChange(){
   scheduleSave(true);
-  renderFmDemand(); renderDetail(); renderStatCards();
+  renderFmDemand(); renderDetail(); renderStatCards(); renderModal();
+}
+document.getElementById('fmdBody')?.addEventListener('change', (ev)=>{
+  const inp = ev.target.closest('.fmd-edit');
+  if(!inp || !isAdmin) return;
+  const e = fmdFind(inp.getAttribute('data-id'));
+  if(!e) return;
+  const field = inp.getAttribute('data-field');
+  const val = inp.value.replace(/\s+/g,' ').trim();
+  const oldCode = (e.code||'').trim();
+  if(field === 'code')      e.code = val;
+  else if(field === 'name') e.name = val;
+  else if(field === 'dept') e.dept = val;
+  else if(field === 'cr')   e.cr = (inp.value.trim()==='') ? '' : Number(inp.value);
+  else if(field === 'names'){
+    e.classes = Array.from(new Set(inp.value.split(/[,;\n]+/).map(x=>x.trim()).filter(Boolean)));
+    if(e.classes.length) delete e.sectionCount;
+  }
+  if(field === 'code' && oldCode !== (e.code||'').trim()){ fmdEnsureCourse(e); fmdSyncCourse(oldCode); }
+  else fmdSyncCourse(e.code);
+  fmdAfterChange();
 });
+document.getElementById('fmdBody')?.addEventListener('click', (ev)=>{
+  const btn = ev.target.closest('.fmd-del');
+  if(!btn || !isAdmin) return;
+  const e = fmdFind(btn.getAttribute('data-id'));
+  if(!e) return;
+  if(!confirm('Remove ' + (e.code||'this entry') + (e.dept ? ' (demanded by ' + e.dept + ')' : '') + ' from FMs Demand by Other Depts?')) return;
+  const code = (e.code||'').trim();
+  lists.fmDemand = lists.fmDemand.filter(x => x !== e);
+  if(code){
+    if(lists.fmDemand.some(x => (x.code||'').trim() === code)){
+      fmdSyncCourse(code);                                   // another entry still uses this code
+    } else {
+      const i = lists.courses.findIndex(c => c.code === code && c.category === 'otherDeptDemand');
+      if(i >= 0){
+        lists.courses.splice(i,1);
+        if(lists.courseSections) delete lists.courseSections[code];
+        lists.removedCourses = lists.removedCourses || [];
+        if(!lists.removedCourses.includes(code)) lists.removedCourses.push(code);
+      }
+    }
+  }
+  fmdAfterChange();
+});
+document.getElementById('fmdAddBtn')?.addEventListener('click', ()=>{
+  if(!isAdmin) return;
+  fmdEnsureStore();
+  const v = id => (document.getElementById(id).value || '').trim();
+  const res = document.getElementById('fmdAddResult');
+  if(!v('fmdAddCode') && !v('fmdAddName')){ res.textContent = 'Enter a course code or name.'; res.className = 'bulk-result err'; return; }
+  const e = {
+    id: fmdNewId(), code: v('fmdAddCode'), name: v('fmdAddName'), dept: v('fmdAddDept'),
+    cr: odDemandCredit(v('fmdAddCr')),
+    classes: Array.from(new Set(v('fmdAddClasses').split(/[,;\n]+/).map(x=>x.trim()).filter(Boolean)))
+  };
+  lists.fmDemand.push(e);
+  fmdEnsureCourse(e);
+  res.textContent = 'Added.'; res.className = 'bulk-result';
+  ['fmdAddCode','fmdAddName','fmdAddDept','fmdAddCr','fmdAddClasses'].forEach(id=>{ document.getElementById(id).value=''; });
+  fmdAfterChange();
+});
+
+document.getElementById('fmdSearch')?.addEventListener('input', renderFmDemand);
 document.getElementById('fmdUploadBtn')?.addEventListener('click', ()=>{
   odDemandPickerRowId = null;
   document.getElementById('odDemandGlobalInput').click();
@@ -6212,99 +6328,64 @@ function odDemandCredit(v){
   return nums ? Number(nums[nums.length-1]) : '';
 }
 
-// defaultDept: used when the sheet has no Department column — the sheet
-// (tab) name is taken as the department placing the demand.
+// Every spreadsheet row becomes its OWN entry in FMs Demand by Other Depts —
+// the same code or name can repeat (e.g. demanded by several departments) and
+// nothing is merged or skipped. defaultDept (the sheet name) is used only when
+// the sheet has no "Demanded By" column.
 function odDemandImportRows(rows, defaultDept){
+  fmdEnsureStore();
   rows = rows.map(r=>r.map(odDemandClean)).filter(r => r.some(c => c !== ''));
   // Drop a leading title row (a single filled cell, e.g. "Electrical Engineering-Department").
   while(rows.length && rows[0].filter(c=>c!=='').length === 1) rows = rows.slice(1);
   if(!rows.length) return {added:0, updated:0, skipped:0};
   let map = odDemandMapHeader(rows[0]);
+  let legacyPerClass = false;
   if(map.code !== undefined || (map.name !== undefined && map.dept !== undefined)){
     rows = rows.slice(1);
   } else if(/^\d+$/.test(rows[0][0]) && rows[0].length >= 5){
-    // Headerless template: S.No | Code | Course Name | Credit (T-L-Cr) | Class name
+    // Older headerless sheet: S.No | Code | Course Name | Credit (T-L-Cr) | Class name — one row per CLASS,
+    // so rows of the same course on the sheet are gathered into one entry.
     map = {code:1, name:2, cr:3, names:4};
+    legacyPerClass = true;
   } else {
     map = {code:0, name:1, dept:2, cr:3, sections:4, names:5};
   }
   const get = (r,k)=> map[k]===undefined ? '' : String(r[map[k]]===undefined?'':r[map[k]]).trim();
-  // Group rows by course code so "one row per class" layouts merge.
-  // A row may also list a theory + lab pair exactly as the FMs Demand table
-  // shows it ("EE223 + EE223L", Cr "2 + 1 (3)", Classes "Theory: … Lab: …"):
-  // it is split back into the two course records.
-  const grouped = new Map();
+  const splitNames = t => t.split(/[,;\n]+/).map(x=>x.trim()).filter(Boolean);
+  const entries = [];
+  const byKey = new Map();
   rows.forEach(r=>{
-    const codeCell = get(r,'code');
-    if(!codeCell) return;
-    const codes = codeCell.split(/\s*\+\s*/).map(x=>x.trim()).filter(Boolean);
-    const crCell = get(r,'cr');
-    const crNums = (crCell.replace(/\([^)]*\)/g,' ').match(/\d+(\.\d+)?/g) || []).map(Number);
-    let namesCells = [get(r,'names')];
-    if(codes.length > 1){
-      const m = namesCells[0].match(/^\s*Theory\s*:?\s*(.*?)\s*(?:Lab\s*:?\s*(.*))?$/i);
-      namesCells = m ? [m[1]||'', m[2]||''] : [namesCells[0], namesCells[0]];
-    } else {
-      namesCells = [namesCells[0].replace(/^\s*(Theory|Lab)\s*:\s*/i,'')];
+    const code = get(r,'code'), name = get(r,'name');
+    if(!code && !name) return;
+    const dept = get(r,'dept') || (map.dept===undefined ? (defaultDept||'') : '');
+    const names = splitNames(get(r,'names'));
+    if(legacyPerClass){
+      const key = code + '|' + name + '|' + dept;
+      const ex = byKey.get(key);
+      if(ex){ names.forEach(n=>{ if(!ex.classes.includes(n)) ex.classes.push(n); }); return; }
     }
-    codes.forEach((code, idx)=>{
-      const g = grouped.get(code) || {code, name:'', dept:'', cr:'', sections:undefined, names:[]};
-      if(!g.name) g.name = get(r,'name');
-      if(!g.dept) g.dept = get(r,'dept') || (map.dept===undefined ? (defaultDept||'') : '');
-      if(g.cr===''){
-        g.cr = (codes.length > 1 && crNums.length >= codes.length) ? crNums[idx] : odDemandCredit(crCell);
-      }
-      const sc = get(r,'sections');
-      if(g.sections===undefined && sc!=='' && !isNaN(sc)) g.sections = Number(sc);
-      (namesCells[idx] !== undefined ? namesCells[idx] : namesCells[0]).split(/[,;\n]+/).map(x=>x.trim()).filter(Boolean).forEach(n=>{ if(!g.names.includes(n)) g.names.push(n); });
-      grouped.set(code, g);
-    });
+    const sc = get(r,'sections');
+    const e = {
+      id: fmdNewId(), code, name, dept,
+      cr: odDemandCredit(get(r,'cr')),
+      classes: Array.from(new Set(names))
+    };
+    if(!e.classes.length && sc!=='' && !isNaN(sc)) e.sectionCount = Number(sc);
+    entries.push(e);
+    if(legacyPerClass) byKey.set(code + '|' + name + '|' + dept, e);
   });
-  let added=0, updated=0, skipped=0;
-  grouped.forEach(g=>{
-    const existing = lists.courses.find(c=>c.code===g.code && courseCodeProgram(c.code)==='otherDeptDemand')
-                  || lists.courses.find(c=>c.code===g.code);
-    if(existing){
-      // Only fill in what's missing / merge class names; never overwrite.
-      let changed = false;
-      if(courseCodeProgram(existing.code) !== 'otherDeptDemand'){ skipped++; return; }
-      if(!existing.name && g.name){ existing.name=g.name; changed=true; }
-      if(!existing.dept && g.dept){ existing.dept=g.dept; changed=true; }
-      if((existing.cr===undefined||existing.cr==='') && g.cr!==''){ existing.cr=g.cr; changed=true; }
-      if(g.names.length){
-        const merged = Array.from(new Set([...(existing.sectionNames||[]), ...g.names]));
-        if(merged.length !== (existing.sectionNames||[]).length){
-          existing.sectionNames = merged; existing.totalSections = merged.length;
-          setCourseSections(existing.code, merged); changed=true;
-        }
-      } else if(g.sections!==undefined && !existing.totalSections){
-        existing.totalSections = g.sections; changed=true;
-      }
-      if(changed) updated++; else skipped++;
-      return;
-    }
-    const nc = {code:g.code, name:g.name, dept:g.dept, cr:g.cr, category:'otherDeptDemand'};
-    if(g.names.length){
-      nc.sectionNames = g.names;
-      nc.totalSections = g.names.length;
-      setCourseSections(g.code, g.names);
-    } else if(g.sections!==undefined){
-      nc.totalSections = g.sections;
-    }
-    lists.courses.push(nc);
-    added++;
-  });
-  if(added || updated){
-    lists.courses.sort((a,b)=>a.code.localeCompare(b.code));
+  entries.forEach(e=>{ lists.fmDemand.push(e); fmdEnsureCourse(e); });
+  if(entries.length){
     scheduleSave(true); renderModal(); renderDetail(); renderStatCards(); renderFmDemand();
   }
-  return {added, updated, skipped};
+  return {added: entries.length, updated: 0, skipped: 0};
 }
 
 let odDemandPickerRowId = null;
 
 // Reads a workbook File and imports every sheet; returns a summary string.
 function odDemandReadFile(file, onDone){
+  if(!isAdmin){ onDone('Unlock Admin mode to upload.', true); return; }
   if(typeof XLSX === 'undefined'){ onDone('Could not load Excel reader — check your connection and try again.', true); return; }
   const reader = new FileReader();
   reader.onload = (evt)=>{
@@ -6357,8 +6438,7 @@ document.getElementById('odDemandGlobalInput')?.addEventListener('change', (e)=>
 function odDemandDownloadTemplate(){
   if(typeof XLSX === 'undefined'){ alert('Excel library could not be loaded.'); return; }
   // Same columns as the table in the "FMs Demand (Other Depts)" tab. Blank —
-  // one row per course (a theory + lab pair can share a row: "XX101 + XX101L",
-  // Cr "2 + 1", classes "Theory: A, B  Lab: A, B"), or one row per class.
+  // one row per course; a theory course and its lab are separate rows.
   const ws = XLSX.utils.aoa_to_sheet([
     ['Code','Course Name','Demanded By','Cr','No. of Sections','Classes / Sections']
   ]);
