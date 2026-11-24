@@ -846,7 +846,7 @@
 
   <!-- RECORD PANEL -->
   <section id="panelRecord" class="panel active">
-    <p class="select-line">Two quick steps: choose your name and the day as per timetable. The record is saved against the selected timetable day. Your classes for that day then appear below.</p>
+    <p class="select-line">Three quick steps: choose your name, the date of the online class, and the day as per timetable. The record is saved against the selected date. Your classes for that timetable day then appear below.</p>
     <div class="controls">
       <div class="field combo-field">
         <label for="facultySelect"><span class="step-num">1</span>Your name</label>
@@ -857,9 +857,13 @@
         <div class="field-hint">The list filters as you type. Click your name to select it. Name not in the list? Type it in full and choose “Use …” to add your online class manually.</div>
       </div>
       <div class="field">
-        <label for="dateInput"><span class="step-num">2</span>Day (as per timetable)</label>
+        <label for="dateInput"><span class="step-num">2</span>Date of online class</label>
+        <input type="date" id="dateInput">
+        <div class="field-hint">Date of online classes</div>
+      </div>
+      <div class="field">
+        <label><span class="step-num">3</span>Day (as per timetable)</label>
         <div class="day-picker" id="dayPicker"></div>
-        <input type="date" id="dateInput" style="display:none" tabindex="-1" aria-hidden="true">
       </div>
     </div>
 
@@ -1171,8 +1175,8 @@
           <div class="combo-list" id="filterFacultyListEE"></div>
         </div>
       </div>
-      <div class="field" style="display:none;">
-        <label for="filterDateEE">Filter by date</label>
+      <div class="field">
+        <label for="filterDateEE">Filter by date of online class</label>
         <input type="date" id="filterDateEE">
       </div>
       <div class="field">
@@ -1228,8 +1232,8 @@
           <div class="combo-list" id="filterFacultyListCE"></div>
         </div>
       </div>
-      <div class="field" style="display:none;">
-        <label for="filterDateCE">Filter by date</label>
+      <div class="field">
+        <label for="filterDateCE">Filter by date of online class</label>
         <input type="date" id="filterDateCE">
       </div>
       <div class="field">
@@ -1266,8 +1270,8 @@
       <h3>Non-compliance report — faculty who did not initiate online classes</h3>
       <p class="hint">Scans the timetable against submitted records over a date range and lists every scheduled class that has either no record at all ("No record submitted" — the faculty member never logged it) or a record marked "Held on scheduled time: No". Narrow it to a specific timetable time slot to check who did not conduct/submit for that particular period. Use this to follow up with faculty who did not initiate/effect their online classes.</p>
       <div class="controls">
-        <div class="field" style="display:none;">
-          <label for="reportDate">Date</label>
+        <div class="field">
+          <label for="reportDate">Date of online class</label>
           <input type="date" id="reportDate">
         </div>
         <div class="field">
@@ -1809,26 +1813,38 @@ function noticeDaySet(){
   return set;
 }
 (function initDayPicker(){
-  // Faculty pick the WEEKDAY whose timetable they are recording (names only, no dates).
-  // The record is always stamped with the current date (no date entry). On an
-  // admin-allowed Saturday the picker is locked to the weekday the admin chose.
+  // The date is chosen explicitly (defaults to today). The day picker selects the WEEKDAY
+  // whose timetable is being recorded; it follows the chosen date's weekday automatically.
+  // On an admin-allowed Saturday the picker is locked to the weekday the admin chose.
   const input = document.getElementById('dateInput');
   const box = document.getElementById('dayPicker');
-  const dow = new Date().getDay();
-  const isWeekday = dow >= 1 && dow <= 5;
-  window._ttDay = isWeekday ? dow : null;
-  input.value = isWeekday ? todayStr : '';
+  input.max = todayStr;
+  input.value = todayStr;
+  function dowOf(ds){
+    const d = new Date(ds + 'T00:00:00');
+    return isNaN(d.getTime()) ? null : d.getDay();
+  }
+  function syncDay(){
+    const dow = input.value ? dowOf(input.value) : null;
+    window._ttDay = (dow !== null && dow >= 1 && dow <= 5) ? dow : null;
+  }
   function render(){
-    if(SAT_MAP[todayStr] && dow === 6){
-      input.value = todayStr;
-      box.innerHTML = `<div class="dp-days" style="grid-template-columns:repeat(6,1fr);">${[1,2,3,4,5].map(n=>`<button type="button" class="dp-day" disabled><span class="dp-name">${DAY_NAMES[n].slice(0,3)}</span></button>`).join('')}<button type="button" class="dp-day sel" data-locked="1"><span class="dp-name">Sat</span></button></div><div class="field-hint" style="margin-top:6px;">Saturday follows the ${DAY_NAMES[SAT_MAP[todayStr]]} timetable.</div>`;
+    const ds = input.value;
+    const dow = ds ? dowOf(ds) : null;
+    if(!ds){
+      box.innerHTML = '<div class="field-hint">Pick a date first.</div>';
       return;
     }
+    if(SAT_MAP[ds] && dow === 6){
+      box.innerHTML = `<div class="dp-days" style="grid-template-columns:repeat(6,1fr);">${[1,2,3,4,5].map(n=>`<button type="button" class="dp-day" disabled><span class="dp-name">${DAY_NAMES[n].slice(0,3)}</span></button>`).join('')}<button type="button" class="dp-day sel" data-locked="1"><span class="dp-name">Sat</span></button></div><div class="field-hint" style="margin-top:6px;">Saturday follows the ${DAY_NAMES[SAT_MAP[ds]]} timetable.</div>`;
+      return;
+    }
+    const isWeekday = dow >= 1 && dow <= 5;
     box.innerHTML = `
       <div class="dp-days" style="grid-template-columns:repeat(5,1fr);">${[1,2,3,4,5].map(n=>
         `<button type="button" class="dp-day${n===window._ttDay?' sel':''}${n===dow?' today':''}${noticeDaySet().has(n)?' flash':''}" data-day="${n}">
           <span class="dp-name">${DAY_NAMES[n].slice(0,3)}</span></button>`).join('')}</div>
-      ${isWeekday ? '' : '<div class="field-hint" style="margin-top:6px;">Recording is open on weekdays, and on Saturdays allowed by the administrator.</div>'}`;
+      ${isWeekday ? '' : '<div class="field-hint" style="margin-top:6px;">This date is a weekend. Pick the weekday timetable being followed, or choose a weekday date.</div>'}`;
   }
   box.addEventListener('click', e=>{
     const day = e.target.closest('.dp-day');
@@ -1843,14 +1859,38 @@ function noticeDaySet(){
       return;
     }
     window._ttDay = picked;
-    input.value = todayStr;
     render(); showClasses();
   });
+  // Runs before the generic change listener below, which re-renders the class cards.
+  input.addEventListener('change', ()=>{
+    if(input.value && input.value > todayStr) input.value = todayStr;  // no future dates
+    syncDay(); render();
+  });
+  syncDay();
   window.dpRender = render;
   render();
 })();
 document.getElementById('filterDateEE').value = "";
 document.getElementById('filterDateCE').value = "";
+
+// Empty date fields show a readable statement instead of "dd/mm/yyyy". The field is a text box
+// until it is focused, then becomes a normal date picker; it reverts when left empty.
+function applyDatePlaceholder(id, text){
+  const el = document.getElementById(id);
+  if(!el) return;
+  const toText = ()=>{ if(!el.value){ el.type = 'text'; el.placeholder = text; } };
+  const toDate = ()=>{
+    if(el.type === 'date') return;
+    el.type = 'date';
+    try{ if(el.showPicker) el.showPicker(); }catch(e){}
+  };
+  el.readOnly = false;
+  toText();
+  el.addEventListener('focus', toDate);
+  el.addEventListener('click', toDate);
+  el.addEventListener('blur', toText);
+}
+['filterDateEE','filterDateCE','reportDate'].forEach(id => applyDatePlaceholder(id, 'Date of online class'));
 
 // ---------- Record storage (Firebase Realtime Database, shared) ----------
 // Same Firebase project used by the department's timetable tool, under its own path
@@ -2066,10 +2106,8 @@ function applySatMap(v){
     if(/^\d{4}-\d{2}-\d{2}$/.test(k) && n >= 1 && n <= 5) SAT_MAP[k] = n;
   });
   const input = document.getElementById('dateInput');
-  if(SAT_MAP[todayStr] && new Date().getDay() === 6) input.value = todayStr;
   const cur = input.value;
   const curIsSat = cur && new Date(cur + 'T00:00:00').getDay() === 6;
-  if(curIsSat && !SAT_MAP[cur]) input.value = '';
   if(window.dpRender) window.dpRender();
   if(curIsSat) showClasses(); else updateDateNote();
   renderSatList();
@@ -2275,7 +2313,7 @@ function updateDateNote(){
   const ds = document.getElementById('dateInput').value;
   if(ds && SAT_MAP[ds]){
     note.className = 'date-note info';
-    note.textContent = `Today (Saturday) follows the ${DAY_NAMES[SAT_MAP[ds]]} timetable, as set by the administrator.`;
+    note.textContent = `This Saturday follows the ${DAY_NAMES[SAT_MAP[ds]]} timetable, as set by the administrator.`;
     return;
   }
   note.className = 'date-note info hidden';
@@ -2777,7 +2815,7 @@ function weekdayForDateStr(dateStr){
   return isNaN(d.getTime()) ? null : d.getDay();
 }
 function scheduledCountFor(dateStr, facFilter, scheduleArr, dayNum){
-  const wd = dateStr ? weekdayForDateStr(dateStr) : (dayNum || null);
+  const wd = dayNum || (dateStr ? weekdayForDateStr(dateStr) : null);
   if(wd === null) return null;
   const facKey = facFilter ? normFacultyKey(facFilter) : null;
   return scheduleArr.filter(c => c.day === wd && (!facKey || normFacultyKey(c.faculty) === facKey)).length;
@@ -2892,6 +2930,7 @@ document.getElementById('filterDayEE').addEventListener('change', ()=> loadRecor
 document.getElementById('clearFiltersEE').addEventListener('click', ()=>{
   document.getElementById('filterFacultyEE').value = "";
   document.getElementById('filterDateEE').value = "";
+  document.getElementById('filterDateEE').dispatchEvent(new Event('blur'));
   document.getElementById('filterDayEE').value = "";
   loadRecordsTable('EE');
 });
@@ -2903,6 +2942,7 @@ document.getElementById('filterDayCE').addEventListener('change', ()=> loadRecor
 document.getElementById('clearFiltersCE').addEventListener('click', ()=>{
   document.getElementById('filterFacultyCE').value = "";
   document.getElementById('filterDateCE').value = "";
+  document.getElementById('filterDateCE').dispatchEvent(new Event('blur'));
   document.getElementById('filterDayCE').value = "";
   loadRecordsTable('CE');
 });
@@ -3644,6 +3684,7 @@ function populateReportTimeOptions(){
   if(starts.includes(prevVal)) sel.value = prevVal;
 }
 document.getElementById('reportDept').addEventListener('change', populateReportTimeOptions);
+
 populateReportTimeOptions();
 
 async function generateNonComplianceReport(){
@@ -3656,7 +3697,7 @@ async function generateNonComplianceReport(){
 
   if(!dateStr && !daySel){
     statusEl.className = 'upload-status err';
-    statusEl.textContent = 'Pick a day.';
+    statusEl.textContent = 'Pick a date or a day.';
     return;
   }
 
