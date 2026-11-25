@@ -1408,6 +1408,7 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
         <input type="text" id="fmdSearch" placeholder="Search code, course, dept, class…" style="min-width:210px;">
         <button class="btn primary" id="fmdUploadBtn" type="button" title="Upload the standard Excel sheet">📥 Upload Excel</button>
         <button class="btn" id="fmdTemplateBtn" type="button">⬇ Template</button>
+        <button class="btn" id="fmdPrintBtn" type="button" title="Print the FMs Demand report (respects the search box)">🖨 Print Report</button>
       </div>
       <div style="font-size:12px; color:var(--muted); flex-basis:100%;">
         <span class="odf-pill open">open</span> = no FM assigned yet &nbsp;
@@ -4836,6 +4837,70 @@ document.getElementById('fmdUploadBtn')?.addEventListener('click', ()=>{
   document.getElementById('odDemandGlobalInput').click();
 });
 document.getElementById('fmdTemplateBtn')?.addEventListener('click', ()=> odDemandDownloadTemplate());
+
+// ── Print report for "FMs Demand (Other Depts)" ─────────────────────────────
+function printFmDemand(){
+  fmdEnsureStore();
+  const q = (document.getElementById('fmdSearch')?.value || '').trim().toLowerCase();
+  const all = lists.fmDemand.map(e => ({e, sec: fmdSecInfo(e), dept: (e.dept||'').trim()}));
+  if(!all.length){ alert('There are no FMs Demand courses to print.'); return; }
+  const rows = all.filter(g=>{
+    if(!q) return true;
+    return [g.e.code, g.e.name, g.dept, ...g.sec.items.map(i=>i.name+' '+(i.fm||''))].join(' ').toLowerCase().includes(q);
+  }).sort((a,b)=>{
+    const da = a.dept || '\uFFFF', db = b.dept || '\uFFFF';
+    if(da !== db) return da.localeCompare(db);
+    return lists.fmDemand.indexOf(a.e) - lists.fmDemand.indexOf(b.e);
+  });
+  if(!rows.length){ alert('No courses match your search.'); return; }
+  let totSec=0, totTaken=0;
+  rows.forEach(g=>{ totSec += g.sec.count; totTaken += g.sec.takenCount; });
+  const deptCount = {};
+  rows.forEach(g=>{ const d = g.dept || 'Unspecified'; deptCount[d] = (deptCount[d]||0) + 1; });
+  const hasCr = v => v!==undefined && v!=='' && v!==null;
+  const css = PRINT_CSS_PROGRAM + `
+    thead{display:table-header-group !important;}
+    .odf-dept td{background:#1F3D5A !important;color:#fff;font-family:'Source Serif 4',serif;font-size:11pt;font-weight:600;padding:7px;}
+    .odf-dept .cnt{float:right;font-family:'IBM Plex Mono',monospace;font-size:9pt;font-weight:500;}
+    .pill{display:inline-block;margin:1px 4px 2px 0;padding:1px 7px;border-radius:9px;font-size:8.5pt;border:1px solid #C9D3E0;}
+    .pill.taken{background:#E9F2FF;color:#16243B;}
+    .pill.open{background:#E3F4EE;color:#047857;border-color:#059669;font-weight:600;}
+    .legend{font-size:8.5pt;color:#3C4A60;margin-bottom:12px;}
+    @media print{thead{display:table-header-group !important;} .odf-dept{page-break-after:avoid;} tr{page-break-inside:avoid;}}
+  `;
+  let body = '', last = null;
+  rows.forEach(g=>{
+    const e = g.e, dName = g.dept || 'Unspecified';
+    if(dName !== last){
+      last = dName;
+      body += `<tr class="odf-dept"><td colspan="6">Demanded by: ${escHtml(dName)}<span class="cnt">${deptCount[dName]} course${deptCount[dName]===1?'':'s'}</span></td></tr>`;
+    }
+    const pills = g.sec.items.length ? g.sec.items.map(i=> i.taken
+      ? `<span class="pill taken">${escHtml(i.name)}${i.fm ? ' — '+escHtml(i.fm) : ''}</span>`
+      : `<span class="pill open">${escHtml(i.name)} — open</span>`).join('') : '—';
+    body += `<tr>
+      <td style="white-space:nowrap;font-family:'IBM Plex Mono',monospace;font-size:8.5pt;">${escHtml(e.code||'—')}</td>
+      <td>${escHtml(e.name||'—')}</td>
+      <td>${escHtml(dName)}</td>
+      <td>${hasCr(e.cr) ? escHtml(String(e.cr)) : '—'}</td>
+      <td style="text-align:center;">${g.sec.count || '—'}</td>
+      <td>${pills}</td>
+    </tr>`;
+  });
+  const html = `<!doctype html><html><head><meta charset="utf-8"><title>FMs Demand — ${SEM.label}</title><style>${css}</style></head><body>
+    <h1>FMs Demand by Other Departments</h1>
+    <div class="sub">Department of Electrical Engineering &nbsp;·&nbsp; ${SEM.label} &nbsp;·&nbsp; Generated ${new Date().toLocaleDateString()}${q ? ' &nbsp;·&nbsp; Filter: ' + escHtml(q) : ''}</div>
+    <div class="summary-bar">${rows.length} course${rows.length===1?'':'s'} &nbsp;·&nbsp; ${Object.keys(deptCount).length} department${Object.keys(deptCount).length===1?'':'s'}${totSec ? ' &nbsp;·&nbsp; ' + totTaken + ' of ' + totSec + ' classes have an FM assigned' : ''}</div>
+    <div class="legend"><span class="pill taken">confirmed</span> FM recorded in Course Loading &nbsp; <span class="pill open">open</span> no FM assigned yet</div>
+    <table>
+      <thead><tr><th style="width:10%">Code</th><th style="width:25%">Course Name</th><th style="width:14%">Demanded By</th><th style="width:5%">Cr</th><th style="width:8%;text-align:center">Sections</th><th>Classes / Sections</th></tr></thead>
+      <tbody>${body}</tbody>
+    </table>
+  </body></html>`;
+  openPrintWindow(html);
+}
+document.getElementById('fmdPrintBtn')?.addEventListener('click', printFmDemand);
+
 
 function renderAll(){
   withScrollPreserved(()=>{ renderDetail(); renderSummary(); renderSection(); renderStatCards(); renderSummaryToolbarLabels(); renderOtherDeptFms(); renderFmDemand(); });
